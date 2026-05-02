@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+*.pyc
+tools/oda_file_converter_pkg/
+assets/cad/ODAFileConverter_arm64.pkg
+assets/cad/oda_in/

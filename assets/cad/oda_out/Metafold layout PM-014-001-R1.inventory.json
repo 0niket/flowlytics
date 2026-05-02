@@ -1,0 +1,3214 @@
+{
+  "source": "assets/cad/oda_out/Metafold layout PM-014-001-R1.dxf",
+  "layers_count": 84,
+  "layers": [
+    "0",
+    "1",
+    "11000_Left",
+    "2 nb",
+    "271",
+    "5MM_PLATE",
+    "6nb",
+    "ACHSEN",
+    "AIR PIPE",
+    "AM_5",
+    "ATS-MITTE",
+    "ATS-UNSICHTBAR",
+    "ATS-VOLLINIE",
+    "Air input",
+    "BEMASSUNG",
+    "BUSH",
+    "Baugruppe",
+    "Beam 150x75",
+    "Beam 200",
+    "C1",
+    "CABLE TRAY",
+    "CACHE",
+    "CENTRE LINE",
+    "COTATION",
+    "Conveyor_PF 1",
+    "Conveyor_free",
+    "Conveyor_power 1",
+    "Conveyor_power 2",
+    "DOG PLATE",
+    "DUENN",
+    "Defpoints",
+    "D\u00dcNN",
+    "ELEKTRIK",
+    "ENDSCHALTER",
+    "FESTO",
+    "FREE-6M",
+    "HIDDEN",
+    "HIDDEN LINE",
+    "L",
+    "LEADING DOG FRONT",
+    "LEADING DOG REAR",
+    "Laufwerke",
+    "MITTE",
+    "MIXTE",
+    "MOTOR",
+    "M_Klinke",
+    "M_Klinke_gedr\u00fcckt",
+    "Mitnehmerklinke",
+    "Nozzle",
+    "OUTLINE",
+    "PF2-6 m",
+    "PIPE",
+    "PL",
+    "POS",
+    "PPMODEL1",
+    "Power track",
+    "Riser Support",
+    "R\u00fcckhalteklinke",
+    "SCHRAFFUR",
+    "SHOP LAYOUT",
+    "SOLID",
+    "Schwei\u00dfnahht",
+    "Section",
+    "THICK",
+    "Tellerfeder",
+    "UNSICHTBAR",
+    "UNSICHTBAR-HER",
+    "VERBINDUNGSELEMENTE",
+    "VOLLINIE",
+    "VOLLLINIE",
+    "Verbindungstraverse",
+    "chain",
+    "chain con",
+    "cl",
+    "electtric city",
+    "hl",
+    "p25",
+    "p35",
+    "p5",
+    "p7",
+    "sl",
+    "sm",
+    "stru pipe",
+    "txt"
+  ],
+  "entity_type_counts": {
+    "LINE": 909,
+    "INSERT": 415,
+    "ARC": 412,
+    "MTEXT": 291,
+    "DIMENSION": 198,
+    "LWPOLYLINE": 99,
+    "TEXT": 40,
+    "CIRCLE": 31,
+    "LEADER": 27,
+    "HATCH": 12,
+    "WIPEOUT": 6
+  },
+  "entity_layer_counts_top_50": [
+    {
+      "layer": "0",
+      "count": 1271
+    },
+    {
+      "layer": "DUENN",
+      "count": 225
+    },
+    {
+      "layer": "cl",
+      "count": 118
+    },
+    {
+      "layer": "VOLLINIE",
+      "count": 89
+    },
+    {
+      "layer": "CENTRE LINE",
+      "count": 83
+    },
+    {
+      "layer": "Beam 200",
+      "count": 81
+    },
+    {
+      "layer": "UNSICHTBAR",
+      "count": 67
+    },
+    {
+      "layer": "Power track",
+      "count": 65
+    },
+    {
+      "layer": "MITTE",
+      "count": 52
+    },
+    {
+      "layer": "chain",
+      "count": 44
+    },
+    {
+      "layer": "PF2-6 m",
+      "count": 43
+    },
+    {
+      "layer": "ENDSCHALTER",
+      "count": 42
+    },
+    {
+      "layer": "Beam 150x75",
+      "count": 32
+    },
+    {
+      "layer": "Air input",
+      "count": 28
+    },
+    {
+      "layer": "electtric city",
+      "count": 28
+    },
+    {
+      "layer": "sm",
+      "count": 28
+    },
+    {
+      "layer": "ATS-MITTE",
+      "count": 27
+    },
+    {
+      "layer": "hl",
+      "count": 16
+    },
+    {
+      "layer": "CABLE TRAY",
+      "count": 15
+    },
+    {
+      "layer": "AIR PIPE",
+      "count": 13
+    },
+    {
+      "layer": "ATS-UNSICHTBAR",
+      "count": 10
+    },
+    {
+      "layer": "PPMODEL1",
+      "count": 10
+    },
+    {
+      "layer": "sl",
+      "count": 9
+    },
+    {
+      "layer": "1",
+      "count": 8
+    },
+    {
+      "layer": "HIDDEN LINE",
+      "count": 7
+    },
+    {
+      "layer": "BEMASSUNG",
+      "count": 6
+    },
+    {
+      "layer": "Conveyor_PF 1",
+      "count": 6
+    },
+    {
+      "layer": "FREE-6M",
+      "count": 5
+    },
+    {
+      "layer": "p7",
+      "count": 5
+    },
+    {
+      "layer": "SOLID",
+      "count": 3
+    },
+    {
+      "layer": "Baugruppe",
+      "count": 1
+    },
+    {
+      "layer": "HIDDEN",
+      "count": 1
+    },
+    {
+      "layer": "POS",
+      "count": 1
+    },
+    {
+      "layer": "chain con",
+      "count": 1
+    }
+  ],
+  "text_labels_count": 330,
+  "text_labels": [
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "PCO",
+      "x": 803303.0293669275,
+      "y": 89967.61563956135,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS16",
+      "x": 799616.0354055092,
+      "y": 87258.71027738138,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS15",
+      "x": 809685.5563700487,
+      "y": 87182.15661391479,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS12",
+      "x": 775890.1043984672,
+      "y": 90584.91232312396,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "WDO",
+      "x": 750480.3728817906,
+      "y": 88347.18655600582,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS10",
+      "x": 747418.9696795971,
+      "y": 88482.13278309838,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS9",
+      "x": 759171.0661171529,
+      "y": 88559.54629317852,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "PROCESS TANK ZONE",
+      "x": 736056.4650787998,
+      "y": 81010.58104411437,
+      "rotation": 90.0,
+      "height": 375.0
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS07",
+      "x": 739390.9932276323,
+      "y": 89659.6558083797,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS05",
+      "x": 739390.9932276323,
+      "y": 87219.6558083797,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS03",
+      "x": 739390.9932276323,
+      "y": 84779.6558083797,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS01",
+      "x": 739425.2898043517,
+      "y": 82396.58202390262,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "DRIVE UNIT",
+      "x": 747974.6225220556,
+      "y": 84412.78239087129,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS13",
+      "x": 765607.9846874096,
+      "y": 90516.66663534596,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS11",
+      "x": 775205.3248919398,
+      "y": 87450.76356477023,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS20",
+      "x": 751317.7424586394,
+      "y": 77940.01418961165,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "TENSION UNIT",
+      "x": 745543.4223007245,
+      "y": 85874.75057014555,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "(GRAVITY TYPE)",
+      "x": 745479.9106523122,
+      "y": 85166.64335478086,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS18",
+      "x": 775938.1541640111,
+      "y": 80324.88037492955,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "p7",
+      "text": "SUPPORT LAYOUT",
+      "x": 731771.7778394708,
+      "y": 97615.98614215074,
+      "rotation": 0.0,
+      "height": 750.0
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 737222.1042889156,
+      "y": 92583.80665831875,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 739137.133915583,
+      "y": 92921.88680664846,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 743762.6750794046,
+      "y": 84300.66232443484,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 743918.6804901313,
+      "y": 86536.4508620149,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 746839.3797234038,
+      "y": 88102.18633578205,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 748862.8345996102,
+      "y": 88478.7407322696,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 761402.1677569789,
+      "y": 87414.1113264605,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 762619.5213948674,
+      "y": 88631.21853377903,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 778024.4752448868,
+      "y": 88479.33456279174,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 767609.9276976527,
+      "y": 93673.40141251044,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 769545.0239961647,
+      "y": 94009.96862510363,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 776403.315005837,
+      "y": 83963.66598948592,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 776345.1696178301,
+      "y": 81909.71207344734,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 750928.1496170239,
+      "y": 79774.06743589678,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 750935.308459129,
+      "y": 82042.73987725697,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "MAINTENENCE TRACK FOR TROLLEY",
+      "x": 795388.6569639504,
+      "y": 93006.16182503945,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "CONTROL PANNEL",
+      "x": 754787.6216829207,
+      "y": 83566.09572956653,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 795906.9524377201,
+      "y": 90057.17980230029,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 795819.5334658938,
+      "y": 88082.94657443113,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 802625.8563984099,
+      "y": 87358.00276560686,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 800604.2543814182,
+      "y": 87668.91337372106,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS14",
+      "x": 795425.7978464509,
+      "y": 91763.70480855343,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS17",
+      "x": 780140.3084980773,
+      "y": 86340.593171741,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "5 bar pressure dry air required",
+      "x": 777907.3381147461,
+      "y": 76499.38499471534,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "Maintanance Track",
+      "x": 732810.1093347878,
+      "y": 72811.63308797355,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 762020.3602180715,
+      "y": 80214.94798448766,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 761962.2148300646,
+      "y": 82367.7416750879,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3573",
+      "x": 747485.3410777921,
+      "y": 76851.031558524,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 747490.7094307939,
+      "y": 79228.16129722567,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "TEXT",
+      "layer": "p7",
+      "text": "PRIMEMATE TECHNOLOGIES PVT.LTD.",
+      "x": 734783.9912535851,
+      "y": 61839.22132963879,
+      "rotation": 0.0,
+      "height": 170.9938980480612
+    },
+    {
+      "type": "TEXT",
+      "layer": "p7",
+      "text": "GAT.NO.102,JYOTIBANAGAR,TALAWADE",
+      "x": 734795.6799826393,
+      "y": 61582.48691465551,
+      "rotation": 0.0,
+      "height": 113.9959320320408
+    },
+    {
+      "type": "TEXT",
+      "layer": "p7",
+      "text": "PCMC,PUNE - 62",
+      "x": 734795.6799826393,
+      "y": 61313.64463363939,
+      "rotation": 0.0,
+      "height": 113.9959320320408
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "FL+0.0",
+      "x": 764494.029062945,
+      "y": 43264.95795179991,
+      "rotation": 0.0,
+      "height": 59.0707283272036
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PITCH SHOULD BE MAINTAIN IN PARALAL TRACK",
+      "x": 753416.0435261378,
+      "y": 49613.76823843335,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "BUFFER",
+      "x": 764409.6727869507,
+      "y": 84098.48094534458,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS08",
+      "x": 731388.3580765489,
+      "y": 89712.89727400761,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS06",
+      "x": 731365.8580765489,
+      "y": 87235.39727400761,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS04",
+      "x": 731348.5581757608,
+      "y": 84757.89727400761,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS02",
+      "x": 731400.6283655625,
+      "y": 82545.75484087915,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS19",
+      "x": 765865.5917435517,
+      "y": 80327.4893799159,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS21",
+      "x": 731484.1900026563,
+      "y": 79546.24433146164,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "AS22",
+      "x": 739258.1646887881,
+      "y": 80063.10845709982,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "HANGER LOADING",
+      "x": 733632.609142798,
+      "y": 78792.15702988641,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "HANGER UNLOADING",
+      "x": 754211.7108951551,
+      "y": 80136.27558400508,
+      "rotation": 0.0,
+      "height": 390.5237411929783
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-RH",
+      "x": 799568.6079371182,
+      "y": 93006.16182503945,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SELF ACTUATING SWITCH-RH",
+      "x": 799321.3877522374,
+      "y": 84228.67313946487,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-LH",
+      "x": 777606.9676377698,
+      "y": 87212.193149901,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SELF ACTUATING SWITCH-RH",
+      "x": 766455.1097488814,
+      "y": 76282.89600438498,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-LH",
+      "x": 746978.769032837,
+      "y": 79589.10111000016,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-RH",
+      "x": 739418.6470451811,
+      "y": 77955.32346403087,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SELF ACTUATING SWITCH-RH",
+      "x": 738077.4423389083,
+      "y": 90279.49834131874,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-RH",
+      "x": 749251.8536604205,
+      "y": 92402.94783628709,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SELF ACTUATING SWITCH-LH",
+      "x": 758193.7827709921,
+      "y": 85558.3732220733,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "PNUEMATIC OPERATED SWITCH-LH",
+      "x": 768085.459047792,
+      "y": 88117.150960861,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SELF ACTUATING SWITCH-RH",
+      "x": 778814.1134795031,
+      "y": 92273.67739473768,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "GRAVITY TYPE TAKE-UP",
+      "x": 755434.7440031084,
+      "y": 92312.65879040046,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "GRAVITY TYPE TAKE-UP",
+      "x": 805338.5968990353,
+      "y": 92194.2048029598,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "CHAIN EXIT R1000x45%%D",
+      "x": 808388.662666726,
+      "y": 84744.93543771823,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "CHAIN EXCHANGE R1000x45%%D",
+      "x": 751592.407859722,
+      "y": 80703.27917010826,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "SENSOR",
+      "x": 729391.2464512858,
+      "y": 88714.96022378438,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4034",
+      "x": 775943.209819438,
+      "y": 88804.93008303654,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;ITEM NO.}",
+      "x": 734843.1295113649,
+      "y": 70470.42663538206,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;DESCRIPTON}",
+      "x": 735538.2683310545,
+      "y": 70470.42663538206,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TYPE}",
+      "x": 736556.5356576693,
+      "y": 70470.42663538206,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;QTY.}",
+      "x": 738724.7614737859,
+      "y": 70470.42663538206,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BEND RADIOUS}",
+      "x": 737892.6756653513,
+      "y": 70468.7513394028,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;LENGTH}",
+      "x": 737453.3559275053,
+      "y": 70470.42663538206,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BEND ANGLE}",
+      "x": 738329.0902686182,
+      "y": 70468.7513394028,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "1",
+      "x": 734843.1295113649,
+      "y": 70202.1987309893,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "2",
+      "x": 734843.1295113667,
+      "y": 70033.2894052965,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BEND}",
+      "x": 736749.6043283108,
+      "y": 70202.1987309907,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;10}",
+      "x": 738743.5321996761,
+      "y": 70202.19873099023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BEND}",
+      "x": 736749.6043283108,
+      "y": 70033.28940529743,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;10}",
+      "x": 738743.5321996761,
+      "y": 70033.28940529696,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER & FREE TRACK}",
+      "x": 735641.7589993248,
+      "y": 70202.19873099023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER & FREE TRACK}",
+      "x": 735641.7589993257,
+      "y": 70033.2894052965,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797998,
+      "y": 70202.19873098999,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;90%%D}",
+      "x": 738343.0205145086,
+      "y": 70202.19873099023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797998,
+      "y": 70033.28940529672,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738343.0205145086,
+      "y": 70033.28940529696,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287792,
+      "y": 70202.19873098977,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287792,
+      "y": 70033.28940529696,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "6",
+      "x": 734843.1295113668,
+      "y": 69356.91271088646,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "32",
+      "x": 734843.129511367,
+      "y": 63929.22306570267,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69356.91271088786,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69356.91271088786,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 69356.91271088786,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69356.91271088926,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69356.91271088808,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;121%%D}",
+      "x": 738343.0205145087,
+      "y": 69356.91271088833,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.502547121,
+      "y": 63929.22306570453,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;03}",
+      "x": 738722.4799042231,
+      "y": 63929.22306570453,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TENSION UNIT GRAVITY TYPE}",
+      "x": 735466.5386498576,
+      "y": 63876.14222579864,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;180%%D}",
+      "x": 738359.9333499258,
+      "y": 63929.22306570499,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471206,
+      "y": 63271.08698992395,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737443.9564893063,
+      "y": 63271.08698992395,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042227,
+      "y": 63271.08698992395,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;DRIVE UNIT}",
+      "x": 735364.5499271915,
+      "y": 63271.08698992534,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737921.2016960004,
+      "y": 63271.08698992417,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 738359.9333499253,
+      "y": 63271.08698992441,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.201696001,
+      "y": 63929.22306570521,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "34",
+      "x": 734843.1295113665,
+      "y": 63271.08698992255,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471211,
+      "y": 66485.45417411062,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737443.9564893069,
+      "y": 66485.45417411062,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042232,
+      "y": 66485.45417411062,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499259,
+      "y": 66485.45417411109,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "23",
+      "x": 734843.1295113671,
+      "y": 66485.45417410923,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960008,
+      "y": 66485.4541741113,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;CHAIN EXCHANGE}",
+      "x": 735514.2881423219,
+      "y": 66485.45417411198,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BOM FOR LAYOUT}",
+      "x": 735491.7029270171,
+      "y": 70975.01095993479,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "5",
+      "x": 734843.1295113668,
+      "y": 69525.82203657915,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69525.82203658055,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69525.82203658055,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 69525.82203658055,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69525.82203658194,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69525.82203658076,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;28%%D}",
+      "x": 738343.0205145087,
+      "y": 69525.82203658101,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "4",
+      "x": 734843.1295113668,
+      "y": 69694.73136227184,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69694.73136227323,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69694.73136227323,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;14}",
+      "x": 738743.5321996763,
+      "y": 69694.73136227323,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69694.73136227463,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69694.73136227345,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;90%%D}",
+      "x": 738343.0205145087,
+      "y": 69694.7313622737,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "3",
+      "x": 734843.1295113668,
+      "y": 69863.64068796452,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69863.64068796592,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69863.64068796592,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;02}",
+      "x": 738743.5321996763,
+      "y": 69863.64068796592,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69863.64068796732,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69863.64068796614,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;35%%D}",
+      "x": 738343.0205145087,
+      "y": 69863.64068796638,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "9",
+      "x": 734843.1295113668,
+      "y": 68850.18473380822,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 68850.18473380961,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 68850.18473380961,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;04}",
+      "x": 738743.5321996763,
+      "y": 68850.18473380961,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 68850.18473381101,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 68850.18473380983,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;180%%D}",
+      "x": 738343.0205145087,
+      "y": 68850.18473381008,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "8",
+      "x": 734843.1295113668,
+      "y": 69019.0940595009,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69019.0940595023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69019.0940595023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 69019.0940595023,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69019.0940595037,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69019.09405950252,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;127%%D}",
+      "x": 738343.0205145087,
+      "y": 69019.09405950276,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "7",
+      "x": 734843.1295113668,
+      "y": 69188.00338519359,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 69188.00338519498,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 69188.00338519498,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 69188.00338519498,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 69188.00338519638,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 69188.0033851952,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;53%%D}",
+      "x": 738343.0205145087,
+      "y": 69188.00338519545,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "11",
+      "x": 734843.1295113668,
+      "y": 68512.36608242331,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 68512.3660824247,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 68512.3660824247,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 68512.3660824247,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 68512.3660824261,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 68512.36608242492,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;50}",
+      "x": 738343.0205145087,
+      "y": 68512.36608242517,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "10",
+      "x": 734843.1295113668,
+      "y": 68681.275408116,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 68681.27540811739,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 68681.27540811739,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 68681.27540811739,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 68681.27540811879,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 68681.27540811761,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;130%%D}",
+      "x": 738343.0205145087,
+      "y": 68681.27540811786,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "13",
+      "x": 734843.1295113668,
+      "y": 68174.54743103775,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 68174.54743103914,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 68174.54743103914,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996763,
+      "y": 68174.54743103914,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 68174.54743104054,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 68174.54743103936,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738343.0205145087,
+      "y": 68174.54743103961,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "12",
+      "x": 734843.1295113668,
+      "y": 68343.45675673043,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.502547121,
+      "y": 68343.45675673183,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 68343.45675673183,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;02}",
+      "x": 738743.5321996763,
+      "y": 68343.45675673183,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 68343.45675673323,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 68343.45675673205,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;11%%D}",
+      "x": 738343.0205145087,
+      "y": 68343.4567567323,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "14",
+      "x": 734843.1295113667,
+      "y": 68005.63810534506,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;VERTICAL BEND}",
+      "x": 736713.116545615,
+      "y": 68005.63810534646,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287792,
+      "y": 68005.63810534646,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;12}",
+      "x": 738743.5321996761,
+      "y": 68005.63810534646,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074937,
+      "y": 68005.63810534785,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797998,
+      "y": 68005.63810534668,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;26%%D}",
+      "x": 738343.0205145086,
+      "y": 68005.63810534692,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "15",
+      "x": 734843.129511367,
+      "y": 67836.72877965237,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.5025471211,
+      "y": 67836.72877965377,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287795,
+      "y": 67836.72877965377,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996764,
+      "y": 67836.72877965377,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074939,
+      "y": 67836.72877965517,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788798,
+      "y": 67836.72877965399,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;50}",
+      "x": 738343.0205145088,
+      "y": 67836.72877965424,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "17",
+      "x": 734843.129511367,
+      "y": 67498.91012826681,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.5025471211,
+      "y": 67498.91012826821,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287795,
+      "y": 67498.91012826821,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996764,
+      "y": 67498.91012826821,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074939,
+      "y": 67498.9101282696,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788798,
+      "y": 67498.91012826843,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738343.0205145088,
+      "y": 67498.91012826868,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "16",
+      "x": 734843.129511367,
+      "y": 67667.8194539595,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HORIZONTAL BEND}",
+      "x": 736782.5025471211,
+      "y": 67667.8194539609,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287795,
+      "y": 67667.8194539609,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;02}",
+      "x": 738743.5321996764,
+      "y": 67667.8194539609,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074939,
+      "y": 67667.8194539623,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788798,
+      "y": 67667.81945396111,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;11%%D}",
+      "x": 738343.0205145088,
+      "y": 67667.81945396136,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "18",
+      "x": 734843.1295113668,
+      "y": 67330.00080257413,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;VERTICAL BEND}",
+      "x": 736713.1165456151,
+      "y": 67330.00080257552,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287793,
+      "y": 67330.00080257552,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;12}",
+      "x": 738743.5321996763,
+      "y": 67330.00080257552,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735481.7127074938,
+      "y": 67330.00080257692,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788797999,
+      "y": 67330.00080257574,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;26%%D}",
+      "x": 738343.0205145087,
+      "y": 67330.00080257599,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "20",
+      "x": 734843.129511365,
+      "y": 66992.1821511906,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER & FREE TRACK}",
+      "x": 735653.0887272612,
+      "y": 66992.1821511906,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;STRAIGHT}",
+      "x": 736675.6633623391,
+      "y": 66992.1821511906,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;191927}",
+      "x": 737461.0199287793,
+      "y": 66992.1821511906,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;FREE TRACK}",
+      "x": 735436.7691151523,
+      "y": 66823.2728254978,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;STRAIGHT}",
+      "x": 736675.663362339,
+      "y": 66823.27282549733,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "21",
+      "x": 734843.129511365,
+      "y": 66823.27282549738,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;32003}",
+      "x": 737461.0199287793,
+      "y": 66823.27282549755,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;FREE TRACK}",
+      "x": 735436.7691151524,
+      "y": 67161.09147688317,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;BEND}",
+      "x": 736675.6633623391,
+      "y": 67161.0914768827,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "19",
+      "x": 734843.1295113651,
+      "y": 67161.09147688275,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737461.0199287795,
+      "y": 67161.09147688292,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737888.7788798,
+      "y": 67161.09147688233,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738343.0205145088,
+      "y": 67161.09147688258,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738743.5321996761,
+      "y": 67161.09147688218,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;POWER TRACK}",
+      "x": 735436.7691151523,
+      "y": 66654.36349980491,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;STRAIGHT}",
+      "x": 736675.663362339,
+      "y": 66654.36349980444,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "22",
+      "x": 734843.129511365,
+      "y": 66654.36349980449,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;94850}",
+      "x": 737461.0199287793,
+      "y": 66654.36349980466,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "24",
+      "x": 734843.1295113668,
+      "y": 66316.5448484176,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471209,
+      "y": 66288.63014526476,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;03}",
+      "x": 738722.479904223,
+      "y": 66259.92237783954,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;PNUEMATIC OPERATED SWITCH LH}",
+      "x": 735642.5856286197,
+      "y": 66238.38213402996,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960008,
+      "y": 66259.92237783976,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499257,
+      "y": 66259.92237784,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "25",
+      "x": 734843.1295113666,
+      "y": 65978.72619703178,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471207,
+      "y": 65950.81149387894,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042228,
+      "y": 65922.10372645372,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;PNUEMATIC OPERATED SWITCH RH}",
+      "x": 735642.5856286194,
+      "y": 65900.56348264414,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960005,
+      "y": 65922.10372645393,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499254,
+      "y": 65922.10372645418,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "26",
+      "x": 734843.1295113666,
+      "y": 65640.90754564595,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471207,
+      "y": 65612.99284249311,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;04}",
+      "x": 738722.4799042228,
+      "y": 65584.28507506789,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;SELF ACTUATING SWITCH RH}",
+      "x": 735642.5856286194,
+      "y": 65562.74483125831,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960005,
+      "y": 65584.28507506811,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499254,
+      "y": 65584.28507506836,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "27",
+      "x": 734843.1295113666,
+      "y": 65303.08889426013,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471207,
+      "y": 65275.17419110729,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042228,
+      "y": 65246.46642368207,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;SELF ACTUATING SWITCH LH}",
+      "x": 735642.5856286194,
+      "y": 65224.92617987249,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960005,
+      "y": 65246.46642368229,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499254,
+      "y": 65246.46642368253,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "29",
+      "x": 734843.1295113666,
+      "y": 64627.45159148848,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471207,
+      "y": 64631.75017371184,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042228,
+      "y": 64627.45159149035,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;CHAIN EXITE}",
+      "x": 735642.5856286194,
+      "y": 64626.91161228674,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960005,
+      "y": 64627.45159149056,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499254,
+      "y": 64627.45159149081,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "CHAIN EXIT R1000x45%%D",
+      "x": 731972.147437512,
+      "y": 94207.70611275602,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "30",
+      "x": 734843.129511367,
+      "y": 64435.7460966942,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.502547121,
+      "y": 64440.04467891756,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;18}",
+      "x": 738722.4799042231,
+      "y": 64435.74609669606,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;STOPPER}",
+      "x": 735642.5856286198,
+      "y": 64435.20611749246,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737921.2016960009,
+      "y": 64435.74609669628,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 738359.9333499258,
+      "y": 64435.74609669653,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "33",
+      "x": 734843.129511367,
+      "y": 63612.07899750519,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.502547121,
+      "y": 63612.07899750705,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;03}",
+      "x": 738722.4799042231,
+      "y": 63612.07899750705,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TENSION UNIT TAKEUP SCREW TYPE}",
+      "x": 735598.5431043823,
+      "y": 63558.99815760116,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;180%%D}",
+      "x": 738359.9333499258,
+      "y": 63612.07899750752,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.201696001,
+      "y": 63612.07899750774,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TENSION UNIT TAKEUP SCREW TYPE}",
+      "x": 742322.6936048011,
+      "y": 94426.4595819945,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TENSION UNIT TAKEUP SCREW TYPE}",
+      "x": 772317.5220169015,
+      "y": 87748.75469581944,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;TENSION UNIT TAKEUP SCREW TYPE}",
+      "x": 773315.4196788039,
+      "y": 81199.03687911935,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471206,
+      "y": 63024.8283147505,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737443.9564893063,
+      "y": 63024.8283147505,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;22}",
+      "x": 738722.4799042227,
+      "y": 63024.8283147505,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;HANGERS}",
+      "x": 735364.5499271915,
+      "y": 63024.8283147519,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737921.2016960004,
+      "y": 63024.82831475072,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 738359.9333499253,
+      "y": 63024.82831475096,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "35",
+      "x": 734843.1295113665,
+      "y": 63024.8283147491,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "LUBRICATION UNIT",
+      "x": 735172.3749087892,
+      "y": 62721.99864163944,
+      "rotation": 0.0,
+      "height": 73.77670286505676
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "TRACK SUSPENSIONS",
+      "x": 735160.4285078045,
+      "y": 62478.58555107967,
+      "rotation": 0.0,
+      "height": 73.77670286505676
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042228,
+      "y": 62778.56963957705,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042227,
+      "y": 62532.3109644036,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "36",
+      "x": 734843.1295113665,
+      "y": 62778.56963957566,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "37",
+      "x": 734843.1295113666,
+      "y": 62532.3109644022,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471203,
+      "y": 64937.35553972147,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "28",
+      "x": 734843.1295113664,
+      "y": 64965.27024287431,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;02}",
+      "x": 738722.4799042225,
+      "y": 64908.64777229624,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;PNUEMATIC OPERATED SWITCH RH- FOR OWN}",
+      "x": 735642.5856286192,
+      "y": 64887.10752848667,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;R-1000}",
+      "x": 737921.2016960003,
+      "y": 64908.64777229646,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;45%%D}",
+      "x": 738359.9333499252,
+      "y": 64908.64777229671,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "31",
+      "x": 734843.1295113672,
+      "y": 64244.04060189992,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 736782.5025471213,
+      "y": 64248.33918412328,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;04}",
+      "x": 738722.4799042233,
+      "y": 64244.04060190178,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;STOPPER-FOR OWN}",
+      "x": 735642.58562862,
+      "y": 64243.50062269818,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 737921.2016960011,
+      "y": 64244.040601902,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;-}",
+      "x": 738359.933349926,
+      "y": 64244.04060190225,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "TEXT",
+      "layer": "p7",
+      "text": "FFL +0.00",
+      "x": 741048.7777732848,
+      "y": 43250.58234749615,
+      "rotation": 0.0,
+      "height": 187.5
+    },
+    {
+      "type": "TEXT",
+      "layer": "0",
+      "text": "CHAIN",
+      "x": 735160.4285078046,
+      "y": 62232.32687590622,
+      "rotation": 0.0,
+      "height": 73.77670286505676
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;01}",
+      "x": 738722.4799042228,
+      "y": 62286.05228923015,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "38",
+      "x": 734843.1295113667,
+      "y": 62286.05228922876,
+      "rotation": 0.0,
+      "height": null
+    },
+    {
+      "type": "MTEXT",
+      "layer": "0",
+      "text": "{\\Fisocp|c0;415260}",
+      "x": 737443.9564893063,
+      "y": 62286.05228923015,
+      "rotation": 0.0,
+      "height": null
+    }
+  ]
+}
