@@ -4,3 +4,4 @@ __pycache__/
 tools/oda_file_converter_pkg/
 assets/cad/ODAFileConverter_arm64.pkg
 assets/cad/oda_in/
+store/
