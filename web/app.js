@@ -2041,11 +2041,12 @@ function renderSuggestions() {
     // Apply button handler
     const applyBtn = card.querySelector(".suggestion-card__apply");
     applyBtn.addEventListener("click", () => {
+      // Apply changes → recompute simulation → updateResults() triggers:
+      //   - KPI cards update
+      //   - Station/Wagon/Loading metrics re-render
+      //   - Suggestions badge recalculates
+      //   - Drawer re-renders with fresh suggestions (since it's open)
       applySuggestion(sg);
-      applyBtn.textContent = "Applied \u2713";
-      applyBtn.classList.add("suggestion-card__apply--applied");
-      // Re-render suggestions after a short delay to show updated state
-      setTimeout(() => renderSuggestions(), 800);
     });
 
     body.appendChild(card);
