@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flowlytics - Pretreatment Transporter Simulator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- CONFIG PANEL (collapsible sidebar) -->
+      <aside class="config-panel" id="configPanel">
+        <div class="config-panel__header">
+          <div class="config-panel__title">Configuration</div>
+        </div>
+
+        <!-- Process Recipe -->
+        <details class="config-section config-section--details" open>
+          <summary class="config-section__header">
+            <span class="config-section__title">Process Recipe</span>
+            <span class="config-section__summary mono small" id="recipeSummary">12 tanks, MS</span>
+          </summary>
+          <div class="config-section__body">
+            <div class="field">
+              <label class="field__label" for="recipePreset">Preset</label>
+              <select id="recipePreset" class="field__control">
+                <option value="ms">Mild Steel (Example)</option>
+                <option value="al">Aluminum (Example)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="tankCount"># Tanks</label>
+                <input id="tankCount" class="field__control" type="number" min="3" max="20" step="1" value="12" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="dwellPreset">Tank dwell (min)</label>
+                <input id="dwellPreset" class="field__control" type="number" min="0" step="0.5" value="2" title="Default chemical dwell time per tank." />
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="wdoTimeMin" title="Water Dry-Off Oven time">WDO (min)</label>
+                <input id="wdoTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="tolerancePct" title="Dwell tolerance window">Tolerance (±%)</label>
+                <input id="tolerancePct" class="field__control" type="number" min="0" max="50" step="1" value="10" />
+              </div>
+            </div>
+
+            <div class="row">
+              <button id="applyDwellBtn" class="btn btn--sm" type="button">Apply to all tanks</button>
+            </div>
+
+            <details class="inner-details" id="tankOverridesDetails">
+              <summary class="inner-details__summary">Per-tank dwell overrides</summary>
+              <div class="tableWrap">
+                <table class="table" aria-label="Tank dwell times">
+                  <thead><tr><th>Step</th><th>Dwell (min)</th></tr></thead>
+                  <tbody id="tankTableBody"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </details>
+
+        <!-- Manual Operations -->
+        <details class="config-section config-section--details" open>
+          <summary class="config-section__header">
+            <span class="config-section__title">Manual Operations</span>
+            <span class="config-section__summary mono small" id="manualSummary">Load 20m, Unload 10m</span>
+          </summary>
+          <div class="config-section__body">
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="loadTimeMin">Load time (min)</label>
+                <input id="loadTimeMin" class="field__control" type="number" min="0" step="0.5" value="20" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="unloadTimeMin">Unload time (min)</label>
+                <input id="unloadTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="dripTimeSec" title="Drip/drag-out time after lifting">Drip / Drag-out (s)</label>
+              <input id="dripTimeSec" class="field__control" type="number" min="0" step="1" value="15" />
+            </div>
+          </div>
+        </details>
+
+        <!-- Transport -->
+        <details class="config-section config-section--details" open>
+          <summary class="config-section__header">
+            <span class="config-section__title">Transport</span>
+            <span class="config-section__summary mono small" id="transportSummary">1 wagon, 18 m/min</span>
+          </summary>
+          <div class="config-section__body">
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="wagonCount"># Wagons</label>
+                <input id="wagonCount" class="field__control" type="number" min="1" step="1" value="1" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="wagonSpeedMPerMin">Speed (m/min)</label>
+                <input id="wagonSpeedMPerMin" class="field__control" type="number" min="1" step="1" value="18" />
+              </div>
+            </div>
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="liftLowerSec">Lift+Lower (s)</label>
+                <input id="liftLowerSec" class="field__control" type="number" min="0" step="1" value="20" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="pickDropSec">Pick+Drop (s)</label>
+                <input id="pickDropSec" class="field__control" type="number" min="0" step="1" value="10" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="distanceMode">Distance model</label>
+              <select id="distanceMode" class="field__control">
+                <option value="manhattan">Rail (Manhattan)</option>
+                <option value="euclidean">Straight-line (Optimistic)</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <!-- Simulation Settings -->
+        <details class="config-section config-section--details" open>
+          <summary class="config-section__header">
+            <span class="config-section__title">Simulation</span>
+            <span class="config-section__summary mono small" id="simSettingsSummary">2.0 bph, 2hr</span>
+          </summary>
+          <div class="config-section__body">
+            <div class="grid2">
+              <div class="field">
+                <label class="field__label" for="targetBph">Target (baskets/hr)</label>
+                <input id="targetBph" class="field__control" type="number" min="0.1" step="0.1" value="2.0" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="simHours">Duration (hr)</label>
+                <input id="simHours" class="field__control" type="number" min="0.25" step="0.25" value="2" />
+              </div>
+            </div>
+            <div class="row">
+              <label class="toggle">
+                <input id="autoRun" type="checkbox" checked />
+                <span>Auto-run on change</span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <!-- Layout (Advanced) -->
+        <details class="config-section config-section--details">
+          <summary class="config-section__header">
+            <span class="config-section__title">Layout (Advanced)</span>
+          </summary>
+          <div class="config-section__body">
+            <div class="field">
+              <label class="field__label" for="layoutMode">Mode</label>
+              <select id="layoutMode" class="field__control">
+                <option value="synthetic">Synthetic (Default)</option>
+                <option value="dxf_labels">DXF Labels (From Files)</option>
+              </select>
+            </div>
+            <div class="row">
+              <button id="fetchDxfBtn" class="btn btn--sm" type="button">Fetch</button>
+              <button id="loadFilesBtn" class="btn btn--sm" type="button">Load files</button>
+            </div>
+            <div class="mono small" id="layoutStatus">Using synthetic layout.</div>
+          </div>
+        </details>
+      </aside>
+
+
+      <!-- MAIN DASHBOARD -->
+      <main class="dashboard">
+        <!-- Top Bar -->
+        <div class="topbar">
+          <div class="topbar__left">
+            <div class="topbar__brand">Flowlytics</div>
+            <div class="topbar__version mono small">Pretreatment Simulator</div>
+          </div>
+          <div class="topbar__right">
+            <button id="glossaryBtn" class="btn btn--sm" type="button">Glossary</button>
+            <button id="themeToggleBtn" class="btn btn--sm btn--icon" type="button" title="Toggle light/dark mode" aria-label="Toggle theme">&#9790;</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-row" id="kpiRow">
+          <div class="kpi-card kpi-card--primary">
+            <div class="kpi-card__label">Throughput</div>
+            <div class="kpi-card__value mono" id="kpiThroughput">-</div>
+            <div class="kpi-card__sub" id="kpiThroughputSub">target: -</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Avg Lead Time</div>
+            <div class="kpi-card__value mono" id="kpiLeadTime">-</div>
+            <div class="kpi-card__sub" id="kpiLeadTimeSub">-</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Bottleneck</div>
+            <div class="kpi-card__value mono" id="kpiBottleneck">-</div>
+            <div class="kpi-card__sub" id="kpiBottleneckSub">-</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Violations</div>
+            <div class="kpi-card__value mono" id="kpiViolations">0</div>
+            <div class="kpi-card__sub" id="kpiViolationsSub">dwell compliance</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Wagon Util</div>
+            <div class="kpi-card__value mono" id="kpiWagonUtil">-</div>
+            <div class="kpi-card__sub" id="kpiWagonUtilSub">avg across wagons</div>
+          </div>
+          <div class="kpi-card" id="kpiInventoryCard">
+            <div class="kpi-card__label">Optimal WIP</div>
+            <div class="kpi-card__value mono" id="kpiOptimalWip">-</div>
+            <div class="kpi-card__sub" id="kpiOptimalWipSub">baskets in system</div>
+          </div>
+        </div>
+
+        <!-- Component Metrics (tabbed) — PRIMARY CONTENT -->
+        <div class="metrics-panel">
+          <div class="metrics-tabs" role="tablist">
+            <button class="metrics-tab metrics-tab--active" role="tab" data-tab="stations" aria-selected="true">Stations</button>
+            <button class="metrics-tab" role="tab" data-tab="wagons" aria-selected="false">Wagons</button>
+            <button class="metrics-tab" role="tab" data-tab="loading" aria-selected="false">Loading</button>
+            <button class="metrics-tab" role="tab" data-tab="charts" aria-selected="false">Charts</button>
+          </div>
+
+          <!-- Stations Tab -->
+          <div class="metrics-content" id="tabStations" data-tab-content="stations">
+            <div class="tableWrap tableWrap--full">
+              <table class="table" aria-label="Station metrics">
+                <thead>
+                  <tr>
+                    <th>Station</th>
+                    <th>Utilization</th>
+                    <th>Avg Dwell</th>
+                    <th>Target</th>
+                    <th>Violations</th>
+                  </tr>
+                </thead>
+                <tbody id="stationMetricsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Wagons Tab -->
+          <div class="metrics-content" id="tabWagons" data-tab-content="wagons" hidden>
+            <div id="wagonMetricsBody"></div>
+          </div>
+
+          <!-- Loading Tab -->
+          <div class="metrics-content" id="tabLoading" data-tab-content="loading" hidden>
+            <div class="loading-metrics" id="loadingMetricsBody">
+              <div class="kv-grid" id="loadingKvGrid"></div>
+
+              <div class="inventory-section" id="inventorySection">
+                <div class="inventory-section__title">Inventory Analysis (Drum-Buffer-Rope)</div>
+                <div class="kv-grid" id="inventoryKvGrid"></div>
+                <div class="inventory-insight" id="inventoryInsight"></div>
+              </div>
+
+              <div class="chart-container">
+                <div class="chart__title">Loading Queue Depth</div>
+                <svg id="loadingQueueSvg" width="600" height="120" role="img" aria-label="Loading queue depth"></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Tab -->
+          <div class="metrics-content" id="tabCharts" data-tab-content="charts" hidden>
+            <div class="charts-stack">
+              <div class="chart">
+                <div class="chart__title">Throughput (baskets/hr, rolling)</div>
+                <svg id="throughputSvg" width="600" height="130" role="img" aria-label="Throughput chart"></svg>
+              </div>
+              <div class="chart">
+                <div class="chart__title">WIP (items in system)</div>
+                <svg id="wipSvg" width="600" height="130" role="img" aria-label="WIP chart"></svg>
+              </div>
+              <div class="chart">
+                <div class="chart__title">Basket Timeline (Gantt, first 12 baskets)</div>
+                <svg id="ganttSvg" width="600" height="200" role="img" aria-label="Basket Gantt"></svg>
+              </div>
+              <div class="legend">
+                <div class="legend__item"><span class="swatch" style="background: rgba(146,162,187,0.22)"></span> Transfer</div>
+                <div class="legend__item"><span class="swatch" style="background: rgba(255,191,105,0.22)"></span> Load/Unload</div>
+                <div class="legend__item"><span class="swatch" style="background: rgba(74,163,255,0.2)"></span> Dry-Off</div>
+                <div class="legend__item"><span class="swatch" style="background: rgba(112,240,184,0.18)"></span> Tank dwell</div>
+                <div class="legend__item"><span class="swatch swatch--hot"></span> Playhead</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulation Preview (collapsible, compact) -->
+        <details class="sim-preview" id="simPreview">
+          <summary class="sim-preview__header">
+            <span class="sim-preview__title">Line Layout Preview</span>
+            <span class="sim-preview__now mono small" id="nowOut">-</span>
+            <span class="sim-preview__actions">
+              <button id="zoomInBtn" class="btn btn--icon" type="button" title="Zoom in">+</button>
+              <button id="zoomOutBtn" class="btn btn--icon" type="button" title="Zoom out">&minus;</button>
+              <button id="zoomToFitBtn" class="btn btn--icon" type="button" title="Zoom to fit">Fit</button>
+              <button id="toggleLabelsBtn" class="btn btn--icon" type="button" title="Toggle labels">Labels</button>
+              <button id="fullscreenBtn" class="btn btn--icon" type="button" title="Full screen">&#x26F6;</button>
+            </span>
+          </summary>
+          <div class="sim-preview__body">
+            <div class="canvasWrap">
+              <div class="canvasLayer">
+                <canvas id="simCanvas" width="1200" height="280"></canvas>
+                <div id="hoverTip" class="hoverTip" hidden></div>
+              </div>
+            </div>
+            <div class="playback-bar">
+              <div class="transport" role="group" aria-label="Playback controls">
+                <button id="stepBackBtn" class="btn btn--icon" type="button" title="Step backward 10s">&#9664;</button>
+                <button id="playPauseBtn" class="btn btn--icon btn--accent" type="button" title="Replay / Pause">Replay</button>
+                <button id="stepFwdBtn" class="btn btn--icon" type="button" title="Step forward 10s">&#9654;</button>
+                <button id="resetPlayheadBtn" class="btn btn--icon" type="button" title="Reset">Reset</button>
+              </div>
+              <input id="scrub" class="scrub" type="range" min="0" max="1000" value="0" aria-label="Simulation time scrubber" />
+              <div class="playback-bar__speed">
+                <label class="field__label" for="simSpeed2">Speed</label>
+                <input id="simSpeed2" class="field__control field__control--xs" type="number" min="0.25" max="20" step="0.25" value="6" />
+                <span class="mono small">&times;</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Scenario Comparison -->
+        <div class="scenario-bar" id="scenarioBar">
+          <div class="scenario-bar__header">
+            <span class="scenario-bar__title">Scenario Compare</span>
+            <div class="scenario-bar__actions">
+              <button id="saveScenarioABtn" class="btn btn--sm" type="button">Save A</button>
+              <button id="saveScenarioBBtn" class="btn btn--sm" type="button">Save B</button>
+              <button id="clearScenariosBtn" class="btn btn--sm" type="button" disabled>Clear</button>
+            </div>
+          </div>
+          <div class="tableWrap" id="scenarioTableWrap" hidden>
+            <table class="table" aria-label="Scenario comparison">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th id="scenarioAHeader">Scenario A</th>
+                  <th id="scenarioBHeader">Scenario B</th>
+                  <th>Current</th>
+                </tr>
+              </thead>
+              <tbody id="scenarioTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Export inline (hidden, accessible via JS) -->
+        <div id="summaryInline" class="summaryInline" hidden>
+          <textarea id="summaryText" class="summaryInline__textarea" rows="6" spellcheck="false"></textarea>
+          <div class="row">
+            <button id="summarySelectBtn" class="btn btn--sm" type="button">Select all</button>
+            <button id="summaryHideBtn" class="btn btn--sm" type="button">Hide</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Glossary Page (dynamically rendered) -->
+    <div class="glossary-overlay" id="glossaryOverlay" hidden>
+      <div class="glossary">
+        <div class="glossary__header">
+          <div class="glossary__title">Glossary</div>
+          <div class="glossary__search-wrap">
+            <input id="glossarySearch" class="glossary__search" type="text" placeholder="Search terms..." autocomplete="off" />
+          </div>
+          <button id="glossaryCloseBtn" class="glossary__close" type="button">&times;</button>
+        </div>
+        <div class="glossary__count" id="glossaryCount"></div>
+        <div class="glossary__body" id="glossaryBody"></div>
+      </div>
+    </div>
+
+    <!-- Startup Wizard -->
+    <div class="modal-overlay" id="startupModal">
+      <div class="modal">
+        <div class="modal__header">
+          <div class="modal__brand">Flowlytics</div>
+          <div class="modal__subtitle">Pretreatment Transporter Simulator</div>
+          <div class="wizard-steps" id="wizardSteps">
+            <div class="wizard-step wizard-step--active" data-step="1">
+              <span class="wizard-step__num">1</span>
+              <span class="wizard-step__label">Plant Layout</span>
+            </div>
+            <div class="wizard-step__connector"></div>
+            <div class="wizard-step" data-step="2">
+              <span class="wizard-step__num">2</span>
+              <span class="wizard-step__label">Targets</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Load Layout -->
+        <div class="modal__body wizard-page" id="wizardStep1">
+          <div class="wizard-page__intro">
+            <div class="wizard-page__title">Load your plant layout</div>
+            <div class="wizard-page__desc">
+              Upload your factory floor plan so the simulator uses real station positions and travel distances.
+              This directly affects throughput and bottleneck calculations.
+            </div>
+          </div>
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone__icon">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect x="8" y="6" width="32" height="36" rx="4" stroke="rgba(146,162,187,0.5)" stroke-width="2" fill="none"/>
+                <path d="M16 20l8-8 8 8M24 12v18" stroke="rgba(74,163,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="drop-zone__text">
+              Drop a <strong>.dxf</strong> or <strong>.dwg</strong> file here
+            </div>
+            <div class="drop-zone__hint">or click to browse</div>
+            <input id="dxfFilePicker" type="file" accept=".dxf,.dwg" hidden />
+          </div>
+          <div class="modal__status" id="modalStatus"></div>
+          <div class="modal__divider"><span>or</span></div>
+          <button id="skipDxfBtn" class="btn btn--full" type="button">
+            Use synthetic layout
+          </button>
+          <div class="modal__skip-hint">
+            Auto-generate a straight-line layout — useful for early-stage estimates before CAD is ready
+          </div>
+          <div class="wizard-nav">
+            <div></div>
+            <button id="wizardNext1" class="btn btn--primary btn--full-sm" type="button" disabled>
+              Next &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Simulation Targets -->
+        <div class="modal__body wizard-page" id="wizardStep2" hidden>
+          <div class="wizard-page__intro">
+            <div class="wizard-page__title">Set simulation targets</div>
+            <div class="wizard-page__desc">
+              Define the throughput goal you want to achieve and how long to run the simulation.
+              The system will compare its results against these targets to identify gaps and bottlenecks.
+            </div>
+          </div>
+          <div class="wizard-field">
+            <label class="wizard-field__label" for="wizTargetBph">Target throughput</label>
+            <div class="wizard-field__row">
+              <input id="wizTargetBph" class="field__control wizard-field__input" type="number" min="0.1" step="0.1" value="2.0" />
+              <span class="wizard-field__unit">baskets / hour</span>
+            </div>
+            <div class="wizard-field__help">
+              How many baskets per hour do you need for the customer quotation?
+              A typical range is 1.5 – 4.0 depending on tank count and recipe complexity.
+            </div>
+          </div>
+          <div class="wizard-field">
+            <label class="wizard-field__label" for="wizSimHours">Simulation duration</label>
+            <div class="wizard-field__row">
+              <input id="wizSimHours" class="field__control wizard-field__input" type="number" min="0.5" step="0.5" value="2" />
+              <span class="wizard-field__unit">hours</span>
+            </div>
+            <div class="wizard-field__help">
+              Longer runs (2–4 hours) produce more accurate steady-state results.
+              The first few baskets are always slower as the line fills up — longer durations smooth this out.
+            </div>
+          </div>
+          <div class="wizard-nav">
+            <button id="wizardBack2" class="btn btn--full-sm" type="button">
+              &larr; Back
+            </button>
+            <button id="wizardFinish" class="btn btn--primary btn--full-sm" type="button">
+              Start simulation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <input id="filePicker" type="file" accept=".json,.csv" multiple hidden />
+    <script src="https://unpkg.com/dxf-parser@1.1.2/dist/dxf-parser.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
