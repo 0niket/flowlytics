@@ -454,8 +454,10 @@ function runSimulation(layout, params) {
         pushEvent({ t, kind: "pickup", wagonId: e.wagonId, basketId: e.basketId, from: e.from, to: e.to, start: e.start, end: e.end });
         const b = basketById.get(e.basketId);
         if (b) {
+          const target = dwellTarget.get(e.from) ?? 0;
           const max = dwellMax.get(e.from);
-          if (b.insertedAt != null && max != null) {
+          // Only check over-dwell for stations with non-zero target dwell (skip LOAD/UNLOAD)
+          if (target > 0 && b.insertedAt != null && max != null) {
             const over = t - (b.insertedAt + max);
             if (over > 0.001) {
               violations.push({ basketId: e.basketId, step: e.from, kind: "over_dwell", seconds: over });
