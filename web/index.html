@@ -188,6 +188,7 @@
           </div>
           <div class="topbar__right">
             <button id="glossaryBtn" class="btn btn--sm" type="button">Glossary</button>
+            <button id="suggestionsBtn" class="btn btn--sm btn--suggestions" type="button">Suggestions <span id="suggestionsBadge" class="suggestions-badge" hidden>0</span></button>
             <button id="themeToggleBtn" class="btn btn--sm btn--icon" type="button" title="Toggle light/dark mode" aria-label="Toggle theme">&#9790;</button>
           </div>
         </div>
@@ -373,6 +374,19 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- Suggestions Drawer -->
+    <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+    <div class="drawer" id="suggestionsDrawer" hidden>
+      <div class="drawer__header">
+        <div>
+          <div class="drawer__title">Suggestions</div>
+          <div class="drawer__subtitle" id="suggestionsSubtitle">Based on current simulation</div>
+        </div>
+        <button id="drawerCloseBtn" class="glossary__close" type="button">&times;</button>
+      </div>
+      <div class="drawer__body" id="suggestionsBody"></div>
     </div>
 
     <!-- Glossary Page (dynamically rendered) -->
