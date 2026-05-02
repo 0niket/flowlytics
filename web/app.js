@@ -258,7 +258,6 @@ function runSimulation(layout, params) {
   const loadingMetrics = {
     queueWaits: [],       // time each basket waited in queue before loading started
     maxQueueDepth: 0,
-    queueDepthSamples: [],
     processingTime: 0,
     idleTime: 0,
   };
@@ -418,8 +417,6 @@ function runSimulation(layout, params) {
     locCounts.IN_TRANSIT = inTransitCount;
     const wagonStates = resources.wagons.map((w) => ({ id: w.id, pos: w.pos, availableAt: w.availableAt, state: w.state }));
     snapshots.push({ t: at, locCounts, completed: completedCount, wagonStates });
-    // Loading queue depth sample
-    loadingMetrics.queueDepthSamples.push({ t: at, depth: resources.load.queue.length });
   }
 
   function fillSnapshots(untilT) {
@@ -627,7 +624,6 @@ function runSimulation(layout, params) {
       avgQueueWaitSec: avgQueueWait,
       maxQueueDepth: loadingMetrics.maxQueueDepth,
       processingUtil01: loadUtil,
-      queueDepthOverTime: loadingMetrics.queueDepthSamples,
       totalBasketsLoaded: loadingMetrics.queueWaits.length,
     },
     unloading: { maxQueueDepth: unloadingMetrics.maxQueueDepth },
@@ -1264,10 +1260,20 @@ function renderLoadingMetrics() {
     }
   }
 
-  // Loading queue depth chart
-  if (ld.queueDepthOverTime.length > 1) {
-    renderLineChart(ui.loadingQueueSvg, ld.queueDepthOverTime.map((s) => ({ x: s.t, y: s.depth })), {
-      stroke: "rgba(255,191,105,0.80)", fill: "rgba(255,191,105,0.12)", unit: "baskets",
+  // Loading activity chart — build from load events
+  const loadEvents = (state.sim.events || []).filter((e) => e.kind === "load_done");
+  if (loadEvents.length > 0) {
+    const simEnd = state.sim.simEnd;
+    const series = [{ x: 0, y: 0 }];
+    for (const e of loadEvents) {
+      series.push({ x: e.start, y: 0 }); // idle right before load starts
+      series.push({ x: e.start, y: 1 }); // busy
+      series.push({ x: e.end, y: 1 });   // busy until end
+      series.push({ x: e.end, y: 0 });   // idle after load ends
+    }
+    series.push({ x: simEnd, y: 0 });
+    renderLineChart(ui.loadingQueueSvg, series, {
+      stroke: "rgba(74,222,128,0.80)", fill: "rgba(74,222,128,0.15)", yMax: 1, unit: "busy",
     });
   }
 }
