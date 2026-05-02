@@ -91,6 +91,7 @@ function buildSyntheticLayout(tankCount) {
 }
 
 function buildLayoutFromDxfLabels(labelsRows, tankCount) {
+  // Extract anchor positions
   const anchors = {};
   for (const r of labelsRows) {
     const text = normText(r.text); const x = safeParseNumber(r.x); const y = safeParseNumber(r.y);
@@ -100,25 +101,53 @@ function buildLayoutFromDxfLabels(labelsRows, tankCount) {
     if (!anchors.WDO && approxTextMatch(text, "WDO")) anchors.WDO = { x, y };
     if (!anchors.PCO && approxTextMatch(text, "PCO")) anchors.PCO = { x, y };
     if (!anchors.PROCESS && approxTextMatch(text, "PROCESS TANK ZONE")) anchors.PROCESS = { x, y };
+    if (approxTextMatch(text, "BUFFER")) anchors.BUFFER = { x, y };
   }
-  if (!anchors.LOAD || !anchors.UNLOAD || !anchors.PROCESS) return buildSyntheticLayout(tankCount);
-  const dir = { x: anchors.UNLOAD.x - anchors.LOAD.x, y: anchors.UNLOAD.y - anchors.LOAD.y };
-  const len = Math.hypot(dir.x, dir.y) || 1;
-  const unit = { x: dir.x / len, y: dir.y / len };
-  // Use 70% of LOAD→UNLOAD distance for tanks, with a minimum spacing of 1400mm
-  const minSpacing = 1400;
-  const idealSpan = 0.70 * len;
-  const idealSpacing = idealSpan / Math.max(1, tankCount - 1);
-  const spacing = Math.max(minSpacing, idealSpacing);
-  const totalTankSpan = spacing * Math.max(1, tankCount - 1);
-  const start = { x: anchors.PROCESS.x - unit.x * (totalTankSpan / 2), y: anchors.PROCESS.y - unit.y * (totalTankSpan / 2) };
+  if (!anchors.LOAD || !anchors.UNLOAD) return buildSyntheticLayout(tankCount);
+
+  // Try to use real AS-tag positions from detected stations
+  const detected = state.detectedStations;
   const nodes = [];
   nodes.push({ id: "LOAD", label: "HANGER LOADING", type: "station", x: anchors.LOAD.x, y: anchors.LOAD.y });
-  for (let i = 0; i < tankCount; i++) nodes.push({ id: `T${i + 1}`, label: `TANK ${i + 1}`, type: "tank", x: start.x + unit.x * spacing * i, y: start.y + unit.y * spacing * i });
+
+  if (detected && detected.length > 0) {
+    // Use actual station positions from AS-tags — real factory coordinates
+    const stationsToUse = detected.slice(0, tankCount);
+    for (let i = 0; i < stationsToUse.length; i++) {
+      const s = stationsToUse[i];
+      nodes.push({ id: `T${i + 1}`, label: s.id, type: "tank", x: s.x, y: s.y });
+    }
+  } else if (anchors.PROCESS) {
+    // Fallback: synthesize tank positions along LOAD→UNLOAD direction
+    const dir = { x: anchors.UNLOAD.x - anchors.LOAD.x, y: anchors.UNLOAD.y - anchors.LOAD.y };
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const unit = { x: dir.x / len, y: dir.y / len };
+    const minSpacing = 1400;
+    const idealSpan = 0.70 * len;
+    const idealSpacing = idealSpan / Math.max(1, tankCount - 1);
+    const spacing = Math.max(minSpacing, idealSpacing);
+    const totalTankSpan = spacing * Math.max(1, tankCount - 1);
+    const start = { x: anchors.PROCESS.x - unit.x * (totalTankSpan / 2), y: anchors.PROCESS.y - unit.y * (totalTankSpan / 2) };
+    for (let i = 0; i < tankCount; i++) {
+      nodes.push({ id: `T${i + 1}`, label: `TANK ${i + 1}`, type: "tank", x: start.x + unit.x * spacing * i, y: start.y + unit.y * spacing * i });
+    }
+  } else {
+    // No PROCESS label and no AS-tags — use synthetic positioning between LOAD and UNLOAD
+    const dir = { x: anchors.UNLOAD.x - anchors.LOAD.x, y: anchors.UNLOAD.y - anchors.LOAD.y };
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const unit = { x: dir.x / len, y: dir.y / len };
+    const spacing = len / (tankCount + 2);
+    for (let i = 0; i < tankCount; i++) {
+      const offset = spacing * (i + 1);
+      nodes.push({ id: `T${i + 1}`, label: `TANK ${i + 1}`, type: "tank", x: anchors.LOAD.x + unit.x * offset, y: anchors.LOAD.y + unit.y * offset });
+    }
+  }
+
+  if (anchors.BUFFER) nodes.push({ id: "BUFFER", label: "BUFFER", type: "marker", x: anchors.BUFFER.x, y: anchors.BUFFER.y });
   if (anchors.WDO) nodes.push({ id: "WDO", label: "DRY-OFF OVEN", type: "oven", x: anchors.WDO.x, y: anchors.WDO.y });
   nodes.push({ id: "UNLOAD", label: "HANGER UNLOADING", type: "station", x: anchors.UNLOAD.x, y: anchors.UNLOAD.y });
   if (anchors.PCO) nodes.push({ id: "PCO", label: "PCO", type: "marker", x: anchors.PCO.x, y: anchors.PCO.y });
-  return { nodes, meta: { source: "dxf_labels", anchors, distanceMode: "manhattan" } };
+  return { nodes, meta: { source: "dxf_labels", anchors, detectedStations: detected?.length || 0, distanceMode: "manhattan" } };
 }
 
 function defaultRecipe(tankCount, preset) {
@@ -973,7 +1002,7 @@ const state = {
   layout: buildSyntheticLayout(12), dxfLabelsRows: null,
   params: null, plan: null, sim: null,
   scenarioA: null, scenarioB: null,
-  chartsStale: true, chartMeta: null, activeTab: "stations",
+  chartsStale: true, chartMeta: null, activeTab: "stations", detectedStations: null,
   view: { showLabels: true, transform: { scale: 1, tx: 0, ty: 0 }, viewport: { w: 0, h: 0, dpr: 1 } },
   anim: { running: false, timeSec: 0, lastTs: null },
 };
@@ -1501,10 +1530,42 @@ function extractLabelsFromDxfText(dxfText) {
   return labels;
 }
 
+function detectStationsFromLabels(labels) {
+  // Find AS-tags (AS01, AS02, ..., AS22) or TANK labels
+  const stationPattern = /^AS\s*(\d+)$/i;
+  const tankPattern = /^TANK\s*(\d+)$/i;
+  const stations = [];
+  for (const l of labels) {
+    const t = l.text.trim();
+    const asMatch = t.match(stationPattern);
+    const tankMatch = t.match(tankPattern);
+    if (asMatch) {
+      stations.push({ id: "AS" + asMatch[1].padStart(2, "0"), num: parseInt(asMatch[1], 10), x: l.x, y: l.y, label: t });
+    } else if (tankMatch) {
+      stations.push({ id: "T" + tankMatch[1], num: parseInt(tankMatch[1], 10), x: l.x, y: l.y, label: t });
+    }
+  }
+  stations.sort((a, b) => a.num - b.num);
+  return stations;
+}
+
 function applyDxfLabels(labels) {
   state.dxfLabelsRows = labels;
   ui.layoutMode.value = "dxf_labels";
-  ui.layoutStatus.textContent = "DXF layout (" + labels.length + " labels).";
+
+  // Auto-detect station count from AS-tags or TANK labels
+  const detectedStations = detectStationsFromLabels(labels);
+  if (detectedStations.length > 0) {
+    const count = clamp(detectedStations.length, 3, 20);
+    ui.tankCount.value = String(count);
+    rebuildTankTable(count, Number(ui.dwellPreset.value));
+    state.detectedStations = detectedStations;
+    ui.layoutStatus.textContent = "DXF layout: " + detectedStations.length + " stations detected (" + detectedStations.map((s) => s.id).join(", ") + ").";
+  } else {
+    state.detectedStations = null;
+    ui.layoutStatus.textContent = "DXF layout (" + labels.length + " labels, no station tags found).";
+  }
+
   recomputeAndRender();
 }
 
@@ -1524,15 +1585,13 @@ async function handleDxfFile(file) {
         modalStatus.className = "modal__status modal__status--error";
         return false;
       }
-      // Check for anchor labels
-      const anchors = [];
-      for (const l of labels) {
-        const t = l.text.toUpperCase();
-        if (t.includes("LOADING") || t.includes("UNLOADING") || t === "WDO" || t.includes("PROCESS TANK") || t === "PCO") anchors.push(l.text);
-      }
+      // Detect stations and apply
       applyDxfLabels(labels);
-      const anchorMsg = anchors.length > 0 ? anchors.length + " anchor labels found" : "No anchors found — using synthetic positions";
-      modalStatus.textContent = "Parsed " + labels.length + " labels. " + anchorMsg + ".";
+      const detected = state.detectedStations;
+      const stationMsg = detected && detected.length > 0
+        ? detected.length + " stations detected — tank count set to " + Math.min(detected.length, 20)
+        : "No station tags found — using default tank count";
+      modalStatus.textContent = "Parsed " + labels.length + " labels. " + stationMsg + ".";
       modalStatus.className = "modal__status modal__status--success";
       return true;
     } catch (e) {
@@ -1560,7 +1619,11 @@ async function handleDxfFile(file) {
         return false;
       }
       applyDxfLabels(labels);
-      modalStatus.textContent = "Converted and parsed " + labels.length + " labels.";
+      const detectedDwg = state.detectedStations;
+      const dwgStationMsg = detectedDwg && detectedDwg.length > 0
+        ? detectedDwg.length + " stations detected — tank count set to " + Math.min(detectedDwg.length, 20)
+        : "No station tags found — using default tank count";
+      modalStatus.textContent = "Converted " + labels.length + " labels. " + dwgStationMsg + ".";
       modalStatus.className = "modal__status modal__status--success";
       return true;
     } catch (e) {
