@@ -1565,7 +1565,7 @@ async function handleDxfFile(file) {
       return true;
     } catch (e) {
       if (e.message && e.message.includes("Failed to fetch")) {
-        modalStatus.textContent = "Cannot reach conversion server at " + DWG_CONVERT_ENDPOINT + ". Start the backend with: python3 scripts/serve_convert.py";
+        modalStatus.innerHTML = "Cannot reach conversion server. <strong>Alternative:</strong> export your drawing as .dxf from AutoCAD (File &gt; Save As &gt; DXF) and import the .dxf instead. Or start the server: <code>python3 scripts/serve_convert.py</code>";
       } else {
         modalStatus.textContent = "Conversion error: " + (e.message || e);
       }

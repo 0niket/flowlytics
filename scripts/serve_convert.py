@@ -37,7 +37,11 @@ def convert_dwg_to_dxf(dwg_bytes: bytes, filename: str) -> str:
     """Convert a .dwg file to .dxf and return the .dxf text content."""
     if not ODA_BIN:
         raise RuntimeError(
-            "ODA File Converter not found. Install it or set ODA_CONVERTER env var."
+            "ODA File Converter not found. "
+            "Download free from https://www.opendesign.com/guestfiles/oda_file_converter "
+            "or set ODA_CONVERTER=/path/to/binary. "
+            "Alternative: export your drawing as .dxf from AutoCAD (File > Save As > DXF) "
+            "and import the .dxf directly — no converter needed."
         )
 
     with tempfile.TemporaryDirectory(prefix="flowlytics_") as tmpdir:
