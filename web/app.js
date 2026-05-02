@@ -909,7 +909,10 @@ function renderGantt(svg) {
   axisLine.setAttribute("y1", axisLineY); axisLine.setAttribute("y2", axisLineY);
   axisLine.setAttribute("stroke", "rgba(255,255,255,0.1)"); axisLine.setAttribute("stroke-width", "1"); svg.appendChild(axisLine);
   // Time ticks
-  const tickIntervalSec = tMax > 7200 ? 1800 : tMax > 3600 ? 900 : 600; // 30m, 15m, or 10m intervals
+  // Scale tick intervals to prevent label overlap (~55px min per tick)
+  const maxTicks = Math.max(2, Math.floor(w / 55));
+  const candidateIntervals = [300, 600, 900, 1800, 3600, 7200];
+  const tickIntervalSec = candidateIntervals.find((iv) => tMax / iv <= maxTicks) || 7200;
   for (let tt = 0; tt <= tMax; tt += tickIntervalSec) {
     const x = xFor(tt);
     const tick = svgEl("line"); tick.setAttribute("x1", x); tick.setAttribute("x2", x);
@@ -1134,6 +1137,16 @@ function updateResults() {
   renderWagonMetrics();
   renderLoadingMetrics();
   renderScenarioCompare();
+  // Update suggestions badge count
+  const sgBadge = document.getElementById("suggestionsBadge");
+  if (sgBadge) {
+    const sgCount = generateSuggestions().length;
+    sgBadge.textContent = String(sgCount);
+    sgBadge.hidden = sgCount === 0;
+  }
+  // If drawer is open, refresh it
+  const drawer = document.getElementById("suggestionsDrawer");
+  if (drawer && !drawer.hidden) renderSuggestions();
   state.chartsStale = true;
 }
 
@@ -1787,6 +1800,299 @@ function switchTab(tabId) {
   if (tabId === "charts") { state.chartsStale = true; renderCharts(); }
 }
 
+// ─── Suggestions Engine (Theory of Constraints) ─────────────
+
+function generateSuggestions() {
+  const suggestions = [];
+  if (!state.sim || !state.params) return suggestions;
+  const s = state.sim;
+  const p = state.params;
+  const inv = s.inventory;
+  const achieved = Number.isFinite(s.throughputTrimmedBph) ? s.throughputTrimmedBph : Number.isFinite(s.throughputSteadyBph) ? s.throughputSteadyBph : s.throughputBph;
+
+  // ── PRIORITY 1: ZERO VIOLATIONS (quality first) ──
+
+  if (s.violations.length > 0 && s.bottleneck === "wagon_busy") {
+    suggestions.push({
+      id: "violations-add-wagon",
+      category: "violations",
+      priority: "Quality — Zero Violations",
+      title: "Add a wagon to eliminate over-dwell violations",
+      problem: "The system has " + s.violations.length + " over-dwell violations. Baskets are stuck in chemical tanks because the single wagon can't pick them up fast enough. Every violation is a potential quality defect — surface damage from prolonged chemical exposure.",
+      theory: "Goldratt's First Rule: \"A bottleneck hour lost is a system hour lost.\" But more critically here — every minute a basket over-dwells in acid or chromate is irreversible surface damage. Quality is non-negotiable. The wagon is the constraint, and it's causing quality failures.",
+      steps: [
+        "Current wagon count: <strong>" + p.wagonCount + "</strong>",
+        "Add 1 wagon: <span class='suggestion-card__change'>" + p.wagonCount + " → " + (p.wagonCount + 1) + " wagons</span>",
+        "The second wagon covers the other half of the tank line",
+        "Baskets get picked up before they exceed the dwell tolerance window",
+        "Violations drop to near zero; throughput improves as a side effect",
+      ],
+      impact: "Expected: violations → 0, throughput improvement from reduced wait times",
+      apply: { wagonCount: p.wagonCount + 1 },
+    });
+  }
+
+  if (s.violations.length > 0 && s.bottleneck === "wagon_busy" && p.wagonCount >= 2) {
+    suggestions.push({
+      id: "violations-speed",
+      category: "violations",
+      priority: "Quality — Zero Violations",
+      title: "Increase wagon speed to reduce transfer time",
+      problem: "With " + p.wagonCount + " wagons, there are still " + s.violations.length + " violations. The wagons are fast enough to reach baskets but the total transfer cycle (travel + lift + lower + drip) is too long.",
+      theory: "Goldratt's Step 2 — \"Exploit the constraint.\" Before adding more resources (Step 4: Elevate), make existing resources more effective. Faster wagon speed reduces the travel component of every transfer, giving the wagon more time margin.",
+      steps: [
+        "Current speed: <strong>" + p.wagonSpeedMPerMin + " m/min</strong>",
+        "Increase by 25%: <span class='suggestion-card__change'>" + p.wagonSpeedMPerMin + " → " + Math.round(p.wagonSpeedMPerMin * 1.25) + " m/min</span>",
+        "Each transfer saves " + Math.round((1400 / mPerMinToMmPerSec(p.wagonSpeedMPerMin) - 1400 / mPerMinToMmPerSec(p.wagonSpeedMPerMin * 1.25))) + "s of travel per tank gap",
+        "Over " + p.tankCount + " tanks, total savings compound significantly",
+      ],
+      impact: "Faster transfers → wagon picks up baskets before tolerance window closes",
+      apply: { wagonSpeedMPerMin: Math.round(p.wagonSpeedMPerMin * 1.25) },
+    });
+  }
+
+  if (s.violations.length > 0 && p.tolerancePct < 0.20) {
+    const newTol = Math.min(25, Math.round(p.tolerancePct * 100) + 5);
+    suggestions.push({
+      id: "violations-tolerance",
+      category: "violations",
+      priority: "Quality — Zero Violations",
+      title: "Widen dwell tolerance to reduce violations",
+      problem: "Current tolerance is ±" + Math.round(p.tolerancePct * 100) + "%. This gives only a " + Math.round(p.tolerancePct * 2 * 120) + "-second window for a 2-minute dwell. If the chemistry allows flexibility, a wider window reduces violations without changing physical equipment.",
+      theory: "Goldratt distinguishes physical constraints from policy constraints. A tight tolerance is a policy constraint — it may be stricter than the chemistry actually requires. Relaxing a policy constraint is free and immediate.",
+      steps: [
+        "Current tolerance: <strong>±" + Math.round(p.tolerancePct * 100) + "%</strong>",
+        "Widen to: <span class='suggestion-card__change'>±" + Math.round(p.tolerancePct * 100) + "% → ±" + newTol + "%</span>",
+        "Validate with your chemical supplier that the wider window is acceptable",
+        "Note: water/rinse tanks are almost always safe with wider tolerance; chemical tanks need verification",
+      ],
+      impact: "Wider window → fewer violations without equipment changes",
+      apply: { tolerancePct: newTol },
+    });
+  }
+
+  // ── PRIORITY 2: RESOLVE THE BOTTLENECK ──
+
+  if (s.bottleneck === "wagon_busy" && s.violations.length === 0 && achieved < p.targetBph * 0.95) {
+    suggestions.push({
+      id: "bottleneck-wagon-add",
+      category: "bottleneck",
+      priority: "Bottleneck — Wagon Constraint",
+      title: "Elevate the wagon constraint: add a wagon",
+      problem: "The wagon is the bottleneck (" + s.waits.wagon_busy + " wait events). Violations are zero, but throughput is " + achieved.toFixed(2) + " bph vs " + p.targetBph.toFixed(2) + " bph target. The wagon simply can't serve all baskets fast enough.",
+      theory: "Goldratt's Step 4 — \"Elevate the constraint.\" You've already exploited it (no violations means timing is okay). The system needs more wagon capacity to increase throughput. Adding a wagon is the correct elevation.",
+      steps: [
+        "Current: <strong>" + p.wagonCount + " wagon(s)</strong> at " + Math.round(s.util.wagons[0]?.util01 * 100 || 0) + "% utilization",
+        "Add 1 wagon: <span class='suggestion-card__change'>" + p.wagonCount + " → " + (p.wagonCount + 1) + " wagons</span>",
+        "Each wagon covers a zone of the tank line — reduces travel distance per wagon",
+        "Throughput increases because baskets move through the system faster",
+      ],
+      impact: "Throughput should approach " + Math.min(p.targetBph, achieved * 1.6).toFixed(1) + " bph with reduced wagon contention",
+      apply: { wagonCount: p.wagonCount + 1 },
+    });
+  }
+
+  if (s.bottleneck === "dest_full") {
+    const newDwell = Math.max(0.5, Number(ui.dwellPreset.value) * 0.85);
+    suggestions.push({
+      id: "bottleneck-tank",
+      category: "bottleneck",
+      priority: "Bottleneck — Tank Capacity",
+      title: "Tanks are the constraint: reduce dwell time",
+      problem: "The bottleneck is 'tank occupied' (" + s.waits.dest_full + " wait events). Single-capacity tanks are full when the next basket needs to enter. The wagon has to wait, creating a cascade of delays.",
+      theory: "Goldratt's Step 2 — \"Exploit the constraint.\" The tanks are the drum. To exploit them, minimize the time each basket occupies a tank. If chemistry allows a 15% dwell reduction, each tank becomes available sooner, breaking the occupancy deadlock.",
+      steps: [
+        "Current dwell: <strong>" + Number(ui.dwellPreset.value).toFixed(1) + " min/tank</strong>",
+        "Reduce by 15%: <span class='suggestion-card__change'>" + Number(ui.dwellPreset.value).toFixed(1) + " → " + newDwell.toFixed(1) + " min/tank</span>",
+        "Validate the reduced dwell with your chemical process specification",
+        "Alternative: add a parallel tank at the most utilized station",
+      ],
+      impact: "Frees each tank ~" + Math.round((Number(ui.dwellPreset.value) - newDwell) * 60) + "s sooner → breaks occupancy deadlock",
+      apply: { dwellPreset: newDwell },
+    });
+  }
+
+  if (s.bottleneck === "load_busy" || (s.loading && s.loading.processingUtil01 > 0.90)) {
+    const newLoad = Math.max(5, Math.round(p.loadTimeMin * 0.75));
+    suggestions.push({
+      id: "bottleneck-loading",
+      category: "bottleneck",
+      priority: "Bottleneck — Loading Station",
+      title: "Loading is the hidden constraint",
+      problem: "Loading utilization is " + Math.round((s.loading?.processingUtil01 || 0) * 100) + "%. At " + p.loadTimeMin + " min/basket, the loading station can handle at most " + (60 / p.loadTimeMin).toFixed(1) + " bph. Your target of " + p.targetBph.toFixed(1) + " bph exceeds this ceiling.",
+      theory: "Goldratt warns about hidden constraints. Loading seems like a simple manual operation, but it sets the maximum throughput ceiling for the entire system. No amount of wagon speed or tank optimization can exceed what loading allows in. This is Step 1 — \"Identify the constraint.\"",
+      steps: [
+        "Current load time: <strong>" + p.loadTimeMin + " min</strong> (max " + (60 / p.loadTimeMin).toFixed(1) + " bph)",
+        "Reduce by 25% via offline basket preparation: <span class='suggestion-card__change'>" + p.loadTimeMin + " → " + newLoad + " min</span>",
+        "Offline prep: load parts onto baskets at a separate station while the line runs",
+        "At the loading station, just hook the pre-loaded basket — much faster",
+        "New ceiling: " + (60 / newLoad).toFixed(1) + " bph",
+      ],
+      impact: "Raises the loading ceiling from " + (60 / p.loadTimeMin).toFixed(1) + " to " + (60 / newLoad).toFixed(1) + " bph",
+      apply: { loadTimeMin: newLoad },
+    });
+  }
+
+  // ── PRIORITY 3: INVENTORY OPTIMIZATION (Drum-Buffer-Rope) ──
+
+  if (inv && inv.isOverfeeding) {
+    suggestions.push({
+      id: "inventory-dbr",
+      category: "inventory",
+      priority: "Inventory — Drum-Buffer-Rope",
+      title: "Match release rate to the bottleneck",
+      problem: "You are releasing baskets at " + inv.arrivalBph.toFixed(1) + " bph but the system can only process " + inv.recommendedBph.toFixed(1) + " bph. Excess WIP of ~" + inv.excessWip.toFixed(1) + " baskets accumulates — wasted staging space, capital tied up in work-in-progress, and longer lead times for every basket.",
+      theory: "Goldratt's Drum-Buffer-Rope: The bottleneck is the Drum — it sets the pace. The Rope ties the release of new work to the Drum's pace. Never push faster than the Drum can process. Excess inventory is not an asset — it's a liability that hides problems and inflates lead time.",
+      steps: [
+        "Current arrival rate: <strong>" + inv.arrivalBph.toFixed(1) + " bph</strong>",
+        "Bottleneck capacity: <strong>" + inv.recommendedBph.toFixed(1) + " bph</strong>",
+        "Reduce target to match: <span class='suggestion-card__change'>" + p.targetBph.toFixed(1) + " → " + inv.recommendedBph.toFixed(1) + " bph</span>",
+        "Optimal WIP: " + (Number.isFinite(inv.optimalWip) ? inv.optimalWip.toFixed(1) : "~2") + " baskets in the system",
+        "Keep " + (Number.isFinite(inv.recommendedBuffer) ? inv.recommendedBuffer : 1) + " basket(s) prepared at loading as buffer to prevent bottleneck starvation",
+      ],
+      impact: "Eliminates excess WIP, reduces lead time, makes bottleneck visible",
+      apply: { targetBph: Math.round(inv.recommendedBph * 100) / 100 },
+    });
+  }
+
+  // ── RELIABILITY ──
+
+  if (p.simHours < 2 || s.completedCount < 4) {
+    suggestions.push({
+      id: "reliability-duration",
+      category: "reliability",
+      priority: "Reliability",
+      title: "Extend simulation for reliable results",
+      problem: "Only " + s.completedCount + " baskets completed in " + p.simHours + " hours. Throughput and violation statistics need more data points to be reliable. The first baskets always experience warm-up bias (empty line).",
+      theory: "Sound decisions need sound data. With fewer than 4 completed baskets, the throughput estimate can swing ±30% from the true steady-state value. This isn't a TOC principle — it's statistical reliability.",
+      steps: [
+        "Current: <strong>" + p.simHours + " hours</strong> (" + s.completedCount + " baskets completed)",
+        "Increase to: <span class='suggestion-card__change'>" + p.simHours + " → 4 hours</span>",
+        "More baskets = more reliable throughput, violation, and utilization numbers",
+        "The warm-up period (first 1-2 baskets) gets diluted by steady-state data",
+      ],
+      impact: "More accurate metrics for quotation confidence",
+      apply: { simHours: 4 },
+    });
+  }
+
+  return suggestions;
+}
+
+function renderSuggestions() {
+  const body = document.getElementById("suggestionsBody");
+  const subtitle = document.getElementById("suggestionsSubtitle");
+  const badge = document.getElementById("suggestionsBadge");
+  if (!body) return;
+
+  const suggestions = generateSuggestions();
+
+  // Update badge
+  if (badge) {
+    if (suggestions.length > 0) {
+      badge.textContent = String(suggestions.length);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  body.innerHTML = "";
+  if (subtitle) subtitle.textContent = suggestions.length + " suggestion" + (suggestions.length !== 1 ? "s" : "") + " based on current simulation";
+
+  if (suggestions.length === 0) {
+    body.innerHTML = '<div class="suggestions-empty"><div class="suggestions-empty__icon">&#10003;</div>System is well-optimized. No violations, throughput meets target, and inventory is balanced.<br><br>Try changing parameters in the sidebar to explore what-if scenarios.</div>';
+    return;
+  }
+
+  for (const sg of suggestions) {
+    const card = document.createElement("div");
+    card.className = "suggestion-card suggestion-card--" + sg.category;
+
+    let stepsHtml = "";
+    for (const step of sg.steps) {
+      stepsHtml += "<li>" + step + "</li>";
+    }
+
+    card.innerHTML =
+      '<div class="suggestion-card__header">' +
+        '<div class="suggestion-card__priority suggestion-card__priority--' + sg.category + '">' + escapeHtml(sg.priority) + '</div>' +
+        '<div class="suggestion-card__title">' + escapeHtml(sg.title) + '</div>' +
+      '</div>' +
+      '<div class="suggestion-card__body">' +
+        '<div class="suggestion-card__section">' +
+          '<div class="suggestion-card__label">Problem</div>' +
+          '<div class="suggestion-card__text">' + escapeHtml(sg.problem) + '</div>' +
+        '</div>' +
+        '<div class="suggestion-card__section">' +
+          '<div class="suggestion-card__label">Theory (The Goal)</div>' +
+          '<div class="suggestion-card__text">' + escapeHtml(sg.theory) + '</div>' +
+        '</div>' +
+        '<div class="suggestion-card__section">' +
+          '<div class="suggestion-card__label">Solution</div>' +
+          '<ol class="suggestion-card__steps">' + stepsHtml + '</ol>' +
+        '</div>' +
+      '</div>' +
+      '<div class="suggestion-card__footer">' +
+        '<div class="suggestion-card__impact">' + escapeHtml(sg.impact) + '</div>' +
+        '<button class="suggestion-card__apply" data-suggestion-id="' + sg.id + '">Apply</button>' +
+      '</div>';
+
+    // Apply button handler
+    const applyBtn = card.querySelector(".suggestion-card__apply");
+    applyBtn.addEventListener("click", () => {
+      applySuggestion(sg);
+      applyBtn.textContent = "Applied \u2713";
+      applyBtn.classList.add("suggestion-card__apply--applied");
+      // Re-render suggestions after a short delay to show updated state
+      setTimeout(() => renderSuggestions(), 800);
+    });
+
+    body.appendChild(card);
+  }
+}
+
+function applySuggestion(sg) {
+  const changes = sg.apply;
+  if (!changes) return;
+  if (changes.wagonCount != null) ui.wagonCount.value = String(changes.wagonCount);
+  if (changes.wagonSpeedMPerMin != null) ui.wagonSpeedMPerMin.value = String(changes.wagonSpeedMPerMin);
+  if (changes.tolerancePct != null) ui.tolerancePct.value = String(changes.tolerancePct);
+  if (changes.dwellPreset != null) {
+    ui.dwellPreset.value = String(changes.dwellPreset);
+    // Apply to all tanks
+    for (const input of ui.tankTableBody.querySelectorAll("input")) input.value = String(changes.dwellPreset);
+  }
+  if (changes.loadTimeMin != null) ui.loadTimeMin.value = String(changes.loadTimeMin);
+  if (changes.targetBph != null) ui.targetBph.value = String(changes.targetBph);
+  if (changes.simHours != null) ui.simHours.value = String(changes.simHours);
+  recomputeAndRender();
+}
+
+function initSuggestionsDrawer() {
+  const btn = document.getElementById("suggestionsBtn");
+  const drawer = document.getElementById("suggestionsDrawer");
+  const overlay = document.getElementById("drawerOverlay");
+  const closeBtn = document.getElementById("drawerCloseBtn");
+  if (!btn || !drawer) return;
+
+  function openDrawer() {
+    renderSuggestions();
+    drawer.hidden = false;
+    if (overlay) overlay.hidden = false;
+  }
+  function closeDrawer() {
+    drawer.hidden = true;
+    if (overlay) overlay.hidden = true;
+  }
+
+  btn.addEventListener("click", () => {
+    if (drawer.hidden) openDrawer(); else closeDrawer();
+  });
+  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+  if (overlay) overlay.addEventListener("click", closeDrawer);
+}
+
 // ─── Glossary ────────────────────────────────────────────────
 const GLOSSARY_DATA = [
   { section: "Key Metrics", term: "Throughput", tags: "baskets per hour bph production rate capacity output",
@@ -2262,6 +2568,7 @@ function initUi() {
 
   // Glossary
   initGlossary();
+  initSuggestionsDrawer();
 
   // Theme toggle
   const themeBtn = document.getElementById("themeToggleBtn");
