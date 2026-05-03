@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: flowlytics
+    runtime: docker
+    plan: free
+    healthCheckPath: /web/index.html

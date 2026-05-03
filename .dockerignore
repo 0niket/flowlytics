@@ -1,0 +1,13 @@
+.git
+.claude
+docs
+store
+tools
+scripts
+assets/cad/*.dwg
+assets/cad/*.dxf
+assets/cad/*.pkg
+assets/cad/oda_in
+__pycache__
+*.pyc
+.DS_Store
