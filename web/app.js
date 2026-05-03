@@ -4,7 +4,7 @@
 const DEFAULT_DXF_BASE = "../assets/cad/oda_out";
 const DEFAULT_INVENTORY_JSON = "Metafold layout PM-014-001-R1.inventory.json";
 const DEFAULT_LABELS_CSV = "Metafold layout PM-014-001-R1.labels.csv";
-const DWG_CONVERT_ENDPOINT = "http://localhost:8800/convert"; // backend for .dwg → .dxf
+const DWG_CONVERT_ENDPOINT = "/convert"; // backend for .dwg → .dxf (relative path works for both local and deployed)
 
 // ─── Utilities ───────────────────────────────────────────────
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }

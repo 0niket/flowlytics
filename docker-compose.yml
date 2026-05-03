@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:10000"
+    volumes:
+      - ./web:/app/web
+      - ./assets:/app/assets
+    environment:
+      - PORT=10000
