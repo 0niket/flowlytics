@@ -322,6 +322,38 @@ describe("detectThroughputLimitation", () => {
   });
 });
 
+describe("wagonUtilBreakdown", () => {
+  it("breakdown totals sum to simEnd within precision", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    for (const w of result.util.wagons) {
+      const sum = w.movingSec + w.handlingSec + w.waitingSec + w.blockedSec;
+      expect(Math.abs(sum - result.simEnd)).toBeLessThan(result.simEnd * 0.01);
+    }
+  });
+
+  it("moving and handling are positive after simulation", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    for (const w of result.util.wagons) {
+      expect(w.movingSec).toBeGreaterThan(0);
+      expect(w.handlingSec).toBeGreaterThan(0);
+    }
+  });
+
+  it("waiting and blocked are non-negative", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    for (const w of result.util.wagons) {
+      expect(w.waitingSec).toBeGreaterThanOrEqual(0);
+      expect(w.blockedSec).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
 describe("buildSimPlan", () => {
   it("returns expected structure for default config", () => {
     const layout = buildSyntheticLayout(6);

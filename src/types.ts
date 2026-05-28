@@ -111,6 +111,7 @@ export interface WagonState {
   waitingSec: number;
   blockedSec: number;
   handlingSec: number;
+  idleSince: number;
 }
 
 export type WagonActivityState =

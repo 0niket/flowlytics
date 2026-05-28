@@ -351,8 +351,12 @@ code { font-family: var(--mono); font-size: 12px; }
 .wagon-card__bar {
   height: 6px; border-radius: 999px; background: rgba(10,14,22,0.4);
   border: 1px solid rgba(255,255,255,0.08); overflow: hidden; margin-bottom: 4px;
+  display: flex;
 }
-.wagon-card__bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s; }
+.wagon-card__bar-segment { height: 100%; transition: width 0.3s; }
+.wagon-card__bar-moving { background: var(--accent2); }
+.wagon-card__bar-handling { background: var(--accent2); opacity: 0.6; }
+.wagon-card__bar-blocked { background: var(--danger); opacity: 0.4; }
 .wagon-card__details { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 10px; color: var(--muted); }
 .wagon-card__detail-value { font-family: var(--mono); color: var(--text); }
 

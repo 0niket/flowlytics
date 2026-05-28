@@ -434,17 +434,27 @@ function renderWagonMetrics(): void {
   for (const w of state.sim.util.wagons) {
     const card = document.createElement("div");
     card.className = "wagon-card";
-    const pct = Math.round(clamp(w.util01, 0, 1) * 100);
-    const barColor = pct > 85 ? "var(--danger)" : pct > 60 ? "var(--warn)" : "var(--accent2)";
+    const total = w.movingSec + w.handlingSec + w.waitingSec + w.blockedSec;
+    const utilPct = total > 0 ? Math.round(((w.movingSec + w.handlingSec) / total) * 100) : 0;
+    const mPct = total > 0 ? (w.movingSec / total) * 100 : 0;
+    const hPct = total > 0 ? (w.handlingSec / total) * 100 : 0;
+    const bPct = total > 0 ? (w.blockedSec / total) * 100 : 0;
+    const barColor = utilPct > 85 ? "var(--danger)" : utilPct > 60 ? "var(--warn)" : "var(--accent2)";
     card.innerHTML = `
       <div class="wagon-card__header">
         <span class="wagon-card__name">${escapeHtml(w.id)}</span>
-        <span class="wagon-card__util" style="color:${barColor}">${pct}%</span>
+        <span class="wagon-card__util" style="color:${barColor}">${utilPct}%</span>
       </div>
-      <div class="wagon-card__bar"><div class="wagon-card__bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      <div class="wagon-card__bar">
+        <div class="wagon-card__bar-segment wagon-card__bar-moving" style="width:${mPct}%"></div>
+        <div class="wagon-card__bar-segment wagon-card__bar-handling" style="width:${hPct}%"></div>
+        <div class="wagon-card__bar-segment wagon-card__bar-blocked" style="width:${bPct}%"></div>
+      </div>
       <div class="wagon-card__details">
-        <div>Busy <span class="wagon-card__detail-value">${formatTimeShort(w.busySec)}</span></div>
-        <div>Idle <span class="wagon-card__detail-value">${formatTimeShort(w.idleSec)}</span></div>
+        <div>Moving <span class="wagon-card__detail-value">${formatTimeShort(w.movingSec)}</span></div>
+        <div>Handling <span class="wagon-card__detail-value">${formatTimeShort(w.handlingSec)}</span></div>
+        <div>Waiting <span class="wagon-card__detail-value">${formatTimeShort(w.waitingSec)}</span></div>
+        <div>Blocked <span class="wagon-card__detail-value">${formatTimeShort(w.blockedSec)}</span></div>
         <div>Zone <span class="wagon-card__detail-value">${w.zone ? w.zone.label : "-"}</span></div>
       </div>`;
     ui.wagonMetricsBody.appendChild(card);

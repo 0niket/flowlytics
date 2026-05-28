@@ -35,7 +35,7 @@ export function makeResources(params: SimParams): Resources {
   const unload = { id: "UNLOAD", cap: 1, busyUntil: 0, queue: [] as string[], processing: null as string | null, occupants: new Set<string>(), reserved: 0 };
   const wagons = Array.from({ length: params.wagonCount }, (_, i) => ({
     id: `W${i + 1}`, pos: zones[i]?.homePos || "LOAD", availableAt: 0, busySec: 0,
-    movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0,
+    movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0, idleSince: 0,
     zone: zones[i] || { idx: 0, startTank: 1, endTank: 12, homePos: "T6", label: "T1..T12" },
     state: { kind: "idle" as const },
   }));
@@ -259,7 +259,17 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       return parseInt(a.basketId.slice(1), 10) - parseInt(b.basketId.slice(1), 10);
     });
 
+    // Attribute idle time for available wagons
+    const hasBlocked = candidates.length > 0 && candidates.some((c) => !destHasSpace(c.dest));
     const availableWagons = resources.wagons.filter((w) => w.availableAt <= now);
+    for (const w of availableWagons) {
+      if (w.idleSince < now) {
+        const idleDur = now - w.idleSince;
+        if (hasBlocked) w.blockedSec += idleDur;
+        else w.waitingSec += idleDur;
+        w.idleSince = now;
+      }
+    }
     for (const c of candidates) {
       const b = basketById.get(c.basketId);
 
@@ -301,6 +311,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       reserveDest(c.dest);
       wagon.availableAt = tDropDone;
       wagon.busySec += tDropDone - start;
+      wagon.movingSec += emptyTravel + loadedTravel;
+      wagon.handlingSec += handling * 2 + drip;
       wagon.state = { kind: "transfer" as const, from: c.src, to: c.dest, basketId: c.basketId, start, end: tDropDone };
       if (b) { b.readyAt = null; }
 
@@ -465,7 +477,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
           }
         }
         const w = resources.wagons.find((x) => x.id === e.wagonId);
-        if (w) { w.pos = e.to === "DONE" ? "UNLOAD" : e.to!; w.availableAt = t; w.state = { kind: "idle" }; }
+        if (w) { w.pos = e.to === "DONE" ? "UNLOAD" : e.to!; w.availableAt = t; w.idleSince = t; w.state = { kind: "idle" }; }
         pushEvent({ t, kind: "transfer_done", wagonId: e.wagonId, basketId: e.basketId, from: e.from, to: e.to, start: e.start, end: e.end });
       } else if (e.kind === "dwell_done") {
         pushEvent({ t, kind: "dwell_done", basketId: e.basketId, at: e.at });
@@ -476,6 +488,14 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     dispatch(t);
   }
   fillSnapshots(simEnd);
+
+  // Final wagon idle time attribution
+  for (const w of resources.wagons) {
+    if (w.idleSince < simEnd) {
+      const idleDur = simEnd - w.idleSince;
+      w.waitingSec += idleDur;
+    }
+  }
 
   const doneTimes = completionTimes.sort((a, b) => a - b);
   const throughputBph = (completedCount / simEnd) * 3600;
@@ -513,11 +533,20 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   const loadProcessingTime = completedCount * minutesToSeconds(params.loadTimeMin);
   const loadUtil = loadProcessingTime / simEnd;
 
-  const wagonUtilList: WagonUtil[] = resources.wagons.map((w) => ({
-    id: w.id, util01: w.busySec / simEnd, zone: w.zone, busySec: w.busySec,
-    idleSec: simEnd - w.busySec, movingSec: w.movingSec, waitingSec: w.waitingSec,
-    blockedSec: w.blockedSec, handlingSec: w.handlingSec,
-  }));
+  const wagonUtilList: WagonUtil[] = resources.wagons.map((w) => {
+    const busyRaw = w.busySec;
+    const cappedBusy = Math.min(busyRaw, simEnd);
+    const ratio = busyRaw > 0 ? cappedBusy / busyRaw : 1;
+    return {
+      id: w.id, util01: cappedBusy / simEnd, zone: w.zone,
+      busySec: cappedBusy,
+      idleSec: simEnd - cappedBusy,
+      movingSec: w.movingSec * ratio,
+      waitingSec: w.waitingSec,
+      blockedSec: w.blockedSec,
+      handlingSec: w.handlingSec * ratio,
+    };
+  });
 
   const bottleneck = Object.entries(waits).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none";
 

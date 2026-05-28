@@ -260,17 +260,31 @@ As a system designer, I want the system to calculate achievable throughput, so I
 
 ## US-010: Wagon Utilization & Idle Analysis
 
-**Status:** `DRAFT`  
+**Status:** `REVIEWING`  
 **Parent phase:** [Phase 10 — Wagon Utilization & Idle Analysis](ordered_tasks.md#phase-10-wagon-utilization--idle-analysis)
+
+### Review Gates
+- [x] **DDD** — Four-way breakdown (moving, handling, waiting, blocked) maps to real wagon behavior: physically moving, performing pick/drop/lift/lower, idle with no work, and idle due to blocked destinations. `idleSince` tracks when wagon became idle; blocked vs waiting determined by whether ready candidates have unavailable destinations.
+- [x] **Fowler** — Incremental: added `idleSince` field to WagonState, set on drop handler, read in dispatch for idle attribution. `movingSec` and `handlingSec` split from existing `busySec` at dispatch time using already-computed values. Final idle attribution after event loop for gap to simEnd. Busy time past simEnd prorated to keep breakdown balanced.
+- [x] **TDD** — 3 new tests: breakdown totals sum to simEnd, moving/handling positive, waiting/blocked non-negative. 80 total tests pass.
 
 ### Description
 As a system designer, I want wagon utilization and idle analysis, so I can understand whether wagons are the real bottleneck.
 
 ### Acceptance Criteria
-*TBD during review*
+1. Four-way breakdown per wagon: `movingSec`, `handlingSec`, `waitingSec`, `blockedSec`
+2. `moving`: time spent traveling with or without a basket
+3. `handling`: time spent on lift/lower/pick/drop operations (including drip time)
+4. `waiting`: time spent idle with no work available
+5. `blocked`: time spent idle because all destination tanks are occupied
+6. Breakdown sums to total simulation time (within precision)
+7. Wagon card UI shows stacked bar with moving/handling/blocked segments
+8. Wagon card shows four-way time breakdown in seconds
 
 ### Unit Test Specs
-*TBD during review*
+1. Breakdown totals (moving + handling + waiting + blocked) sum to simEnd within 1%
+2. `movingSec` and `handlingSec` are positive after simulation
+3. `waitingSec` and `blockedSec` are non-negative
 
 ---
 
