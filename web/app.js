@@ -8,7 +8,8 @@ const DWG_CONVERT_ENDPOINT = "/convert"; // backend for .dwg → .dxf (relative 
 
 // ─── Utilities ───────────────────────────────────────────────
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-function lerp(a, b, t) { return a + (b - a) * t; }
+function lerp(a, b, t) { return a + (b - a) * t; } // unused - will remove later
+
 
 function formatSeconds(seconds) {
   if (!Number.isFinite(seconds)) return "-";
@@ -55,28 +56,11 @@ function normText(s) { return String(s || "").replace(/\\P/g, " ").replace(/\s+/
 function safeParseNumber(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
 function approxTextMatch(text, target) { const t = normText(text).toUpperCase(); const q = normText(target).toUpperCase(); return t === q || t.includes(q); }
 
-function computeBounds(points) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const p of points) { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }
-  if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: 1, maxY: 1 };
-  return { minX, minY, maxX, maxY };
-}
 
-function fitTransform(bounds, w, h, padding = 40) {
-  const bw = Math.max(1, bounds.maxX - bounds.minX);
-  const bh = Math.max(1, bounds.maxY - bounds.minY);
-  const sx = (w - 2 * padding) / bw;
-  const sy = (h - 2 * padding) / bh;
-  const scale = Math.max(0.00001, Math.min(sx, sy));
-  return { scale, tx: padding - bounds.minX * scale, ty: padding - bounds.minY * scale };
-}
-
-function applyTransform(p, t) { return { x: p.x * t.scale + t.tx, y: p.y * t.scale + t.ty }; }
 function distanceMm(a, b, mode) { const dx = Math.abs(a.x - b.x); const dy = Math.abs(a.y - b.y); return mode === "euclidean" ? Math.hypot(dx, dy) : dx + dy; }
 function escapeHtml(s) { return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
 function mPerMinToMmPerSec(mPerMin) { return (mPerMin * 1000) / 60; }
 function minutesToSeconds(min) { return min * 60; }
-function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
 
 // ─── Layout builders ─────────────────────────────────────────
 function buildSyntheticLayout(tankCount) {
@@ -681,150 +665,9 @@ function buildSimPlan(layout, params) {
   return { steps, cycleSeconds: t, violations, buckets };
 }
 
-function stepAtTime(plan, timeSec) {
-  if (!plan) return null;
-  const t = clamp(timeSec, 0, plan.cycleSeconds || 0);
-  for (let i = 0; i < plan.steps.length; i++) {
-    const s = plan.steps[i]; const isLast = i === plan.steps.length - 1;
-    if (isLast) { if (t >= s.start && t <= s.end) return s; }
-    else { if (t >= s.start && t < s.end) return s; }
-  }
-  return null;
-}
-
-// ─── Canvas rendering ────────────────────────────────────────
-function drawScene(ctx, view, layout, plan, anim, snap) {
-  const width = view.viewport.w || ctx.canvas.width;
-  const height = view.viewport.h || ctx.canvas.height;
-  ctx.clearRect(0, 0, width, height);
-
-  // Grid
-  ctx.save();
-  ctx.globalAlpha = 0.55;
-  ctx.strokeStyle = "rgba(255,255,255,0.05)";
-  ctx.lineWidth = 1;
-  const step = 50;
-  ctx.beginPath();
-  for (let x = 0; x <= width; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
-  for (let y = 0; y <= height; y += step) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
-  ctx.stroke();
-  ctx.restore();
-
-  const nodes = layout.nodes.map((n) => ({ ...n, p: applyTransform(n, view.transform) }));
-  const pathIds = ["LOAD", ...nodes.filter((n) => n.type === "tank").map((n) => n.id), "WDO", "UNLOAD"];
-  const pathPoints = [];
-  for (const id of pathIds) { const n = nodes.find((x) => x.id === id); if (n) pathPoints.push(n.p); }
-
-  const nowStep = plan ? stepAtTime(plan, clamp(anim.timeSec, 0, plan?.cycleSeconds ?? 0)) : null;
-  const hotNodeId = nowStep?.type === "travel" ? null : nowStep?.at || null;
-  const hotTravel = nowStep?.type === "travel" ? nowStep : null;
-
-  if (pathPoints.length >= 2) {
-    ctx.save(); ctx.strokeStyle = "rgba(74,163,255,0.20)"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-    for (const p of pathPoints.slice(1)) ctx.lineTo(p.x, p.y);
-    ctx.stroke(); ctx.restore();
-  }
-
-  if (hotTravel) {
-    const from = nodes.find((n) => n.id === hotTravel.from);
-    const to = nodes.find((n) => n.id === hotTravel.to) || nodes.find((n) => n.id === "WDO");
-    if (from && to) {
-      ctx.save(); ctx.strokeStyle = "rgba(255,191,105,0.55)"; ctx.lineWidth = 4; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(from.p.x, from.p.y); ctx.lineTo(to.p.x, to.p.y); ctx.stroke(); ctx.restore();
-    }
-  }
-
-  const violationSteps = new Set();
-  if (state.sim?.violations?.length) { for (const v of state.sim.violations) if (v.kind === "over_dwell" && v.step) violationSteps.add(v.step); }
-
-  for (const n of nodes) {
-    const isTank = n.type === "tank";
-    ctx.save();
-    const isStation = n.id === "LOAD" || n.id === "UNLOAD";
-    const isWdo = n.id === "WDO";
-    let fill = isTank ? "rgba(112,240,184,0.14)" : "rgba(255,255,255,0.08)";
-    let stroke = isTank ? "rgba(112,240,184,0.55)" : "rgba(255,255,255,0.22)";
-    if (isStation) { fill = "rgba(255,191,105,0.12)"; stroke = "rgba(255,191,105,0.70)"; }
-    if (isWdo) { fill = "rgba(74,163,255,0.12)"; stroke = "rgba(74,163,255,0.70)"; }
-    if (hotNodeId && n.id === hotNodeId) { fill = "rgba(255,191,105,0.22)"; stroke = "rgba(255,191,105,0.85)"; }
-    const isViolation = violationSteps.has(n.id);
-    ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = hotNodeId && n.id === hotNodeId ? 3 : 2;
-    if (isViolation) { ctx.strokeStyle = "rgba(255,107,107,0.85)"; ctx.setLineDash([8, 6]); ctx.lineWidth = 3; }
-    if (isTank) {
-      const w = 54, h = 26;
-      ctx.roundRect(n.p.x - w / 2, n.p.y - h / 2, w, h, 6); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    } else {
-      const r = isStation ? 16 : 14;
-      ctx.beginPath(); ctx.arc(n.p.x, n.p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    }
-    ctx.restore();
-
-    if (view.showLabels) {
-      ctx.save(); ctx.fillStyle = "rgba(217,226,241,0.85)"; ctx.font = "11px ui-monospace, Menlo, Monaco, Consolas, monospace";
-      ctx.textBaseline = "top";
-      const dx = isTank ? -26 : 18; const dy = isTank ? 18 : -8;
-      ctx.fillText(isTank ? n.id : n.label, n.p.x + dx, n.p.y + dy); ctx.restore();
-    }
-
-    if (snap && snap.locCounts) {
-      let count = 0;
-      if (n.id === "LOAD") count = snap.locCounts.LOADQ || 0;
-      else if (n.id === "UNLOAD") count = snap.locCounts.UNLOADQ || 0;
-      else count = snap.locCounts[n.id] || 0;
-      if (count > 0) {
-        ctx.save(); const bx = n.p.x + 20; const by = n.p.y - 24;
-        ctx.fillStyle = "rgba(10,14,22,0.88)"; ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.roundRect(bx, by, 26, 18, 7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "rgba(217,226,241,0.92)"; ctx.font = "11px ui-monospace, Menlo, Monaco, Consolas, monospace";
-        ctx.textBaseline = "top"; ctx.fillText(String(count), bx + 8, by + 2); ctx.restore();
-      }
-    }
-  }
-
-  // Basket marker (baseline single basket, only when no DES snapshot)
-  if (plan && !snap) {
-    const tSim = clamp(anim.timeSec, 0, plan.cycleSeconds || 0);
-    const travelSteps = plan.steps.filter((s) => s.type === "travel");
-    let basketPos = null;
-    for (const ts of travelSteps) {
-      if (tSim >= ts.start && tSim <= ts.end) {
-        const from = nodes.find((n) => n.id === ts.from);
-        const to = nodes.find((n) => n.id === ts.to) || nodes.find((n) => n.id === "WDO");
-        if (from && to) { const tt = (tSim - ts.start) / Math.max(1e-6, ts.end - ts.start); basketPos = { x: lerp(from.p.x, to.p.x, tt), y: lerp(from.p.y, to.p.y, tt) }; }
-        break;
-      }
-    }
-    if (!basketPos) {
-      const s = stepAtTime(plan, tSim);
-      let at = s?.at || null;
-      if (!at) { let lastAt = "LOAD"; for (const st of plan.steps) if (tSim >= st.end && st.at) lastAt = st.at; at = lastAt; }
-      const n = nodes.find((x) => x.id === at) || nodes.find((x) => x.id === "LOAD");
-      basketPos = n ? { x: n.p.x, y: n.p.y } : { x: 40, y: 40 };
-    }
-    ctx.save(); ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(basketPos.x - 10, basketPos.y - 10, 20, 20, 4); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "rgba(217,226,241,0.88)"; ctx.font = "11px ui-monospace, Menlo, Monaco, Consolas, monospace";
-    ctx.textBaseline = "top"; ctx.fillText("BASKET", basketPos.x + 14, basketPos.y - 10); ctx.restore();
-  }
-}
-
-// Polyfill
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-    const rr = typeof r === "number" ? { tl: r, tr: r, br: r, bl: r } : r;
-    this.beginPath(); this.moveTo(x + rr.tl, y); this.lineTo(x + w - rr.tr, y);
-    this.quadraticCurveTo(x + w, y, x + w, y + rr.tr); this.lineTo(x + w, y + h - rr.br);
-    this.quadraticCurveTo(x + w, y + h, x + w - rr.br, y + h); this.lineTo(x + rr.bl, y + h);
-    this.quadraticCurveTo(x, y + h, x, y + h - rr.bl); this.lineTo(x, y + rr.tl);
-    this.quadraticCurveTo(x, y, x + rr.tl, y); this.closePath(); return this;
-  };
-}
-
 // ─── SVG chart helpers ───────────────────────────────────────
 function svgClear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
 function svgEl(name) { return document.createElementNS("http://www.w3.org/2000/svg", name); }
-function updatePlayhead(svg, xNow) { const ph = svg.querySelector(".playhead-marker"); if (!ph) return false; ph.setAttribute("x1", xNow); ph.setAttribute("x2", xNow); return true; }
 
 function renderLineChart(svg, series, opts) {
   const width = Number(svg.getAttribute("width")) || 600;
@@ -946,11 +789,6 @@ function renderGantt(svg) {
     }
     y += rowH;
   }
-  const xNow = xFor(clamp(state.anim.timeSec, 0, tMax));
-  const line = svgEl("line"); line.setAttribute("x1", xNow); line.setAttribute("x2", xNow);
-  line.setAttribute("y1", 4); line.setAttribute("y2", height - 4);
-  line.setAttribute("stroke", "rgba(255,191,105,0.45)"); line.setAttribute("stroke-width", "1.5");
-  line.setAttribute("class", "playhead-marker"); svg.appendChild(line);
 }
 
 // ─── DOM helpers ─────────────────────────────────────────────
@@ -967,7 +805,7 @@ const ui = {
   tankTableBody: el("tankTableBody"), tankOverridesDetails: el("tankOverridesDetails"),
   wagonSpeedMPerMin: el("wagonSpeedMPerMin"), liftLowerSec: el("liftLowerSec"),
   pickDropSec: el("pickDropSec"), wagonCount: el("wagonCount"), distanceMode: el("distanceMode"),
-  simSpeed2: el("simSpeed2"), autoRun: el("autoRun"),
+  autoRun: el("autoRun"),
   // KPI
   kpiThroughput: el("kpiThroughput"), kpiThroughputSub: el("kpiThroughputSub"),
   kpiLeadTime: el("kpiLeadTime"), kpiLeadTimeSub: el("kpiLeadTimeSub"),
@@ -976,21 +814,13 @@ const ui = {
   kpiWagonUtil: el("kpiWagonUtil"), kpiWagonUtilSub: el("kpiWagonUtilSub"),
   kpiOptimalWip: el("kpiOptimalWip"), kpiOptimalWipSub: el("kpiOptimalWipSub"),
   // Viz
-  canvas: el("simCanvas"), nowOut: el("nowOut"), hoverTip: el("hoverTip"),
-  zoomToFitBtn: el("zoomToFitBtn"), toggleLabelsBtn: el("toggleLabelsBtn"),
-  // Playback
-  stepBackBtn: el("stepBackBtn"), playPauseBtn: el("playPauseBtn"),
-  stepFwdBtn: el("stepFwdBtn"), resetPlayheadBtn: el("resetPlayheadBtn"), scrub: el("scrub"),
+  nowOut: el("nowOut"), hoverTip: el("hoverTip"),
   // Metrics tabs
   stationMetricsBody: el("stationMetricsBody"), wagonMetricsBody: el("wagonMetricsBody"),
   loadingKvGrid: el("loadingKvGrid"), loadingQueueSvg: el("loadingQueueSvg"),
   throughputSvg: el("throughputSvg"), wipSvg: el("wipSvg"), ganttSvg: el("ganttSvg"),
-  // Scenario
-  saveScenarioABtn: el("saveScenarioABtn"), saveScenarioBBtn: el("saveScenarioBBtn"),
-  clearScenariosBtn: el("clearScenariosBtn"),
-  scenarioTableWrap: el("scenarioTableWrap"), scenarioTableBody: el("scenarioTableBody"),
-  scenarioAHeader: el("scenarioAHeader"), scenarioBHeader: el("scenarioBHeader"),
-  exportSummaryBtn: el("exportSummaryBtn"), // may be null
+  // Export (button may not exist)
+  exportSummaryBtn: el("exportSummaryBtn"),
   summaryInline: el("summaryInline"), summaryText: el("summaryText"),
   summarySelectBtn: el("summarySelectBtn"), summaryHideBtn: el("summaryHideBtn"),
   // Config
@@ -1002,10 +832,7 @@ const ui = {
 const state = {
   layout: buildSyntheticLayout(12), dxfLabelsRows: null,
   params: null, plan: null, sim: null,
-  scenarioA: null, scenarioB: null,
   chartsStale: true, chartMeta: null, activeTab: "stations", detectedStations: null,
-  view: { showLabels: true, transform: { scale: 1, tx: 0, ty: 0 }, viewport: { w: 0, h: 0, dpr: 1 } },
-  anim: { running: false, timeSec: 0, lastTs: null },
 };
 
 function readParamsFromUi() {
@@ -1037,7 +864,6 @@ function readParamsFromUi() {
     wagonCount: Math.max(1, Math.floor(Number(ui.wagonCount.value))),
     distanceMode: ui.distanceMode?.value || "manhattan",
     dwellClockOffsetSec: null,
-    simSpeed: Math.max(0.25, Number(ui.simSpeed2.value)),
   };
 }
 
@@ -1064,7 +890,6 @@ function updateLayout() {
     ui.layoutStatus.textContent = "Synthetic layout.";
   }
   state.layout.meta.distanceMode = state.params?.distanceMode || "manhattan";
-  zoomToFit();
 }
 
 function recomputePlan() {
@@ -1134,17 +959,6 @@ function updateResults() {
   renderStationMetrics();
   renderWagonMetrics();
   renderLoadingMetrics();
-  renderScenarioCompare();
-  // Update suggestions badge count
-  const sgBadge = document.getElementById("suggestionsBadge");
-  if (sgBadge) {
-    const sgCount = generateSuggestions().length;
-    sgBadge.textContent = String(sgCount);
-    sgBadge.hidden = sgCount === 0;
-  }
-  // If drawer is open, refresh it
-  const drawer = document.getElementById("suggestionsDrawer");
-  if (drawer && !drawer.hidden) renderSuggestions();
   state.chartsStale = true;
 }
 
@@ -1281,15 +1095,7 @@ function renderLoadingMetrics() {
 // ─── Charts Tab ──────────────────────────────────────────────
 function renderCharts() {
   if (!state.sim?.snapshots?.length) return;
-  if (!state.chartsStale && state.chartMeta) {
-    const total = Math.max(1, state.sim.simEnd);
-    const t = clamp(state.anim.timeSec, 0, total);
-    updatePlayhead(ui.throughputSvg, state.chartMeta.throughput.xFor(t));
-    updatePlayhead(ui.wipSvg, state.chartMeta.wip.xFor(t));
-    const pad = 14; const w = 600 - pad * 2;
-    updatePlayhead(ui.ganttSvg, pad + (t / total) * w);
-    return;
-  }
+  if (!state.chartsStale && state.chartMeta) return;
 
   const snaps = state.sim.snapshots;
   const windowSec = 600; const step = 10;
@@ -1325,51 +1131,8 @@ function renderCharts() {
     ui.throughputSvg.appendChild(tLine);
   }
 
-  // Playheads
-  const total = Math.max(1, state.sim.simEnd);
-  for (const [svg, meta] of [[ui.throughputSvg, meta1], [ui.wipSvg, meta2]]) {
-    const xNow = meta.xFor(clamp(state.anim.timeSec, 0, total));
-    const line = svgEl("line"); line.setAttribute("x1", xNow); line.setAttribute("x2", xNow);
-    line.setAttribute("y1", 6); line.setAttribute("y2", meta.height - 6);
-    line.setAttribute("stroke", "rgba(255,191,105,0.45)"); line.setAttribute("stroke-width", "1.5");
-    line.setAttribute("class", "playhead-marker"); svg.appendChild(line);
-  }
-
   renderGantt(ui.ganttSvg);
   state.chartsStale = false;
-}
-
-// ─── Scenario comparison ─────────────────────────────────────
-function summarizeScenario(params, sim) {
-  const achieved = Number.isFinite(sim.throughputTrimmedBph) ? sim.throughputTrimmedBph : Number.isFinite(sim.throughputSteadyBph) ? sim.throughputSteadyBph : sim.throughputBph;
-  return {
-    at: new Date().toISOString(), params: deepCopy(params),
-    metrics: { throughputBph: achieved, avgLeadTimeSec: sim?.avgLeadTimeSec ?? NaN, violations: sim?.violations?.length ?? 0, bottleneck: sim?.bottleneck ?? "-" },
-  };
-}
-
-function renderScenarioCompare() {
-  const a = state.scenarioA; const b = state.scenarioB;
-  if (!a && !b) { ui.scenarioTableWrap.hidden = true; ui.clearScenariosBtn.disabled = true; return; }
-  ui.clearScenariosBtn.disabled = false;
-  ui.scenarioTableWrap.hidden = false;
-  ui.scenarioTableBody.textContent = "";
-  ui.scenarioAHeader.textContent = a ? "Scenario A" : "-";
-  ui.scenarioBHeader.textContent = b ? "Scenario B" : "-";
-
-  const cur = state.sim && state.params ? summarizeScenario(state.params, state.sim) : null;
-  const fmt = (n) => (Number.isFinite(n) ? n.toFixed(2) : "-");
-  const rows = [
-    ["Throughput (bph)", a ? fmt(a.metrics.throughputBph) : "-", b ? fmt(b.metrics.throughputBph) : "-", cur ? fmt(cur.metrics.throughputBph) : "-"],
-    ["Lead Time", a ? formatSeconds(a.metrics.avgLeadTimeSec) : "-", b ? formatSeconds(b.metrics.avgLeadTimeSec) : "-", cur ? formatSeconds(cur.metrics.avgLeadTimeSec) : "-"],
-    ["Violations", a ? String(a.metrics.violations) : "-", b ? String(b.metrics.violations) : "-", cur ? String(cur.metrics.violations) : "-"],
-    ["Bottleneck", a ? a.metrics.bottleneck : "-", b ? b.metrics.bottleneck : "-", cur ? cur.metrics.bottleneck : "-"],
-  ];
-  for (const r of rows) {
-    const tr = document.createElement("tr");
-    for (const cell of r) { const td = document.createElement("td"); td.textContent = cell; tr.appendChild(td); }
-    ui.scenarioTableBody.appendChild(tr);
-  }
 }
 
 // ─── Export ──────────────────────────────────────────────────
@@ -1408,118 +1171,9 @@ async function copyToClipboard(text) {
 }
 
 // ─── Rendering loop ──────────────────────────────────────────
-function snapshotAt(timeSec) {
-  if (!state.sim?.snapshots?.length) return null;
-  const idx = clamp(Math.floor(timeSec / 10), 0, state.sim.snapshots.length - 1);
-  return state.sim.snapshots[idx];
-}
-
-function updateNow() {
-  if (!state.sim) { ui.nowOut.textContent = "-"; return; }
-  const total = state.sim.simEnd;
-  const t = clamp(state.anim.timeSec, 0, total);
-  const snap = snapshotAt(t);
-  const completed = snap ? snap.completed : 0;
-  const bphSoFar = t > 0 ? (completed / t) * 3600 : 0;
-  ui.nowOut.textContent = `${formatTimeShort(t)} / ${formatTimeShort(total)} | ${completed} done (${bphSoFar.toFixed(1)} bph)`;
-}
-
-function dwellForNodeId(id) {
-  if (!state.params) return null;
-  if (id === "LOAD") return minutesToSeconds(state.params.loadTimeMin);
-  if (id === "UNLOAD") return minutesToSeconds(state.params.unloadTimeMin);
-  if (id === "WDO") return minutesToSeconds(state.params.wdoTimeMin);
-  const step = state.params.recipeSteps.find((s) => s.id === id);
-  return step ? step.dwellSec : null;
-}
-
-function nodeScreenGeometry(node, transform) {
-  const p = applyTransform(node, transform);
-  if (node.type === "tank") { const w = 54, h = 26; return { kind: "rect", x: p.x - w / 2, y: p.y - h / 2, w, h, cx: p.x, cy: p.y }; }
-  const r = node.id === "LOAD" || node.id === "UNLOAD" ? 16 : 14;
-  return { kind: "circle", cx: p.x, cy: p.y, r };
-}
-
-function hitTestNode(screenX, screenY) {
-  const t = state.view.transform;
-  for (let i = state.layout.nodes.length - 1; i >= 0; i--) {
-    const n = state.layout.nodes[i]; const g = nodeScreenGeometry(n, t);
-    if (g.kind === "circle") { if (Math.hypot(screenX - g.cx, screenY - g.cy) <= g.r + 6) return n; }
-    else { if (screenX >= g.x - 6 && screenX <= g.x + g.w + 6 && screenY >= g.y - 6 && screenY <= g.y + g.h + 6) return n; }
-  }
-  return null;
-}
-
-function showHoverTip(clientX, clientY, html) {
-  ui.hoverTip.innerHTML = html; ui.hoverTip.hidden = false;
-  const wrap = ui.hoverTip.parentElement?.getBoundingClientRect(); if (!wrap) return;
-  ui.hoverTip.style.left = `${clientX - wrap.left + 10}px`;
-  ui.hoverTip.style.top = `${clientY - wrap.top + 10}px`;
-}
-function hideHoverTip() { ui.hoverTip.hidden = true; }
-
-function zoomToFit() {
-  const c = ui.canvas;
-  const points = state.layout.nodes.map((n) => ({ x: n.x, y: n.y }));
-  const b = computeBounds(points);
-  state.view.transform = fitTransform(b, state.view.viewport.w || c.width, state.view.viewport.h || c.height, 50);
-}
-
-function renderFrame() {
-  updateNow();
-  // Only render canvas if the simulation preview is open
-  const simPreview = document.getElementById("simPreview");
-  if (simPreview && simPreview.open) {
-    const c = ui.canvas;
-    const ctx = c.getContext("2d");
-    drawScene(ctx, state.view, state.layout, state.plan, state.anim, snapshotAt(state.anim.timeSec));
-  }
-  // Render charts if charts tab is active
-  if (state.activeTab === "charts") renderCharts();
-}
-
 function recomputeAndRender() {
   recomputePlan();
   updateResults();
-  state.chartsStale = true;
-  renderFrame();
-}
-
-function resetAnim() {
-  state.anim.running = false; state.anim.timeSec = 0; state.anim.lastTs = null;
-  ui.scrub.value = "0"; updatePlayPauseLabel(); renderFrame();
-}
-
-function updatePlayPauseLabel() {
-  if (state.anim.running) { ui.playPauseBtn.textContent = "Pause"; return; }
-  const total = state.sim?.simEnd ?? state.plan?.cycleSeconds ?? 0;
-  const t = state.anim.timeSec || 0;
-  ui.playPauseBtn.textContent = (total > 0 && t > 0 && t < total) ? "Resume" : "Replay";
-}
-
-function startAnim() {
-  state.anim.running = true; state.anim.lastTs = null; updatePlayPauseLabel();
-  // playing indicator on the sim preview header
-  requestAnimationFrame(tick);
-}
-
-function pauseAnim() {
-  state.anim.running = false; updatePlayPauseLabel();
-  // stopped indicator
-}
-
-function tick(ts) {
-  if (!state.anim.running) return;
-  if (state.anim.lastTs == null) state.anim.lastTs = ts;
-  const dt = (ts - state.anim.lastTs) / 1000; state.anim.lastTs = ts;
-  const speed = state.params?.simSpeed ?? 1;
-  state.anim.timeSec += dt * speed;
-  const total = state.sim?.simEnd ?? state.plan?.cycleSeconds ?? 0;
-  if (total > 0 && state.anim.timeSec > total) state.anim.timeSec = total;
-  if (state.plan) { ui.scrub.value = String(clamp(Math.round((1000 * state.anim.timeSec) / Math.max(1e-6, total)), 0, 1000)); }
-  renderFrame();
-  if (total > 0 && state.anim.timeSec >= total) { state.anim.running = false; updatePlayPauseLabel(); return; }
-  requestAnimationFrame(tick);
 }
 
 // ─── Browser-based DXF parsing ───────────────────────────────
@@ -1806,300 +1460,6 @@ function switchTab(tabId) {
     el.hidden = el.getAttribute("data-tab-content") !== tabId;
   });
   if (tabId === "charts") { state.chartsStale = true; renderCharts(); }
-}
-
-// ─── Suggestions Engine (Theory of Constraints) ─────────────
-
-function generateSuggestions() {
-  const suggestions = [];
-  if (!state.sim || !state.params) return suggestions;
-  const s = state.sim;
-  const p = state.params;
-  const inv = s.inventory;
-  const achieved = Number.isFinite(s.throughputTrimmedBph) ? s.throughputTrimmedBph : Number.isFinite(s.throughputSteadyBph) ? s.throughputSteadyBph : s.throughputBph;
-
-  // ── PRIORITY 1: ZERO VIOLATIONS (quality first) ──
-
-  if (s.violations.length > 0 && s.bottleneck === "wagon_busy") {
-    suggestions.push({
-      id: "violations-add-wagon",
-      category: "violations",
-      priority: "Quality — Zero Violations",
-      title: "Add a wagon to eliminate over-dwell violations",
-      problem: "The system has " + s.violations.length + " over-dwell violations. Baskets are stuck in chemical tanks because the single wagon can't pick them up fast enough. Every violation is a potential quality defect — surface damage from prolonged chemical exposure.",
-      theory: "Goldratt's First Rule: \"A bottleneck hour lost is a system hour lost.\" But more critically here — every minute a basket over-dwells in acid or chromate is irreversible surface damage. Quality is non-negotiable. The wagon is the constraint, and it's causing quality failures.",
-      steps: [
-        "Current wagon count: <strong>" + p.wagonCount + "</strong>",
-        "Add 1 wagon: <span class='suggestion-card__change'>" + p.wagonCount + " → " + (p.wagonCount + 1) + " wagons</span>",
-        "The second wagon covers the other half of the tank line",
-        "Baskets get picked up before they exceed the dwell tolerance window",
-        "Violations drop to near zero; throughput improves as a side effect",
-      ],
-      impact: "Expected: violations → 0, throughput improvement from reduced wait times",
-      apply: { wagonCount: p.wagonCount + 1 },
-    });
-  }
-
-  if (s.violations.length > 0 && s.bottleneck === "wagon_busy" && p.wagonCount >= 2) {
-    suggestions.push({
-      id: "violations-speed",
-      category: "violations",
-      priority: "Quality — Zero Violations",
-      title: "Increase wagon speed to reduce transfer time",
-      problem: "With " + p.wagonCount + " wagons, there are still " + s.violations.length + " violations. The wagons are fast enough to reach baskets but the total transfer cycle (travel + lift + lower + drip) is too long.",
-      theory: "Goldratt's Step 2 — \"Exploit the constraint.\" Before adding more resources (Step 4: Elevate), make existing resources more effective. Faster wagon speed reduces the travel component of every transfer, giving the wagon more time margin.",
-      steps: [
-        "Current speed: <strong>" + p.wagonSpeedMPerMin + " m/min</strong>",
-        "Increase by 25%: <span class='suggestion-card__change'>" + p.wagonSpeedMPerMin + " → " + Math.round(p.wagonSpeedMPerMin * 1.25) + " m/min</span>",
-        "Each transfer saves " + Math.round((1400 / mPerMinToMmPerSec(p.wagonSpeedMPerMin) - 1400 / mPerMinToMmPerSec(p.wagonSpeedMPerMin * 1.25))) + "s of travel per tank gap",
-        "Over " + p.tankCount + " tanks, total savings compound significantly",
-      ],
-      impact: "Faster transfers → wagon picks up baskets before tolerance window closes",
-      apply: { wagonSpeedMPerMin: Math.round(p.wagonSpeedMPerMin * 1.25) },
-    });
-  }
-
-  if (s.violations.length > 0 && p.tolerancePct < 0.20) {
-    const newTol = Math.min(25, Math.round(p.tolerancePct * 100) + 5);
-    suggestions.push({
-      id: "violations-tolerance",
-      category: "violations",
-      priority: "Quality — Zero Violations",
-      title: "Widen dwell tolerance to reduce violations",
-      problem: "Current tolerance is ±" + Math.round(p.tolerancePct * 100) + "%. This gives only a " + Math.round(p.tolerancePct * 2 * 120) + "-second window for a 2-minute dwell. If the chemistry allows flexibility, a wider window reduces violations without changing physical equipment.",
-      theory: "Goldratt distinguishes physical constraints from policy constraints. A tight tolerance is a policy constraint — it may be stricter than the chemistry actually requires. Relaxing a policy constraint is free and immediate.",
-      steps: [
-        "Current tolerance: <strong>±" + Math.round(p.tolerancePct * 100) + "%</strong>",
-        "Widen to: <span class='suggestion-card__change'>±" + Math.round(p.tolerancePct * 100) + "% → ±" + newTol + "%</span>",
-        "Validate with your chemical supplier that the wider window is acceptable",
-        "Note: water/rinse tanks are almost always safe with wider tolerance; chemical tanks need verification",
-      ],
-      impact: "Wider window → fewer violations without equipment changes",
-      apply: { tolerancePct: newTol },
-    });
-  }
-
-  // ── PRIORITY 2: RESOLVE THE BOTTLENECK ──
-
-  if (s.bottleneck === "wagon_busy" && s.violations.length === 0 && achieved < p.targetBph * 0.95) {
-    suggestions.push({
-      id: "bottleneck-wagon-add",
-      category: "bottleneck",
-      priority: "Bottleneck — Wagon Constraint",
-      title: "Elevate the wagon constraint: add a wagon",
-      problem: "The wagon is the bottleneck (" + s.waits.wagon_busy + " wait events). Violations are zero, but throughput is " + achieved.toFixed(2) + " bph vs " + p.targetBph.toFixed(2) + " bph target. The wagon simply can't serve all baskets fast enough.",
-      theory: "Goldratt's Step 4 — \"Elevate the constraint.\" You've already exploited it (no violations means timing is okay). The system needs more wagon capacity to increase throughput. Adding a wagon is the correct elevation.",
-      steps: [
-        "Current: <strong>" + p.wagonCount + " wagon(s)</strong> at " + Math.round(s.util.wagons[0]?.util01 * 100 || 0) + "% utilization",
-        "Add 1 wagon: <span class='suggestion-card__change'>" + p.wagonCount + " → " + (p.wagonCount + 1) + " wagons</span>",
-        "Each wagon covers a zone of the tank line — reduces travel distance per wagon",
-        "Throughput increases because baskets move through the system faster",
-      ],
-      impact: "Throughput should approach " + Math.min(p.targetBph, achieved * 1.6).toFixed(1) + " bph with reduced wagon contention",
-      apply: { wagonCount: p.wagonCount + 1 },
-    });
-  }
-
-  if (s.bottleneck === "dest_full") {
-    const newDwell = Math.max(0.5, Number(ui.dwellPreset.value) * 0.85);
-    suggestions.push({
-      id: "bottleneck-tank",
-      category: "bottleneck",
-      priority: "Bottleneck — Tank Capacity",
-      title: "Tanks are the constraint: reduce dwell time",
-      problem: "The bottleneck is 'tank occupied' (" + s.waits.dest_full + " wait events). Single-capacity tanks are full when the next basket needs to enter. The wagon has to wait, creating a cascade of delays.",
-      theory: "Goldratt's Step 2 — \"Exploit the constraint.\" The tanks are the drum. To exploit them, minimize the time each basket occupies a tank. If chemistry allows a 15% dwell reduction, each tank becomes available sooner, breaking the occupancy deadlock.",
-      steps: [
-        "Current dwell: <strong>" + Number(ui.dwellPreset.value).toFixed(1) + " min/tank</strong>",
-        "Reduce by 15%: <span class='suggestion-card__change'>" + Number(ui.dwellPreset.value).toFixed(1) + " → " + newDwell.toFixed(1) + " min/tank</span>",
-        "Validate the reduced dwell with your chemical process specification",
-        "Alternative: add a parallel tank at the most utilized station",
-      ],
-      impact: "Frees each tank ~" + Math.round((Number(ui.dwellPreset.value) - newDwell) * 60) + "s sooner → breaks occupancy deadlock",
-      apply: { dwellPreset: newDwell },
-    });
-  }
-
-  if (s.bottleneck === "load_busy" || (s.loading && s.loading.processingUtil01 > 0.90)) {
-    const newLoad = Math.max(5, Math.round(p.loadTimeMin * 0.75));
-    suggestions.push({
-      id: "bottleneck-loading",
-      category: "bottleneck",
-      priority: "Bottleneck — Loading Station",
-      title: "Loading is the hidden constraint",
-      problem: "Loading utilization is " + Math.round((s.loading?.processingUtil01 || 0) * 100) + "%. At " + p.loadTimeMin + " min/basket, the loading station can handle at most " + (60 / p.loadTimeMin).toFixed(1) + " bph. Your target of " + p.targetBph.toFixed(1) + " bph exceeds this ceiling.",
-      theory: "Goldratt warns about hidden constraints. Loading seems like a simple manual operation, but it sets the maximum throughput ceiling for the entire system. No amount of wagon speed or tank optimization can exceed what loading allows in. This is Step 1 — \"Identify the constraint.\"",
-      steps: [
-        "Current load time: <strong>" + p.loadTimeMin + " min</strong> (max " + (60 / p.loadTimeMin).toFixed(1) + " bph)",
-        "Reduce by 25% via offline basket preparation: <span class='suggestion-card__change'>" + p.loadTimeMin + " → " + newLoad + " min</span>",
-        "Offline prep: load parts onto baskets at a separate station while the line runs",
-        "At the loading station, just hook the pre-loaded basket — much faster",
-        "New ceiling: " + (60 / newLoad).toFixed(1) + " bph",
-      ],
-      impact: "Raises the loading ceiling from " + (60 / p.loadTimeMin).toFixed(1) + " to " + (60 / newLoad).toFixed(1) + " bph",
-      apply: { loadTimeMin: newLoad },
-    });
-  }
-
-  // ── PRIORITY 3: INVENTORY OPTIMIZATION (Drum-Buffer-Rope) ──
-
-  if (inv && inv.isOverfeeding) {
-    suggestions.push({
-      id: "inventory-dbr",
-      category: "inventory",
-      priority: "Inventory — Drum-Buffer-Rope",
-      title: "Match release rate to the bottleneck",
-      problem: "You are releasing baskets at " + inv.arrivalBph.toFixed(1) + " bph but the system can only process " + inv.recommendedBph.toFixed(1) + " bph. Excess WIP of ~" + inv.excessWip.toFixed(1) + " baskets accumulates — wasted staging space, capital tied up in work-in-progress, and longer lead times for every basket.",
-      theory: "Goldratt's Drum-Buffer-Rope: The bottleneck is the Drum — it sets the pace. The Rope ties the release of new work to the Drum's pace. Never push faster than the Drum can process. Excess inventory is not an asset — it's a liability that hides problems and inflates lead time.",
-      steps: [
-        "Current arrival rate: <strong>" + inv.arrivalBph.toFixed(1) + " bph</strong>",
-        "Bottleneck capacity: <strong>" + inv.recommendedBph.toFixed(1) + " bph</strong>",
-        "Reduce target to match: <span class='suggestion-card__change'>" + p.targetBph.toFixed(1) + " → " + inv.recommendedBph.toFixed(1) + " bph</span>",
-        "Optimal WIP: " + (Number.isFinite(inv.optimalWip) ? inv.optimalWip.toFixed(1) : "~2") + " baskets in the system",
-        "Keep " + (Number.isFinite(inv.recommendedBuffer) ? inv.recommendedBuffer : 1) + " basket(s) prepared at loading as buffer to prevent bottleneck starvation",
-      ],
-      impact: "Eliminates excess WIP, reduces lead time, makes bottleneck visible",
-      apply: { targetBph: Math.round(inv.recommendedBph * 100) / 100 },
-    });
-  }
-
-  // ── RELIABILITY ──
-
-  if (p.simHours < 2 || s.completedCount < 4) {
-    suggestions.push({
-      id: "reliability-duration",
-      category: "reliability",
-      priority: "Reliability",
-      title: "Extend simulation for reliable results",
-      problem: "Only " + s.completedCount + " baskets completed in " + p.simHours + " hours. Throughput and violation statistics need more data points to be reliable. The first baskets always experience warm-up bias (empty line).",
-      theory: "Sound decisions need sound data. With fewer than 4 completed baskets, the throughput estimate can swing ±30% from the true steady-state value. This isn't a TOC principle — it's statistical reliability.",
-      steps: [
-        "Current: <strong>" + p.simHours + " hours</strong> (" + s.completedCount + " baskets completed)",
-        "Increase to: <span class='suggestion-card__change'>" + p.simHours + " → 4 hours</span>",
-        "More baskets = more reliable throughput, violation, and utilization numbers",
-        "The warm-up period (first 1-2 baskets) gets diluted by steady-state data",
-      ],
-      impact: "More accurate metrics for quotation confidence",
-      apply: { simHours: 4 },
-    });
-  }
-
-  return suggestions;
-}
-
-function renderSuggestions() {
-  const body = document.getElementById("suggestionsBody");
-  const subtitle = document.getElementById("suggestionsSubtitle");
-  const badge = document.getElementById("suggestionsBadge");
-  if (!body) return;
-
-  const suggestions = generateSuggestions();
-
-  // Update badge
-  if (badge) {
-    if (suggestions.length > 0) {
-      badge.textContent = String(suggestions.length);
-      badge.hidden = false;
-    } else {
-      badge.hidden = true;
-    }
-  }
-
-  body.innerHTML = "";
-  if (subtitle) subtitle.textContent = suggestions.length + " suggestion" + (suggestions.length !== 1 ? "s" : "") + " based on current simulation";
-
-  if (suggestions.length === 0) {
-    body.innerHTML = '<div class="suggestions-empty"><div class="suggestions-empty__icon">&#10003;</div>System is well-optimized. No violations, throughput meets target, and inventory is balanced.<br><br>Try changing parameters in the sidebar to explore what-if scenarios.</div>';
-    return;
-  }
-
-  for (const sg of suggestions) {
-    const card = document.createElement("div");
-    card.className = "suggestion-card suggestion-card--" + sg.category;
-
-    let stepsHtml = "";
-    for (const step of sg.steps) {
-      stepsHtml += "<li>" + step + "</li>";
-    }
-
-    card.innerHTML =
-      '<div class="suggestion-card__header">' +
-        '<div class="suggestion-card__priority suggestion-card__priority--' + sg.category + '">' + escapeHtml(sg.priority) + '</div>' +
-        '<div class="suggestion-card__title">' + escapeHtml(sg.title) + '</div>' +
-      '</div>' +
-      '<div class="suggestion-card__body">' +
-        '<div class="suggestion-card__section">' +
-          '<div class="suggestion-card__label">Problem</div>' +
-          '<div class="suggestion-card__text">' + escapeHtml(sg.problem) + '</div>' +
-        '</div>' +
-        '<div class="suggestion-card__section">' +
-          '<div class="suggestion-card__label">Theory (The Goal)</div>' +
-          '<div class="suggestion-card__text">' + escapeHtml(sg.theory) + '</div>' +
-        '</div>' +
-        '<div class="suggestion-card__section">' +
-          '<div class="suggestion-card__label">Solution</div>' +
-          '<ol class="suggestion-card__steps">' + stepsHtml + '</ol>' +
-        '</div>' +
-      '</div>' +
-      '<div class="suggestion-card__footer">' +
-        '<div class="suggestion-card__impact">' + escapeHtml(sg.impact) + '</div>' +
-        '<button class="suggestion-card__apply" data-suggestion-id="' + sg.id + '">Apply</button>' +
-      '</div>';
-
-    // Apply button handler
-    const applyBtn = card.querySelector(".suggestion-card__apply");
-    applyBtn.addEventListener("click", () => {
-      // Apply changes → recompute simulation → updateResults() triggers:
-      //   - KPI cards update
-      //   - Station/Wagon/Loading metrics re-render
-      //   - Suggestions badge recalculates
-      //   - Drawer re-renders with fresh suggestions (since it's open)
-      applySuggestion(sg);
-    });
-
-    body.appendChild(card);
-  }
-}
-
-function applySuggestion(sg) {
-  const changes = sg.apply;
-  if (!changes) return;
-  if (changes.wagonCount != null) ui.wagonCount.value = String(changes.wagonCount);
-  if (changes.wagonSpeedMPerMin != null) ui.wagonSpeedMPerMin.value = String(changes.wagonSpeedMPerMin);
-  if (changes.tolerancePct != null) ui.tolerancePct.value = String(changes.tolerancePct);
-  if (changes.dwellPreset != null) {
-    ui.dwellPreset.value = String(changes.dwellPreset);
-    // Apply to all tanks
-    for (const input of ui.tankTableBody.querySelectorAll("input")) input.value = String(changes.dwellPreset);
-  }
-  if (changes.loadTimeMin != null) ui.loadTimeMin.value = String(changes.loadTimeMin);
-  if (changes.targetBph != null) ui.targetBph.value = String(changes.targetBph);
-  if (changes.simHours != null) ui.simHours.value = String(changes.simHours);
-  recomputeAndRender();
-}
-
-function initSuggestionsDrawer() {
-  const btn = document.getElementById("suggestionsBtn");
-  const drawer = document.getElementById("suggestionsDrawer");
-  const overlay = document.getElementById("drawerOverlay");
-  const closeBtn = document.getElementById("drawerCloseBtn");
-  if (!btn || !drawer) return;
-
-  function openDrawer() {
-    renderSuggestions();
-    drawer.hidden = false;
-    if (overlay) overlay.hidden = false;
-  }
-  function closeDrawer() {
-    drawer.hidden = true;
-    if (overlay) overlay.hidden = true;
-  }
-
-  btn.addEventListener("click", () => {
-    if (drawer.hidden) openDrawer(); else closeDrawer();
-  });
-  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
-  if (overlay) overlay.addEventListener("click", closeDrawer);
 }
 
 // ─── Glossary ────────────────────────────────────────────────
@@ -2421,147 +1781,11 @@ function initUi() {
   for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "tolerancePct", "dripTimeSec", "targetBph", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode"]) {
     el(id).addEventListener("input", () => { if (ui.autoRun.checked) recomputeAndRender(); });
   }
-  ui.simSpeed2.addEventListener("input", () => {
-    if (state.params) state.params.simSpeed = Math.max(0.25, Number(ui.simSpeed2.value));
-  });
-
-  // Playback
-  ui.playPauseBtn.addEventListener("click", () => {
-    if (!state.plan) recomputeAndRender();
-    if (state.anim.running) pauseAnim(); else startAnim();
-  });
-  ui.resetPlayheadBtn.addEventListener("click", () => { pauseAnim(); state.anim.timeSec = 0; state.anim.lastTs = null; ui.scrub.value = "0"; renderFrame(); });
-  ui.stepBackBtn.addEventListener("click", () => {
-    pauseAnim(); const total = state.sim?.simEnd ?? state.plan?.cycleSeconds ?? 0;
-    state.anim.timeSec = clamp(state.anim.timeSec - 10, 0, total);
-    ui.scrub.value = String(Math.round((1000 * state.anim.timeSec) / Math.max(1, total))); renderFrame();
-  });
-  ui.stepFwdBtn.addEventListener("click", () => {
-    pauseAnim(); const total = state.sim?.simEnd ?? state.plan?.cycleSeconds ?? 0;
-    state.anim.timeSec = clamp(state.anim.timeSec + 10, 0, total);
-    ui.scrub.value = String(Math.round((1000 * state.anim.timeSec) / Math.max(1, total))); renderFrame();
-  });
-  ui.scrub.addEventListener("input", () => {
-    pauseAnim(); const total = state.sim?.simEnd ?? state.plan?.cycleSeconds ?? 0;
-    state.anim.timeSec = clamp((Number(ui.scrub.value) / 1000) * total, 0, total); renderFrame();
-  });
 
   // DXF
   ui.fetchDxfBtn.addEventListener("click", () => fetchDxfFiles());
   ui.loadFilesBtn.addEventListener("click", () => { ui.filePicker.value = ""; ui.filePicker.click(); });
   ui.filePicker.addEventListener("change", (e) => { if (e.target.files?.length) handlePickedFiles(e.target.files); });
-
-  // Canvas controls
-  function zoomByFactor(factor) {
-    const t = state.view.transform;
-    const cx = (state.view.viewport.w || 400) / 2;
-    const cy = (state.view.viewport.h || 200) / 2;
-    state.view.transform = {
-      scale: t.scale * factor,
-      tx: cx - (cx - t.tx) * factor,
-      ty: cy - (cy - t.ty) * factor,
-    };
-    renderFrame();
-  }
-
-  ui.zoomToFitBtn.addEventListener("click", () => { zoomToFit(); renderFrame(); });
-  document.getElementById("zoomInBtn")?.addEventListener("click", () => zoomByFactor(1.4));
-  document.getElementById("zoomOutBtn")?.addEventListener("click", () => zoomByFactor(1 / 1.4));
-  ui.toggleLabelsBtn.addEventListener("click", () => { state.view.showLabels = !state.view.showLabels; renderFrame(); });
-
-  // Fullscreen
-  const fullscreenBtn = document.getElementById("fullscreenBtn");
-  const simPreviewEl = document.getElementById("simPreview");
-  if (fullscreenBtn && simPreviewEl) {
-    fullscreenBtn.addEventListener("click", () => {
-      const body = simPreviewEl.querySelector(".sim-preview__body");
-      const target = body || simPreviewEl;
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        target.requestFullscreen().then(() => setTimeout(resizeCanvas, 100));
-      }
-    });
-    document.addEventListener("fullscreenchange", () => {
-      setTimeout(resizeCanvas, 100);
-    });
-  }
-
-  // Zoom (mouse wheel) and Pan (mouse drag)
-  ui.canvas.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const rect = ui.canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-    const t = state.view.transform;
-    // Zoom around mouse position
-    const newScale = t.scale * factor;
-    state.view.transform = {
-      scale: newScale,
-      tx: mouseX - (mouseX - t.tx) * factor,
-      ty: mouseY - (mouseY - t.ty) * factor,
-    };
-    renderFrame();
-  }, { passive: false });
-
-  let panState = null;
-  ui.canvas.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return;
-    panState = { startX: e.clientX, startY: e.clientY, tx: state.view.transform.tx, ty: state.view.transform.ty };
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!panState) return;
-    const dx = e.clientX - panState.startX;
-    const dy = e.clientY - panState.startY;
-    state.view.transform.tx = panState.tx + dx;
-    state.view.transform.ty = panState.ty + dy;
-    renderFrame();
-  });
-  window.addEventListener("mouseup", () => { panState = null; });
-
-  // Hover
-  ui.canvas.addEventListener("mouseleave", () => { hideHoverTip(); panState = null; });
-  ui.canvas.addEventListener("mousemove", (e) => {
-    if (panState) return; // don't show tooltips while panning
-    const rect = ui.canvas.getBoundingClientRect();
-    const node = hitTestNode(e.clientX - rect.left, e.clientY - rect.top);
-    if (!node) return hideHoverTip();
-    const dwell = dwellForNodeId(node.id);
-    const kind = node.type === "tank" ? "Tank" : node.id === "WDO" ? "Drying Oven" : "Station";
-    const dwellLine = dwell != null ? `<div class="muted">Time: <b>${escapeHtml(formatSeconds(dwell))}</b></div>` : "";
-    let vio = "";
-    if (state.sim?.violations?.length) {
-      const byStep = state.sim.violations.filter((v) => v.step === node.id);
-      if (byStep.length) {
-        const worst = Math.max(...byStep.map((v) => v.seconds || 0));
-        vio = `<div class="muted">Violations: <b>${byStep.length}</b> (worst +${escapeHtml(formatTimeShort(worst))})</div>`;
-      }
-    }
-    // Station util
-    let utilLine = "";
-    const stUtil = state.sim?.util?.stations?.find((s) => s.id === node.id);
-    if (stUtil) utilLine = `<div class="muted">Util: <b>${formatPct01(stUtil.util01)}</b></div>`;
-    showHoverTip(e.clientX, e.clientY,
-      `<div><b>${escapeHtml(node.id)}</b> <span class="muted">(${escapeHtml(kind)})</span></div>` +
-      dwellLine + utilLine + vio
-    );
-  });
-
-  // Scenarios
-  ui.saveScenarioABtn.addEventListener("click", () => {
-    if (!state.params || !state.sim) return;
-    state.scenarioA = summarizeScenario(state.params, state.sim);
-    renderScenarioCompare();
-  });
-  ui.saveScenarioBBtn.addEventListener("click", () => {
-    if (!state.params || !state.sim) return;
-    state.scenarioB = summarizeScenario(state.params, state.sim);
-    renderScenarioCompare();
-  });
-  ui.clearScenariosBtn.addEventListener("click", () => {
-    state.scenarioA = null; state.scenarioB = null; renderScenarioCompare();
-  });
 
   // Export (button may not exist)
   if (ui.exportSummaryBtn) {
@@ -2577,7 +1801,6 @@ function initUi() {
 
   // Glossary
   initGlossary();
-  initSuggestionsDrawer();
 
   // Theme toggle
   const themeBtn = document.getElementById("themeToggleBtn");
@@ -2593,35 +1816,8 @@ function initUi() {
       localStorage.setItem("flowlytics-theme", isLight ? "light" : "dark");
     });
   }
-
-  // Simulation preview toggle — resize canvas when opened
-  const simPreview = document.getElementById("simPreview");
-  if (simPreview) {
-    simPreview.addEventListener("toggle", () => {
-      if (simPreview.open) setTimeout(resizeCanvas, 50);
-    });
-  }
-
-  // Canvas resize
-  function resizeCanvas() {
-    const rect = ui.canvas.getBoundingClientRect();
-    if (rect.width < 10 || rect.height < 10) return; // not visible yet
-    const dpr = window.devicePixelRatio || 1;
-    const cssW = Math.max(300, rect.width); const cssH = Math.max(120, rect.height);
-    ui.canvas.width = Math.floor(cssW * dpr); ui.canvas.height = Math.floor(cssH * dpr);
-    state.view.viewport = { w: cssW, h: cssH, dpr };
-    const ctx = ui.canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    zoomToFit(); renderFrame();
-  }
-  state._resizeCanvas = resizeCanvas;
-  let resizeTimer = null;
-  window.addEventListener("resize", () => { if (resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(resizeCanvas, 150); });
-
-  resizeCanvas();
 }
 
 initUi();
 recomputeAndRender();
-resetAnim();
-updatePlayPauseLabel();
 initStartupModal();

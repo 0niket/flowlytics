@@ -188,7 +188,6 @@
           </div>
           <div class="topbar__right">
             <button id="glossaryBtn" class="btn btn--sm" type="button">Glossary</button>
-            <button id="suggestionsBtn" class="btn btn--sm btn--suggestions" type="button">Suggestions <span id="suggestionsBadge" class="suggestions-badge" hidden>0</span></button>
             <button id="themeToggleBtn" class="btn btn--sm btn--icon" type="button" title="Toggle light/dark mode" aria-label="Toggle theme">&#9790;</button>
           </div>
         </div>
@@ -297,71 +296,8 @@
                 <div class="legend__item"><span class="swatch" style="background: rgba(255,191,105,0.22)"></span> Load/Unload</div>
                 <div class="legend__item"><span class="swatch" style="background: rgba(74,163,255,0.2)"></span> Dry-Off</div>
                 <div class="legend__item"><span class="swatch" style="background: rgba(112,240,184,0.18)"></span> Tank dwell</div>
-                <div class="legend__item"><span class="swatch swatch--hot"></span> Playhead</div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Simulation Preview (collapsible, compact) -->
-        <details class="sim-preview" id="simPreview">
-          <summary class="sim-preview__header">
-            <span class="sim-preview__title">Line Layout Preview</span>
-            <span class="sim-preview__now mono small" id="nowOut">-</span>
-            <span class="sim-preview__actions">
-              <button id="zoomInBtn" class="btn btn--icon" type="button" title="Zoom in">+</button>
-              <button id="zoomOutBtn" class="btn btn--icon" type="button" title="Zoom out">&minus;</button>
-              <button id="zoomToFitBtn" class="btn btn--icon" type="button" title="Zoom to fit">Fit</button>
-              <button id="toggleLabelsBtn" class="btn btn--icon" type="button" title="Toggle labels">Labels</button>
-              <button id="fullscreenBtn" class="btn btn--icon" type="button" title="Full screen">&#x26F6;</button>
-            </span>
-          </summary>
-          <div class="sim-preview__body">
-            <div class="canvasWrap">
-              <div class="canvasLayer">
-                <canvas id="simCanvas" width="1200" height="280"></canvas>
-                <div id="hoverTip" class="hoverTip" hidden></div>
-              </div>
-            </div>
-            <div class="playback-bar">
-              <div class="transport" role="group" aria-label="Playback controls">
-                <button id="stepBackBtn" class="btn btn--icon" type="button" title="Step backward 10s">&#9664;</button>
-                <button id="playPauseBtn" class="btn btn--icon btn--accent" type="button" title="Replay / Pause">Replay</button>
-                <button id="stepFwdBtn" class="btn btn--icon" type="button" title="Step forward 10s">&#9654;</button>
-                <button id="resetPlayheadBtn" class="btn btn--icon" type="button" title="Reset">Reset</button>
-              </div>
-              <input id="scrub" class="scrub" type="range" min="0" max="1000" value="0" aria-label="Simulation time scrubber" />
-              <div class="playback-bar__speed">
-                <label class="field__label" for="simSpeed2">Speed</label>
-                <input id="simSpeed2" class="field__control field__control--xs" type="number" min="0.25" max="20" step="0.25" value="6" />
-                <span class="mono small">&times;</span>
-              </div>
-            </div>
-          </div>
-        </details>
-
-        <!-- Scenario Comparison -->
-        <div class="scenario-bar" id="scenarioBar">
-          <div class="scenario-bar__header">
-            <span class="scenario-bar__title">Scenario Compare</span>
-            <div class="scenario-bar__actions">
-              <button id="saveScenarioABtn" class="btn btn--sm" type="button">Save A</button>
-              <button id="saveScenarioBBtn" class="btn btn--sm" type="button">Save B</button>
-              <button id="clearScenariosBtn" class="btn btn--sm" type="button" disabled>Clear</button>
-            </div>
-          </div>
-          <div class="tableWrap" id="scenarioTableWrap" hidden>
-            <table class="table" aria-label="Scenario comparison">
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th id="scenarioAHeader">Scenario A</th>
-                  <th id="scenarioBHeader">Scenario B</th>
-                  <th>Current</th>
-                </tr>
-              </thead>
-              <tbody id="scenarioTableBody"></tbody>
-            </table>
           </div>
         </div>
 
@@ -374,19 +310,6 @@
           </div>
         </div>
       </main>
-    </div>
-
-    <!-- Suggestions Drawer -->
-    <div class="drawer-overlay" id="drawerOverlay" hidden></div>
-    <div class="drawer" id="suggestionsDrawer" hidden>
-      <div class="drawer__header">
-        <div>
-          <div class="drawer__title">Suggestions</div>
-          <div class="drawer__subtitle" id="suggestionsSubtitle">Based on current simulation</div>
-        </div>
-        <button id="drawerCloseBtn" class="glossary__close" type="button">&times;</button>
-      </div>
-      <div class="drawer__body" id="suggestionsBody"></div>
     </div>
 
     <!-- Glossary Page (dynamically rendered) -->
