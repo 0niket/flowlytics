@@ -43,4 +43,17 @@ describe("defaultRecipe", () => {
     expect(steps.find((s) => s.id === "LOAD")!.dwellSec).toBe(0);
     expect(steps.find((s) => s.id === "UNLOAD")!.dwellSec).toBe(0);
   });
+
+  it("defaults all tank tolerances to 10%", () => {
+    const steps = defaultRecipe(6, "ms");
+    const tanks = steps.filter((s) => s.kind === "tank");
+    for (const t of tanks) expect(t.tolerancePct).toBe(0.1);
+  });
+
+  it("does not set tolerancePct on non-tank steps", () => {
+    const steps = defaultRecipe(6, "ms");
+    for (const s of steps) {
+      if (s.kind !== "tank") expect(s.tolerancePct).toBeUndefined();
+    }
+  });
 });

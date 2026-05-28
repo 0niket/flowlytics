@@ -24,7 +24,6 @@ export const ui: UiElements = {
   wdoTimeMin: el("wdoTimeMin"),
   loadTimeMin: el("loadTimeMin"),
   unloadTimeMin: el("unloadTimeMin"),
-  tolerancePct: el("tolerancePct"),
   dripTimeSec: el("dripTimeSec"),
   targetBph: el("targetBph"),
   simHours: el("simHours"),

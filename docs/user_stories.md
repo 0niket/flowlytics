@@ -60,17 +60,25 @@ As a system designer, I want to classify each tank as chemical or rinse and set 
 
 ## US-003: Tolerance by Tank Type
 
-**Status:** `DRAFT`  
+**Status:** `DONE`  
 **Parent phase:** [Phase 3 — Tolerance by Tank Type](ordered_tasks.md#phase-3-tolerance-by-tank-type)
 
+### Review Gates
+- [x] **DDD** — Domain concept: tolerance is the acceptable dwell window. Chemical tanks (±10%) are tight (over-dwell causes surface defects); rinse tanks (±50%) are wide. The process engineer knows which tanks are critical.
+- [x] **Fowler** — Incremental: added tolerance column to existing tank table; `defaultRecipe` sets tolerance from `tankType`; simulation reads per-tank `tolerancePct` from each `RecipeStep` instead of a global param; added under-dwell detection; removed global tolerance input and its `SimParams`/`UiElements` field.
+- [x] **TDD** — 2 new layout tests (default 10% tolerance, non-tank steps have none). Simulation test overrides per-tank tolerance via `recipeSteps` instead of global param. 38 total tests pass.
+
 ### Description
-As a system designer, I want tank-specific tolerance windows, so the system reflects the difference between chemical and rinse processes.
+As a system designer, I want tank-specific tolerance windows, so the simulation reflects chemical vs rinse process differences.
 
 ### Acceptance Criteria
-*TBD during review*
-
-### Unit Test Specs
-*TBD during review*
+1. Tank table shows four columns: Step, Type, Dwell (min), Tolerance (±%)
+2. Chemical tanks default to ±10%; rinse tanks default to ±50%
+3. User can override per-tank tolerance independently
+4. Simulation uses per-tank tolerance (not global) for dwell window checks
+5. Both over-dwell and under-dwell are detected
+6. Global tolerance field removed from config panel
+7. No violation when basket exits within its per-tank tolerance window
 
 ---
 

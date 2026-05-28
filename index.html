@@ -41,22 +41,16 @@
               </div>
             </div>
 
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="wdoTimeMin" title="Water Dry-Off Oven time">WDO (min)</label>
-                <input id="wdoTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="tolerancePct" title="Dwell tolerance window">Tolerance (±%)</label>
-                <input id="tolerancePct" class="field__control" type="number" min="0" max="50" step="1" value="10" />
-              </div>
+            <div class="field">
+              <label class="field__label" for="wdoTimeMin" title="Water Dry-Off Oven time">WDO (min)</label>
+              <input id="wdoTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
             </div>
 
             <details class="inner-details" id="tankOverridesDetails">
-              <summary class="inner-details__summary">Per-tank dwell overrides</summary>
+              <summary class="inner-details__summary">Per-tank overrides</summary>
               <div class="tableWrap">
                 <table class="table" aria-label="Tank dwell times">
-                  <thead><tr><th>Step</th><th>Type</th><th>Dwell (min)</th></tr></thead>
+                  <thead><tr><th>Step</th><th>Type</th><th>Dwell (min)</th><th>Tolerance (±%)</th></tr></thead>
                   <tbody id="tankTableBody"></tbody>
                 </table>
               </div>

@@ -71,13 +71,15 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   }
 
   const dwellTarget = new Map(params.recipeSteps.map((s) => [s.id, s.dwellSec]));
-  const tol = clamp(params.tolerancePct ?? 0.1, 0, 0.5);
   const dwellMin = new Map<string, number>();
   const dwellMax = new Map<string, number>();
-  for (const [id, target] of dwellTarget.entries()) {
-    const t = Math.max(0, target);
-    dwellMin.set(id, t * (1 - tol));
-    dwellMax.set(id, t * (1 + tol));
+  const stepTol = new Map<string, number>();
+  for (const step of params.recipeSteps) {
+    const t = Math.max(0, step.dwellSec);
+    const tol = clamp(step.tolerancePct ?? 0.1, 0, 0.5);
+    stepTol.set(step.id, tol);
+    dwellMin.set(step.id, t * (1 - tol));
+    dwellMax.set(step.id, t * (1 + tol));
   }
 
   const baskets: Basket[] = [];
@@ -318,15 +320,28 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
           const max = dwellMax.get(e.from!);
           if (target > 0 && b.insertedAt != null && max != null) {
             const over = t - (b.insertedAt + max);
+            const min = dwellMin.get(e.from!);
             if (over > 0.001) {
               violations.push({
                 basketId: e.basketId!, tankId: e.from!, type: "over_dwell",
-                elapsed: t - b.insertedAt, dwellTime: target, tolerancePct: tol,
-                earliestExit: b.insertedAt + target * (1 - tol),
+                elapsed: t - b.insertedAt, dwellTime: target, tolerancePct: stepTol.get(e.from!)!,
+                earliestExit: b.insertedAt + (target * (1 - (stepTol.get(e.from!) ?? 0.1))),
                 latestExit: b.insertedAt + max,
                 timestamp: t, cause: "wagon_unavailable" as ViolationCause,
               });
               if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
+            } else if (min != null) {
+              const under = (b.insertedAt + min) - t;
+              if (under > 0.001) {
+                violations.push({
+                  basketId: e.basketId!, tankId: e.from!, type: "under_dwell",
+                  elapsed: t - b.insertedAt, dwellTime: target, tolerancePct: stepTol.get(e.from!)!,
+                  earliestExit: b.insertedAt + min,
+                  latestExit: b.insertedAt + max,
+                  timestamp: t, cause: "wagon_unavailable" as ViolationCause,
+                });
+                if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
+              }
             }
           }
           if (b.insertedAt != null && stationOccupancy[e.from!]) {

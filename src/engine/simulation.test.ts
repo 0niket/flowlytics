@@ -11,7 +11,6 @@ function defaultParams(overrides?: Partial<SimParams>): SimParams {
     wdoTimeMin: 10,
     loadTimeMin: 1,
     unloadTimeMin: 1,
-    tolerancePct: 0.1,
     dripTimeSec: 3,
     targetBph: 3,
     simHours: 2,
@@ -46,8 +45,9 @@ describe("runSimulation", () => {
 
   it("detects over-dwell violations with tight tolerance", () => {
     const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s) => s.kind === "tank" ? { ...s, tolerancePct: 0.01 } : s);
     const params = defaultParams({
-      tolerancePct: 0.01,
+      recipeSteps: steps,
       wagonCount: 1,
       wagonSpeedMPerMin: 10,
       targetBph: 4,

@@ -71,7 +71,6 @@ export interface SimParams {
   wdoTimeMin: number;
   loadTimeMin: number;
   unloadTimeMin: number;
-  tolerancePct: number;
   dripTimeSec: number;
   targetBph: number;
   simHours: number;
@@ -382,7 +381,6 @@ export interface UiElements {
   wdoTimeMin: HTMLInputElement;
   loadTimeMin: HTMLInputElement;
   unloadTimeMin: HTMLInputElement;
-  tolerancePct: HTMLInputElement;
   dripTimeSec: HTMLInputElement;
   targetBph: HTMLInputElement;
   simHours: HTMLInputElement;

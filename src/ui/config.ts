@@ -12,13 +12,16 @@ export function readParamsFromUi(): SimParams {
     const id = tr.getAttribute("data-id");
     const dwellInput = tr.querySelector<HTMLInputElement>(".dwell-input");
     const typeSelect = tr.querySelector<HTMLSelectElement>(".type-select");
+    const tolInput = tr.querySelector<HTMLInputElement>(".tol-input");
     const dwell = dwellInput ? Number(dwellInput.value) : 0;
     const tankType = typeSelect ? (typeSelect.value as TankType) : undefined;
+    const tol = tolInput ? clamp(Number(tolInput.value), 0, 50) / 100 : 0.1;
     if (id && id.startsWith("T")) {
       const step = recipeSteps.find((x) => x.id === id);
       if (step) {
         step.dwellSec = minutesToSeconds(Math.max(0, dwell));
         if (tankType) step.tankType = tankType;
+        step.tolerancePct = tol;
       }
     }
   }
@@ -29,7 +32,6 @@ export function readParamsFromUi(): SimParams {
     wdoTimeMin: Math.max(0, Number(ui.wdoTimeMin.value)),
     loadTimeMin: Math.max(0, Number(ui.loadTimeMin.value)),
     unloadTimeMin: Math.max(0, Number(ui.unloadTimeMin.value)),
-    tolerancePct: clamp(Number(ui.tolerancePct.value), 0, 50) / 100,
     dripTimeSec: Math.max(0, Number(ui.dripTimeSec.value)),
     targetBph: Math.max(0.1, Number(ui.targetBph.value)),
     simHours: Math.max(0.25, Number(ui.simHours.value)),
@@ -42,7 +44,7 @@ export function readParamsFromUi(): SimParams {
   };
 }
 
-export function rebuildTankTable(tankCount: number, dwellMinDefault: number): void {
+export function rebuildTankTable(tankCount: number, dwellMinDefault: number, tolDefault: number = 10): void {
   ui.tankTableBody.textContent = "";
   for (let i = 0; i < tankCount; i++) {
     const id = `T${i + 1}`;
@@ -67,14 +69,26 @@ export function rebuildTankTable(tankCount: number, dwellMinDefault: number): vo
     input.value = String(dwellMinDefault);
     td3.appendChild(input);
 
+    const td4 = document.createElement("td");
+    const tolInput = document.createElement("input");
+    tolInput.className = "tol-input";
+    tolInput.type = "number";
+    tolInput.min = "0";
+    tolInput.max = "50";
+    tolInput.step = "1";
+    tolInput.value = String(tolDefault);
+    td4.appendChild(tolInput);
+
     tr.appendChild(td1);
     tr.appendChild(td2);
     tr.appendChild(td3);
+    tr.appendChild(td4);
     ui.tankTableBody.appendChild(tr);
 
     const onChange = () => { if (ui.autoRun.checked) recomputeAndRender(); };
     input.addEventListener("input", onChange);
     select.addEventListener("change", onChange);
+    tolInput.addEventListener("input", onChange);
   }
 }
 
@@ -565,13 +579,14 @@ export function exportSummaryText(): string {
   const p = state.params;
   const s = state.sim;
   const tankDwells = p.recipeSteps.filter((x) => x.kind === "tank").map((x) => `${x.id}:${(x.dwellSec / 60).toFixed(1)}m`).join(", ");
+  const tankTols = p.recipeSteps.filter((x) => x.kind === "tank").map((x) => `${x.id}:±${Math.round((x.tolerancePct ?? 0.1) * 100)}%`).join(", ");
   const lines: string[] = [
     "Pretreatment Transporter Simulation Summary",
     `Date: ${new Date().toLocaleString()}`, "",
     `Recipe: ${p.preset} | Tanks: ${p.tankCount} | WDO: ${p.wdoTimeMin}m`,
     `Tank dwells: ${tankDwells}`,
-    `Load: ${p.loadTimeMin}m | Unload: ${p.unloadTimeMin}m | Drip: ${p.dripTimeSec}s`,
-    `Tolerance: ±${Math.round(p.tolerancePct * 100)}%`, "",
+    `Tank tolerances: ${tankTols}`,
+    `Load: ${p.loadTimeMin}m | Unload: ${p.unloadTimeMin}m | Drip: ${p.dripTimeSec}s`, "",
     `Wagons: ${p.wagonCount} | Speed: ${p.wagonSpeedMPerMin} m/min`,
     `Lift+Lower: ${p.liftLowerSec}s | Pick+Drop: ${p.pickDropSec}s`, "",
     `Sim: ${p.simHours}hr | Target: ${p.targetBph} bph`,
@@ -641,7 +656,7 @@ export async function setupConfigPanel(): Promise<void> {
     if (ui.autoRun.checked) recomputeAndRender();
   });
 
-  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "tolerancePct", "dripTimeSec", "targetBph", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode"]) {
+  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "dripTimeSec", "targetBph", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode"]) {
     const e = document.getElementById(id);
     if (e) e.addEventListener("input", () => { if (ui.autoRun.checked) recomputeAndRender(); });
   }
