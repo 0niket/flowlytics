@@ -583,6 +583,30 @@ function renderCharts(): void {
   }
 
   renderGantt(ui.ganttSvg);
+
+  // Violation cumulative chart
+  if (state.sim.violations.length > 0) {
+    const vSnaps: { x: number; y: number }[] = [];
+    const violations = state.sim.violations;
+    vSnaps.push({ x: 0, y: 0 });
+    for (const v of violations) vSnaps.push({ x: v.timestamp, y: (vSnaps[vSnaps.length - 1]?.y ?? 0) + 1 });
+    renderLineChart(ui.violationSvg, vSnaps, { stroke: "rgba(224,108,117,0.80)", fill: "rgba(224,108,117,0.10)", unit: "violations" });
+  } else {
+    svgClear(ui.violationSvg);
+  }
+
+  // Wagon activity: busy wagon count over time from snapshots
+  if (state.sim.util.wagons.length > 0) {
+    const wSnaps: { x: number; y: number }[] = [];
+    for (const s of snaps) {
+      const busy = (s.wagonStates ?? []).filter((ws) => ws.state.kind === "transfer").length;
+      wSnaps.push({ x: s.t, y: busy });
+    }
+    renderLineChart(ui.wagonActivitySvg, wSnaps, { stroke: "rgba(74,163,255,0.80)", fill: "rgba(74,163,255,0.10)", unit: "wagons" });
+  } else {
+    svgClear(ui.wagonActivitySvg);
+  }
+
   state.chartsStale = false;
 }
 

@@ -57,6 +57,8 @@ export const ui: UiElements = {
   throughputSvg: svgEl("throughputSvg"),
   wipSvg: svgEl("wipSvg"),
   ganttSvg: svgEl("ganttSvg"),
+  violationSvg: svgEl("violationSvg"),
+  wagonActivitySvg: svgEl("wagonActivitySvg"),
   exportSummaryBtn: (document.getElementById("exportSummaryBtn") as HTMLButtonElement | null),
   summaryInline: el("summaryInline"),
   summaryText: el("summaryText"),

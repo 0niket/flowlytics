@@ -422,6 +422,8 @@ export interface UiElements {
   throughputSvg: SVGSVGElement;
   wipSvg: SVGSVGElement;
   ganttSvg: SVGSVGElement;
+  violationSvg: SVGSVGElement;
+  wagonActivitySvg: SVGSVGElement;
   exportSummaryBtn: HTMLButtonElement | null;
   summaryInline: HTMLElement;
   summaryText: HTMLTextAreaElement;
