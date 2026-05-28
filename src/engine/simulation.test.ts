@@ -56,6 +56,34 @@ describe("runSimulation", () => {
     expect(result.violations.length).toBeGreaterThanOrEqual(0);
   });
 
+  it("populates stateHistory on every basket", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ wagonCount: 1, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.baskets.length).toBeGreaterThan(0);
+    for (const b of result.baskets) {
+      expect(b.stateHistory).toBeDefined();
+      expect(b.stateHistory!.length).toBeGreaterThanOrEqual(1);
+      expect(b.stateHistory![0].fromState).toBe("WAITING_LOAD");
+    }
+    const completed = result.baskets.filter((b) => b.currentState === "DONE");
+    if (completed.length > 0) {
+      const done = completed[0];
+      expect(done.stateHistory!.length).toBeGreaterThanOrEqual(9);
+      expect(done.stateHistory!.at(-1)!.toState).toBe("DONE");
+    }
+  });
+
+  it("computes elapsedInState on each basket", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ wagonCount: 1, simHours: 1 });
+    const result = runSimulation(layout, params);
+    for (const b of result.baskets) {
+      expect(b.elapsedInState).toBeGreaterThanOrEqual(0);
+      expect(b.elapsedInState).toBe(result.simEnd - b.stateEnteredAt);
+    }
+  });
+
   it("runs with multiple wagons", () => {
     const layout = buildSyntheticLayout(12);
     const params = defaultParams({ tankCount: 12, wagonCount: 2 });

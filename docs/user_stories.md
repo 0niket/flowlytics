@@ -84,17 +84,24 @@ As a system designer, I want tank-specific tolerance windows, so the simulation 
 
 ## US-004: PLC-Style State Tracking
 
-**Status:** `DRAFT`  
+**Status:** `DONE`  
 **Parent phase:** [Phase 4 — PLC-Style State Tracking](ordered_tasks.md#phase-4-plc-style-state-tracking)
 
+### Review Gates
+- [x] **DDD** — Basket lifecycle maps to PLC states: WAITING_LOAD → LOADING → IN_TANK → READY_FOR_PICKUP → IN_TRANSIT → (repeat) → WAITING_UNLOAD → UNLOADING → DONE. Each state corresponds to a physical or control activity.
+- [x] **Fowler** — Incremental: formal state machine via `@xstate/fsm` library; `transitionBasketWithLog()` replaces ad-hoc `b.currentState = "..."` at 9 transition sites; `stateHistory` logging added to each Basket; `elapsedInState` computed in output. No architectural changes.
+- [x] **TDD** — 13 new basketStateMachine tests (all state transitions, full lifecycle, transition logging). 2 new simulation tests: stateHistory populated on all baskets, elapsedInState computed correctly. 53 total tests pass.
+
 ### Description
-As a system designer, I want the system to track basket location, timing, and completion state, so the software mirrors how the control program operates.
+As a system designer, I want the system to track basket location, timing, and completion state through a formal state machine, so the software mirrors how the control program operates.
 
 ### Acceptance Criteria
-*TBD during review*
-
-### Unit Test Specs
-*TBD during review*
+1. Basket lifecycle follows WAITING_LOAD → LOADING → READY_FOR_PICKUP → IN_TRANSIT → IN_TANK → READY_FOR_PICKUP → ... → WAITING_UNLOAD → UNLOADING → DONE
+2. States are defined via `@xstate/fsm` with explicit event transitions. No manual `currentState =` assignments remain.
+3. `stateHistory` on each Basket records `{timestamp, fromState, toState, reason}` for every transition
+4. `elapsedInState` on each Basket is computed as `simEnd - stateEnteredAt`
+5. Invalid transitions are rejected by the state machine
+6. Wagon can pick up directly from IN_TANK (before dwell completes)
 
 ---
 

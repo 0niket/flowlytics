@@ -152,6 +152,7 @@ export interface Basket {
   createdAt: number;
   currentState: BasketState;
   stateEnteredAt: number;
+  elapsedInState: number;
   loc: string;
   insertedAt: number | null;
   readyAt: number | null;
@@ -159,6 +160,7 @@ export interface Basket {
   totalWaitSec: number;
   totalTravelSec: number;
   totalDwellSec: number;
+  stateHistory?: BasketStateTransition[];
 }
 
 export interface BasketStateTransition {
