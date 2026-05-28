@@ -401,6 +401,31 @@ code { font-family: var(--mono); font-size: 12px; }
   background: rgba(10,14,22,0.3); padding: 8px;
 }
 .chart__title { font-size: 11px; font-weight: 700; color: rgba(217,226,241,0.85); margin-bottom: 4px; }
+
+/* ===== DEBUG TAB ===== */
+.debug-section { display: flex; flex-direction: column; gap: 12px; }
+.debug-section__title { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.debug-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: var(--mono); }
+.debug-table th { text-align: left; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+.debug-table td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text); }
+.debug-table tr:hover td { background: rgba(255,255,255,0.02); }
+.decision-log__rejected { font-size: 10px; color: var(--muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bottleneck-panel { }
+.bottleneck-card {
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); padding: 12px;
+}
+.bottleneck-card__factor { font-size: 14px; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.bottleneck-card__factor--bad { color: var(--danger); }
+.bottleneck-card__factor--ok { color: var(--accent2); }
+.bottleneck-card__desc { font-size: 12px; color: var(--text); margin-bottom: 8px; }
+.bottleneck-card__metrics { display: flex; gap: 12px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+.cause-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.cause-badge--wagon_unavailable { background: rgba(224,108,117,0.15); color: rgb(224,108,117); }
+.cause-badge--destination_blocked { background: rgba(255,191,105,0.15); color: rgb(255,191,105); }
+.cause-badge--line_design { background: rgba(146,162,187,0.15); color: rgb(146,162,187); }
 .legend { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 10px; margin-top: 6px; }
 .legend__item { display: flex; gap: 4px; align-items: center; }
 .swatch { width: 12px; height: 8px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }

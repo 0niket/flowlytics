@@ -233,6 +233,7 @@
             <button class="metrics-tab" role="tab" data-tab="wagons" aria-selected="false">Wagons</button>
             <button class="metrics-tab" role="tab" data-tab="loading" aria-selected="false">Loading</button>
             <button class="metrics-tab" role="tab" data-tab="charts" aria-selected="false">Charts</button>
+            <button class="metrics-tab" role="tab" data-tab="debug" aria-selected="false">Debug</button>
           </div>
 
           <!-- Stations Tab -->
@@ -307,8 +308,22 @@
               </div>
             </div>
           </div>
-        </div>
 
+          <!-- Debug Tab -->
+          <div class="metrics-content" id="tabDebug" data-tab-content="debug" hidden>
+            <div class="debug-section">
+              <div class="debug-section__title">Throughput Limitation</div>
+              <div id="bottleneckPanel" class="bottleneck-panel"></div>
+
+              <div class="debug-section__title">Scheduling Decisions (last 20)</div>
+              <div id="decisionLogBody" class="decision-log"></div>
+
+              <div class="debug-section__title">Violation Details</div>
+              <div id="violationDetailBody" class="violation-detail"></div>
+            </div>
+          </div>
+        </div>
+ 
         <!-- Export inline (hidden, accessible via JS) -->
         <div id="summaryInline" class="summaryInline" hidden>
           <textarea id="summaryText" class="summaryInline__textarea" rows="6" spellcheck="false"></textarea>

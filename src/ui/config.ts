@@ -389,6 +389,7 @@ function updateResults(): void {
   renderStationMetrics();
   renderWagonMetrics();
   renderLoadingMetrics();
+  renderDebugTab();
   state.chartsStale = true;
 }
 
@@ -536,6 +537,96 @@ function renderLoadingMetrics(): void {
     renderLineChart(ui.loadingQueueSvg, series, {
       stroke: "rgba(74,222,128,0.80)", fill: "rgba(74,222,128,0.15)", yMax: 1, unit: "busy",
     });
+  }
+}
+
+function renderDebugTab(): void {
+  if (!state.sim) return;
+  const s = state.sim;
+
+  // Bottleneck panel
+  const bp = document.getElementById("bottleneckPanel");
+  if (bp) {
+    bp.innerHTML = "";
+    if (s.throughputLimitation) {
+      const div = document.createElement("div");
+      div.className = "bottleneck-card";
+      const factor = s.throughputLimitation.factor;
+      const desc = s.throughputLimitation.description;
+      const isBad = factor !== "configuration_incomplete";
+      div.innerHTML = `
+        <div class="bottleneck-card__factor ${isBad ? "bottleneck-card__factor--bad" : "bottleneck-card__factor--ok"}">${escapeHtml(factor)}</div>
+        <div class="bottleneck-card__desc">${escapeHtml(desc)}</div>
+        <div class="bottleneck-card__metrics">
+          <span>Throughput: ${s.simulatedThroughput.toFixed(2)} bph</span>
+          <span>Theoretical max: ${s.theoreticalMaxThroughput.toFixed(2)} bph</span>
+          <span>Target: ${s.targetThroughput} bph</span>
+        </div>`;
+      bp.appendChild(div);
+    } else {
+      bp.textContent = "Throughput meets target — no bottleneck detected.";
+    }
+  }
+
+  // Scheduling decisions (last 20)
+  const dl = document.getElementById("decisionLogBody");
+  if (dl) {
+    dl.innerHTML = "";
+    const decisions = s.schedulingDecisions;
+    const recent = decisions.slice(-20);
+    if (recent.length === 0) {
+      dl.textContent = "No scheduling decisions recorded.";
+    } else {
+      const table = document.createElement("table");
+      table.className = "debug-table";
+      table.innerHTML = `<thead><tr><th>Time</th><th>Wagon</th><th>Basket</th><th>Urgency</th><th>Reason</th><th>Rejected</th></tr></thead>`;
+      const tbody = document.createElement("tbody");
+      for (const d of recent) {
+        const tr = document.createElement("tr");
+        const rejectedStr = d.rejectedCandidates.length > 0
+          ? d.rejectedCandidates.map((r) => `${r.basketId}(${r.reason}, u=${r.urgency.toFixed(2)})`).join("; ")
+          : "-";
+        tr.innerHTML = `
+          <td>${formatTimeShort(d.timestamp)}</td>
+          <td>${escapeHtml(d.wagonId)}</td>
+          <td>${escapeHtml(d.selectedBasketId)}</td>
+          <td>${d.urgencyScore.toFixed(2)}</td>
+          <td>${escapeHtml(d.reason)}</td>
+          <td class="decision-log__rejected">${escapeHtml(rejectedStr)}</td>`;
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      dl.appendChild(table);
+    }
+  }
+
+  // Violation details
+  const vd = document.getElementById("violationDetailBody");
+  if (vd) {
+    vd.innerHTML = "";
+    if (s.violations.length === 0) {
+      vd.textContent = "No violations recorded.";
+    } else {
+      const table = document.createElement("table");
+      table.className = "debug-table";
+      table.innerHTML = `<thead><tr><th>Time</th><th>Basket</th><th>Tank</th><th>Type</th><th>Elapsed</th><th>Target</th><th>Cause</th></tr></thead>`;
+      const tbody = document.createElement("tbody");
+      for (const v of s.violations) {
+        const tr = document.createElement("tr");
+        const causeLabel = v.cause === "wagon_unavailable" ? "Wagon busy" : v.cause === "destination_blocked" ? "Dest full" : "Design";
+        tr.innerHTML = `
+          <td>${formatTimeShort(v.timestamp)}</td>
+          <td>${escapeHtml(v.basketId)}</td>
+          <td>${escapeHtml(v.tankId)}</td>
+          <td>${v.type === "over_dwell" ? "Over" : "Under"}</td>
+          <td>${formatTimeShort(v.elapsed)}</td>
+          <td>${formatTimeShort(v.dwellTime)}</td>
+          <td><span class="cause-badge cause-badge--${v.cause}">${causeLabel}</span></td>`;
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      vd.appendChild(table);
+    }
   }
 }
 
