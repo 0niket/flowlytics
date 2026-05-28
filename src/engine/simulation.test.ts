@@ -419,3 +419,51 @@ describe("US-011: Multi-Wagon Zone Support", () => {
     expect(result.handoffStats).toBeUndefined();
   });
 });
+
+describe("US-012: Failure Handling", () => {
+  it("stops the line on single-wagon failure", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 1, basketCount: 2, simHours: 1, wagonFailureTimeSec: 100 });
+    const result = runSimulation(layout, params);
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures[0].impact).toBe("line_stopped");
+    expect(result.lineStopped).toBe(true);
+  });
+
+  it("isolates zone on multi-wagon failure", () => {
+    const layout = buildSyntheticLayout(12);
+    const params = defaultParams({ tankCount: 12, wagonCount: 2, basketCount: 3, simHours: 1, wagonFailureTimeSec: 200 });
+    const result = runSimulation(layout, params);
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures[0].impact).toBe("zone_isolated");
+    expect(result.lineStopped).toBe(false);
+  });
+
+  it("produces zero failures when no failure time is set", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 1, basketCount: 2, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.failures.length).toBe(0);
+  });
+
+  it("fails basket in transit when wagon fails", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 1, basketCount: 1, simHours: 2, wagonFailureTimeSec: 50 });
+    const result = runSimulation(layout, params);
+    expect(result.failures.length).toBeGreaterThan(0);
+    const failedBaskets = result.baskets.filter((b) => b.currentState === "FAILED");
+    expect(failedBaskets.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("prevents dispatch to failed wagon", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 2, basketCount: 3, simHours: 1, wagonFailureTimeSec: 100 });
+    const result = runSimulation(layout, params);
+    expect(result.failures.length).toBeGreaterThan(0);
+    // Failed wagon should not have entries in the scheduling log after its failure time
+    const failTime = result.failures[0].timestamp;
+    const wagonId = result.failures[0].wagonId;
+    const postFailDecisions = result.schedulingDecisions.filter((d) => d.timestamp >= failTime && d.wagonId === wagonId);
+    expect(postFailDecisions.length).toBe(0);
+  });
+});

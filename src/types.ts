@@ -81,6 +81,7 @@ export interface SimParams {
   wagonCount: number;
   distanceMode: DistanceMode;
   dwellClockOffsetSec: number | null;
+  wagonFailureTimeSec?: number;
 }
 
 // ─── Simulation Resources ──────────────────────────────────────
@@ -147,7 +148,8 @@ export type BasketState =
   | "IN_TRANSIT"
   | "WAITING_UNLOAD"
   | "UNLOADING"
-  | "DONE";
+  | "DONE"
+  | "FAILED";
 
 export interface Basket {
   id: string;

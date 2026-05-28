@@ -1,4 +1,4 @@
-import type { Layout, SimParams, Resources, Basket, WagonZone, StationUtil, WagonUtil, InventoryAnalysis, SimulationResult, SimEvent, Violation, SimPlan, ViolationCause } from "../types";
+import type { Layout, SimParams, Resources, Basket, WagonZone, StationUtil, WagonUtil, InventoryAnalysis, SimulationResult, SimEvent, Violation, SimPlan, ViolationCause, FailureRecord } from "../types";
 import { clamp, distanceMm, mPerMinToMmPerSec, minutesToSeconds } from "../utils";
 import { heapPush, heapPop, heapPeek } from "./heap";
 import { transitionBasketWithLog } from "./basketStateMachine";
@@ -134,6 +134,9 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   let inTransitCount = 0;
   let completedCount = 0;
   const completionTimes: number[] = [];
+  let failureTriggered = false;
+  let lineStopped = false;
+  const failures: FailureRecord[] = [];
 
   type StationOccEntry = { start: number; end: number | null };
   const stationOccupancy: Record<string, { entries: StationOccEntry[]; totalOccupied: number; dwellActuals: number[]; violationCount: number }> = {};
@@ -290,7 +293,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
 
     // Attribute idle time for available wagons
     const hasBlocked = candidates.length > 0 && candidates.some((c) => !destHasSpace(c.dest));
-    const availableWagons = resources.wagons.filter((w) => w.availableAt <= now);
+    const availableWagons = resources.wagons.filter((w) => w.availableAt <= now && w.state.kind !== "failed");
     for (const w of availableWagons) {
       if (w.idleSince < now) {
         const idleDur = now - w.idleSince;
@@ -432,6 +435,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         startUnloadIfPossible(t);
       } else if (e.kind === "pickup") {
         pushEvent({ t, kind: "pickup", wagonId: e.wagonId, basketId: e.basketId, from: e.from, to: e.to, start: e.start, end: e.end });
+        const pW = resources.wagons.find((x) => x.id === e.wagonId);
+        if (pW && pW.state.kind === "failed") continue;
         const b = basketById.get(e.basketId!);
         if (b) {
           const target = dwellTarget.get(e.from!) ?? 0;
@@ -489,6 +494,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         if (w) w.state = { kind: "transfer", from: e.from!, to: e.to!, basketId: e.basketId!, start: e.start!, end: e.end! };
       } else if (e.kind === "drop") {
         pushEvent({ t, kind: "drop", wagonId: e.wagonId, basketId: e.basketId, from: e.from, to: e.to, start: e.start, end: e.end });
+        const bSkip = basketById.get(e.basketId!);
+        if (bSkip && bSkip.currentState === "FAILED") continue;
         unreserveDest(e.to!);
         const b = basketById.get(e.basketId!);
         if (b) {
@@ -527,6 +534,28 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         const b = basketById.get(e.basketId!);
         if (b) { b.readyAt = t; transitionBasketWithLog(b, "DWELL_COMPLETE", t, "dwell_complete"); b.stateEnteredAt = t; }
       }
+    }
+    // Wagon failure handling (US-012)
+    if (!failureTriggered && params.wagonFailureTimeSec != null && t >= params.wagonFailureTimeSec) {
+      failureTriggered = true;
+      const failed = resources.wagons[0];
+      const wasTransfer = failed.state.kind === "transfer";
+      const carriedBasketId = wasTransfer ? (failed.state as { basketId: string }).basketId : null;
+      const stuckBaskets: string[] = [];
+      if (carriedBasketId) {
+        const b = basketById.get(carriedBasketId);
+        if (b) {
+          b.loc = (failed.state as { from: string }).from;
+          transitionBasketWithLog(b, "FAIL", t, "wagon_failure");
+          b.stateEnteredAt = t;
+          stuckBaskets.push(b.id);
+        }
+      }
+      failed.state = { kind: "failed" };
+      failed.availableAt = Infinity;
+      const impact = resources.wagons.length <= 1 ? "line_stopped" : "zone_isolated";
+      if (resources.wagons.length <= 1) lineStopped = true;
+      failures.push({ wagonId: failed.id, timestamp: t, impact, stuckBaskets: stuckBaskets.length });
     }
     dispatch(t);
   }
@@ -647,8 +676,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     inventory,
     baskets, events, snapshots,
     schedulingDecisions,
-    failures: [],
-    lineStopped: false,
+    failures,
+    lineStopped,
     handoffStats: handoffDelays.length > 0 ? {
       count: handoffDelays.length,
       avgDelaySec: handoffDelays.reduce((a, b) => a + b, 0) / handoffDelays.length,
