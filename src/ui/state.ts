@@ -25,7 +25,7 @@ export const ui: UiElements = {
   loadTimeMin: el("loadTimeMin"),
   unloadTimeMin: el("unloadTimeMin"),
   dripTimeSec: el("dripTimeSec"),
-  targetBph: el("targetBph"),
+  basketCount: el("basketCount"),
   simHours: el("simHours"),
   dwellPreset: el("dwellPreset"),
   tankTableBody: el("tankTableBody"),

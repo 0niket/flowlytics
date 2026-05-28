@@ -107,17 +107,25 @@ As a system designer, I want the system to track basket location, timing, and co
 
 ## US-005: Multi-Basket Modeling
 
-**Status:** `DRAFT`  
+**Status:** `DONE`  
 **Parent phase:** [Phase 5 — Multi-Basket Modeling](ordered_tasks.md#phase-5-multi-basket-modeling)
 
+### Review Gates
+- [x] **DDD** — Basket count is a physical invariant: the plant owns exactly N baskets on the monorail. Simulating more baskets than physically exist is invalid. With N fixed baskets cycling continuously, the system is fully deterministic — no external arrivals.
+- [x] **Fowler** — Incremental: added `basketCount` to `SimParams`, HTML config, and UI state. Removed the interarrival/scheduleNextArrival mechanism. At t=0, N baskets are created. On `unload_done`, the basket re-enters `WAITING_LOAD` via the `RESTART` state machine event and cycles to LOAD. `completedCount` tracks cycle completions via `completionTimes[]`. Fixed unload-start ordering bug (startUnloadIfPossible called before state transition to WAITING_UNLOAD).
+- [x] **TDD** — 4 new tests: 2 baskets, 5 baskets run without errors; more baskets produce more throughput; single basket cycles via RESTART. 59 total tests pass.
+
 ### Description
-As a system designer, I want to simulate multiple baskets in the same line, so I can test realistic parallel operation.
+As a system designer, I want to simulate multiple baskets cycling through the same line, so I can test realistic parallel operation with a fixed set of N baskets.
 
 ### Acceptance Criteria
-*TBD during review*
-
-### Unit Test Specs
-*TBD during review*
+1. N fixed baskets exist at t=0 and cycle continuously
+2. Each basket completes a cycle (LOAD → tanks → WDO → UNLOAD) and RESTARTs (re-enters WAITING_LOAD)
+3. `completedCount` in the result tracks total cycle completions
+4. `basketCount` is configurable in the UI (1-20, default 2)
+5. No external basket arrivals — system is fully deterministic
+6. Multiple baskets can occupy different tanks simultaneously
+7. Capacity/reservation system prevents invalid moves to occupied tanks
 
 ---
 

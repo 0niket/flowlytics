@@ -7,6 +7,7 @@ function defaultParams(overrides?: Partial<SimParams>): SimParams {
   const base: SimParams = {
     preset: "ms",
     tankCount: 6,
+    basketCount: 3,
     recipeSteps: defaultRecipe(6, "ms"),
     wdoTimeMin: 10,
     loadTimeMin: 1,
@@ -58,25 +59,32 @@ describe("runSimulation", () => {
 
   it("populates stateHistory on every basket", () => {
     const layout = buildSyntheticLayout(6);
-    const params = defaultParams({ wagonCount: 1, simHours: 1 });
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 1 });
     const result = runSimulation(layout, params);
-    expect(result.baskets.length).toBeGreaterThan(0);
+    expect(result.baskets.length).toBe(2);
     for (const b of result.baskets) {
       expect(b.stateHistory).toBeDefined();
       expect(b.stateHistory!.length).toBeGreaterThanOrEqual(1);
       expect(b.stateHistory![0].fromState).toBe("WAITING_LOAD");
     }
-    const completed = result.baskets.filter((b) => b.currentState === "DONE");
-    if (completed.length > 0) {
-      const done = completed[0];
-      expect(done.stateHistory!.length).toBeGreaterThanOrEqual(9);
-      expect(done.stateHistory!.at(-1)!.toState).toBe("DONE");
-    }
+  });
+
+  it("baskets cycle via RESTART when unload completes", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 1, wagonCount: 1, simHours: 4 });
+    const result = runSimulation(layout, params);
+    expect(result.baskets.length).toBe(1);
+    const b = result.baskets[0];
+    expect(b.cycleCount).toBeGreaterThan(0);
+    const restartEntry = b.stateHistory!.find((h) => h.reason === "cycle_restart");
+    expect(restartEntry).toBeDefined();
+    expect(restartEntry!.fromState).toBe("DONE");
+    expect(restartEntry!.toState).toBe("WAITING_LOAD");
   });
 
   it("computes elapsedInState on each basket", () => {
     const layout = buildSyntheticLayout(6);
-    const params = defaultParams({ wagonCount: 1, simHours: 1 });
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 1 });
     const result = runSimulation(layout, params);
     for (const b of result.baskets) {
       expect(b.elapsedInState).toBeGreaterThanOrEqual(0);
@@ -90,6 +98,31 @@ describe("runSimulation", () => {
     const result = runSimulation(layout, params);
     expect(result.util.wagons.length).toBe(2);
     expect(result.simEnd).toBeGreaterThan(0);
+  });
+
+  it("runs with 2 baskets", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.completedCount).toBeGreaterThan(0);
+    expect(result.baskets.length).toBe(2);
+  });
+
+  it("runs with 5 baskets", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 5, wagonCount: 2, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.completedCount).toBeGreaterThan(0);
+    expect(result.baskets.length).toBe(5);
+  });
+
+  it("produces more throughput with more baskets", () => {
+    const layout = buildSyntheticLayout(6);
+    const p1 = defaultParams({ basketCount: 1, wagonCount: 1, simHours: 4 });
+    const p5 = defaultParams({ basketCount: 5, wagonCount: 2, simHours: 4 });
+    const r1 = runSimulation(layout, p1);
+    const r5 = runSimulation(layout, p5);
+    expect(r5.completedCount).toBeGreaterThan(r1.completedCount);
   });
 
   it("returns expected data structure", () => {

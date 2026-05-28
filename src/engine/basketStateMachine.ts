@@ -9,7 +9,8 @@ type BasketEvent =
   | { type: "DWELL_COMPLETE" }
   | { type: "DROP_FOR_UNLOAD" }
   | { type: "START_UNLOAD" }
-  | { type: "FINISH_UNLOAD" };
+  | { type: "FINISH_UNLOAD" }
+  | { type: "RESTART" };
 
 export const basketMachine = createMachine(
   {
@@ -23,7 +24,7 @@ export const basketMachine = createMachine(
       IN_TRANSIT: { on: { DROP_AT_TANK: "IN_TANK", DROP_FOR_UNLOAD: "WAITING_UNLOAD" } },
       WAITING_UNLOAD: { on: { START_UNLOAD: "UNLOADING" } },
       UNLOADING: { on: { FINISH_UNLOAD: "DONE" } },
-      DONE: {},
+      DONE: { on: { RESTART: "WAITING_LOAD" } },
     },
   },
 );

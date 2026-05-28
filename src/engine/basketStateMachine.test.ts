@@ -78,7 +78,7 @@ describe("basketMachine", () => {
 describe("transitionBasketWithLog", () => {
   it("transitions state and records stateHistory entry", () => {
     const basket: Basket = {
-      id: "B1", createdAt: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,
+      id: "B1", createdAt: 0, cycleCount: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,
       loc: "LOAD", insertedAt: null, readyAt: null, doneAt: null,
       totalWaitSec: 0, totalTravelSec: 0, totalDwellSec: 0,
     };
@@ -92,7 +92,7 @@ describe("transitionBasketWithLog", () => {
 
   it("accumulates multiple transitions in stateHistory", () => {
     const basket: Basket = {
-      id: "B1", createdAt: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,
+      id: "B1", createdAt: 0, cycleCount: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,
       loc: "LOAD", insertedAt: null, readyAt: null, doneAt: null,
       totalWaitSec: 0, totalTravelSec: 0, totalDwellSec: 0,
     };
@@ -101,6 +101,34 @@ describe("transitionBasketWithLog", () => {
     expect(basket.stateHistory).toHaveLength(2);
     expect(basket.stateHistory![1]).toEqual({
       timestamp: 30, fromState: "LOADING", toState: "READY_FOR_PICKUP", reason: "load_complete",
+    });
+  });
+
+  it("transitions DONE → WAITING_LOAD on RESTART (cycle)", () => {
+    const s = basketMachine.transition("DONE", "RESTART");
+    expect(s.value).toBe("WAITING_LOAD");
+  });
+
+  it("full multi-cycle lifecycle via RESTART", () => {
+    const basket: Basket = {
+      id: "B1", createdAt: 0, cycleCount: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,
+      loc: "LOAD", insertedAt: null, readyAt: null, doneAt: null,
+      totalWaitSec: 0, totalTravelSec: 0, totalDwellSec: 0,
+    };
+    transitionBasketWithLog(basket, "START_LOAD", 10, "loading_started");
+    transitionBasketWithLog(basket, "FINISH_LOAD", 30, "load_complete");
+    transitionBasketWithLog(basket, "PICKUP", 35, "picked_up");
+    transitionBasketWithLog(basket, "DROP_AT_TANK", 40, "dropped");
+    transitionBasketWithLog(basket, "DWELL_COMPLETE", 50, "dwell_done");
+    transitionBasketWithLog(basket, "PICKUP", 55, "picked_up");
+    transitionBasketWithLog(basket, "DROP_FOR_UNLOAD", 60, "dropped_unload");
+    transitionBasketWithLog(basket, "START_UNLOAD", 65, "unloading");
+    transitionBasketWithLog(basket, "FINISH_UNLOAD", 70, "unload_complete");
+    transitionBasketWithLog(basket, "RESTART", 75, "cycle_restart");
+    expect(basket.currentState).toBe("WAITING_LOAD");
+    expect(basket.stateHistory).toHaveLength(10);
+    expect(basket.stateHistory![9]).toEqual({
+      timestamp: 75, fromState: "DONE", toState: "WAITING_LOAD", reason: "cycle_restart",
     });
   });
 });

@@ -67,6 +67,7 @@ export interface TankConfig {
 export interface SimParams {
   preset: string;
   tankCount: number;
+  basketCount: number;
   recipeSteps: RecipeStep[];
   wdoTimeMin: number;
   loadTimeMin: number;
@@ -150,6 +151,7 @@ export type BasketState =
 export interface Basket {
   id: string;
   createdAt: number;
+  cycleCount: number;
   currentState: BasketState;
   stateEnteredAt: number;
   elapsedInState: number;
@@ -384,7 +386,7 @@ export interface UiElements {
   loadTimeMin: HTMLInputElement;
   unloadTimeMin: HTMLInputElement;
   dripTimeSec: HTMLInputElement;
-  targetBph: HTMLInputElement;
+  basketCount: HTMLInputElement;
   simHours: HTMLInputElement;
   dwellPreset: HTMLInputElement;
   tankTableBody: HTMLElement;

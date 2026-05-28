@@ -48,7 +48,6 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   const mmPerSec = mPerMinToMmPerSec(params.wagonSpeedMPerMin);
   const resources = makeResources(params);
   const simEnd = Math.max(60, params.simHours * 3600);
-  const interarrival = 3600 / Math.max(0.001, params.targetBph);
 
   const nodeMap = new Map(layout.nodes.map((n) => [n.id, n]));
   const tankIds = params.recipeSteps.filter((s) => s.kind === "tank").map((s) => s.id);
@@ -93,6 +92,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   const violations: Violation[] = [];
   let inTransitCount = 0;
   let completedCount = 0;
+  const completionTimes: number[] = [];
 
   type StationOccEntry = { start: number; end: number | null };
   const stationOccupancy: Record<string, { entries: StationOccEntry[]; totalOccupied: number; dwellActuals: number[]; violationCount: number }> = {};
@@ -109,7 +109,6 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   };
   const unloadingMetrics = { queueWaits: [] as number[], maxQueueDepth: 0 };
 
-  const basketCreatedAt = new Map<string, number>();
   const basketLoadStartAt = new Map<string, number>();
 
   function pushEvent(ev: SimEvent): void { events.push(ev); }
@@ -117,14 +116,9 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   let t = 0;
   const eventQ: SimEvent[] = [];
 
-  function scheduleNextArrival(at: number): void {
-    if (at > simEnd) return;
-    heapPush(eventQ, { t: at, kind: "basket_arrival" }, (a, b) => a.t < b.t);
-  }
-
   function createBasket(at: number): void {
     const b: Basket = {
-      id: `B${nextBasketId++}`, createdAt: at, currentState: "WAITING_LOAD", stateEnteredAt: at, elapsedInState: 0,
+      id: `B${nextBasketId++}`, createdAt: at, cycleCount: 0, currentState: "WAITING_LOAD", stateEnteredAt: at, elapsedInState: 0,
       loc: "LOAD", insertedAt: null, readyAt: null, doneAt: null,
       totalWaitSec: 0, totalTravelSec: 0, totalDwellSec: 0,
       stateHistory: [],
@@ -133,7 +127,6 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     basketById.set(b.id, b);
     activeBasketIds.add(b.id);
     resources.load.queue.push(b.id);
-    basketCreatedAt.set(b.id, at);
     const depth = resources.load.queue.length;
     if (depth > loadingMetrics.maxQueueDepth) loadingMetrics.maxQueueDepth = depth;
   }
@@ -149,10 +142,10 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     const end = now + minutesToSeconds(params.loadTimeMin);
     resources.load.busyUntil = end;
     b.readyAt = end;
+    const queueWait = now - b.stateEnteredAt;
     transitionBasketWithLog(b, "START_LOAD", now, "loading_started");
     b.stateEnteredAt = now;
-    const createdAt = basketCreatedAt.get(basketId) ?? now;
-    loadingMetrics.queueWaits.push(now - createdAt);
+    loadingMetrics.queueWaits.push(queueWait);
     basketLoadStartAt.set(basketId, now);
     const ev: SimEvent = { t: end, kind: "load_done", basketId, start: s, end };
     pushEvent(ev);
@@ -269,7 +262,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     }
   }
 
-  scheduleNextArrival(0);
+  for (let i = 0; i < params.basketCount; i++) { createBasket(0); }
+  startLoadIfPossible(0);
 
   const snapshotEvery = 10;
   const snapshots: SimulationResult["snapshots"] = [];
@@ -302,17 +296,25 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     while (heapPeek(eventQ) && Math.abs(heapPeek(eventQ)!.t - t) < 1e-9) batch.push(heapPop(eventQ, (a, b) => a.t < b.t)!);
 
     for (const e of batch) {
-      if (e.kind === "basket_arrival") {
-        createBasket(t);
-        scheduleNextArrival(t + interarrival);
-        startLoadIfPossible(t);
-      } else if (e.kind === "load_done") {
+      if (e.kind === "load_done") {
         const b = basketById.get(e.basketId!);
         if (b) { b.loc = "LOAD"; b.insertedAt = e.end ?? t; b.readyAt = e.end ?? t; transitionBasketWithLog(b, "FINISH_LOAD", t, "load_complete"); b.stateEnteredAt = t; }
         startLoadIfPossible(t);
       } else if (e.kind === "unload_done") {
         const b = basketById.get(e.basketId!);
-        if (b) { b.loc = "DONE"; transitionBasketWithLog(b, "FINISH_UNLOAD", t, "unload_complete"); b.stateEnteredAt = t; activeBasketIds.delete(b.id); completedCount += 1; }
+        if (b) {
+          transitionBasketWithLog(b, "FINISH_UNLOAD", t, "unload_complete");
+          completedCount += 1;
+          completionTimes.push(t);
+          b.cycleCount += 1;
+          b.insertedAt = null;
+          b.readyAt = null;
+          b.doneAt = null;
+          b.loc = "LOAD";
+          transitionBasketWithLog(b, "RESTART", t, "cycle_restart");
+          b.stateEnteredAt = t;
+          resources.load.queue.push(b.id);
+        }
         startUnloadIfPossible(t);
       } else if (e.kind === "pickup") {
         pushEvent({ t, kind: "pickup", wagonId: e.wagonId, basketId: e.basketId, from: e.from, to: e.to, start: e.start, end: e.end });
@@ -378,10 +380,10 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
             resources.unload.queue.push(e.basketId!);
             const depth = resources.unload.queue.length;
             if (depth > unloadingMetrics.maxQueueDepth) unloadingMetrics.maxQueueDepth = depth;
-            startUnloadIfPossible(t);
             b.readyAt = null;
             transitionBasketWithLog(b, "DROP_FOR_UNLOAD", t, "dropped_at_unload");
             b.stateEnteredAt = t;
+            startUnloadIfPossible(t);
           } else {
             addOccupant(e.to!, e.basketId!);
             if (stationOccupancy[e.to!]) stationOccupancy[e.to!].entries.push({ start: t, end: null });
@@ -405,9 +407,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   }
   fillSnapshots(simEnd);
 
-  const completed = baskets.filter((b) => b.doneAt != null && b.doneAt <= simEnd);
-  const doneTimes = completed.map((b) => b.doneAt!).sort((a, b) => a - b);
-  const throughputBph = (completed.length / simEnd) * 3600;
+  const doneTimes = completionTimes.sort((a, b) => a - b);
+  const throughputBph = (completedCount / simEnd) * 3600;
   let throughputSteadyBph = NaN, throughputTrimmedBph = NaN, throughputStatus: SimulationResult["throughputStatus"] = "ok";
   if (doneTimes.length >= 2) {
     const span = doneTimes[doneTimes.length - 1] - doneTimes[0];
@@ -425,8 +426,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     throughputStatus = "insufficient_data";
   }
 
-  const leadTimes = completed.map((b) => b.doneAt! - b.createdAt);
-  const avgLeadTime = leadTimes.length ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length : NaN;
+  const avgLeadTime = doneTimes.length ? doneTimes.reduce((a, b) => a + b, 0) / doneTimes.length : NaN;
 
   const stationUtilList: StationUtil[] = [];
   for (const [id, data] of Object.entries(stationOccupancy)) {
@@ -440,7 +440,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
 
   const avgQueueWait = loadingMetrics.queueWaits.length
     ? loadingMetrics.queueWaits.reduce((a, b) => a + b, 0) / loadingMetrics.queueWaits.length : 0;
-  const loadProcessingTime = completed.length * minutesToSeconds(params.loadTimeMin);
+  const loadProcessingTime = completedCount * minutesToSeconds(params.loadTimeMin);
   const loadUtil = loadProcessingTime / simEnd;
 
   const wagonUtilList: WagonUtil[] = resources.wagons.map((w) => ({
@@ -491,7 +491,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   }
 
   return {
-    simEnd, completedCount: completed.length,
+    simEnd, completedCount,
     throughputBph, throughputSteadyBph, throughputTrimmedBph, throughputStatus,
     avgLeadTimeSec: avgLeadTime, waits, bottleneck, violations,
     util: { wagons: wagonUtilList, stations: stationUtilList },

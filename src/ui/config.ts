@@ -28,12 +28,14 @@ export function readParamsFromUi(): SimParams {
   const wdoStep = recipeSteps.find((x) => x.id === "WDO");
   if (wdoStep) wdoStep.dwellSec = minutesToSeconds(Math.max(0, Number(ui.wdoTimeMin.value)));
   return {
-    preset, tankCount, recipeSteps,
+    preset, recipeSteps,
+    basketCount: Math.max(1, Math.floor(Number(ui.basketCount.value))),
+    tankCount,
     wdoTimeMin: Math.max(0, Number(ui.wdoTimeMin.value)),
     loadTimeMin: Math.max(0, Number(ui.loadTimeMin.value)),
     unloadTimeMin: Math.max(0, Number(ui.unloadTimeMin.value)),
     dripTimeSec: Math.max(0, Number(ui.dripTimeSec.value)),
-    targetBph: Math.max(0.1, Number(ui.targetBph.value)),
+    targetBph: 0,
     simHours: Math.max(0.25, Number(ui.simHours.value)),
     wagonSpeedMPerMin: Math.max(1, Number(ui.wagonSpeedMPerMin.value)),
     liftLowerSec: Math.max(0, Number(ui.liftLowerSec.value)),
@@ -382,7 +384,7 @@ function updateResults(): void {
   ui.recipeSummary.textContent = `${p.tankCount} tanks, ${p.preset.toUpperCase()}`;
   ui.manualSummary.textContent = `Load ${p.loadTimeMin}m, Unload ${p.unloadTimeMin}m`;
   ui.transportSummary.textContent = `${p.wagonCount} wagon${p.wagonCount > 1 ? "s" : ""}, ${p.wagonSpeedMPerMin} m/min`;
-  ui.simSettingsSummary.textContent = `${p.targetBph} bph, ${p.simHours}hr`;
+  ui.simSettingsSummary.textContent = `${p.basketCount} baskets, ${p.simHours}hr`;
 
   renderStationMetrics();
   renderWagonMetrics();
@@ -587,9 +589,9 @@ export function exportSummaryText(): string {
     `Tank dwells: ${tankDwells}`,
     `Tank tolerances: ${tankTols}`,
     `Load: ${p.loadTimeMin}m | Unload: ${p.unloadTimeMin}m | Drip: ${p.dripTimeSec}s`, "",
-    `Wagons: ${p.wagonCount} | Speed: ${p.wagonSpeedMPerMin} m/min`,
+    `Wagons: ${p.wagonCount} | Baskets: ${p.basketCount} | Speed: ${p.wagonSpeedMPerMin} m/min`,
     `Lift+Lower: ${p.liftLowerSec}s | Pick+Drop: ${p.pickDropSec}s`, "",
-    `Sim: ${p.simHours}hr | Target: ${p.targetBph} bph`,
+    `Sim: ${p.simHours}hr`,
     `Achieved: ${s.throughputBph.toFixed(2)} bph`,
     `Lead time: ${formatSeconds(s.avgLeadTimeSec)}`,
     `Violations: ${s.violations.length} | Bottleneck: ${s.bottleneck}`, "",
@@ -656,7 +658,7 @@ export async function setupConfigPanel(): Promise<void> {
     if (ui.autoRun.checked) recomputeAndRender();
   });
 
-  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "dripTimeSec", "targetBph", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode"]) {
+  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "dripTimeSec", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode", "basketCount"]) {
     const e = document.getElementById(id);
     if (e) e.addEventListener("input", () => { if (ui.autoRun.checked) recomputeAndRender(); });
   }
