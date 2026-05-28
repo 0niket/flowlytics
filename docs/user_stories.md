@@ -9,22 +9,36 @@ Each story was reviewed through DDD (Eric Evans), Refactoring (Martin Fowler), a
 
 ## US-001: Drawing & Station Detection
 
-**Status:** `BACKLOG`  
+**Status:** `DONE`  
 **Parent phase:** [Phase 1 — Drawing & Station Detection](ordered_tasks.md#phase-1-drawing--station-detection)
 
 ### Review Gates
-- [ ] **DDD** — *deferred*
-- [ ] **Fowler** — *deferred*
-- [ ] **TDD** — *deferred*
+- [x] **DDD** — Domain concept: a *station* is a physical tank position on the drawing. *Station detection* extracts positions from CAD labels. *Station clarity validation* quantifies whether the detected set is complete and unambiguous. Bounded context: layout import.
+- [x] **Fowler** — Incremental: added `validateStationClarity` as a pure function on top of existing `detectStationsFromLabels`. Wired into DXF import UI with clarity warnings. No changes to simulation engine or layout construction.
+- [x] **TDD** — 4 new detector tests cover: high confidence (all found), missing stations, ambiguous duplicates, low confidence with excess stations. 106 total tests pass.
 
 ### Description
 As a system designer, I want to upload a drawing/CAD file and detect stations, so I can configure the line without manually recreating the layout.
 
 ### Acceptance Criteria
-*Deferred to backlog*
+1. DXF parsing extracts TEXT and MTEXT entities with coordinates
+2. Station detection recognizes `AS<num>` and `TANK <num>` label patterns
+3. Detected stations are sorted by number
+4. Clarity validation computes confidence based on missing, ambiguous, and excess stations
+5. Low clarity detected stations trigger a warning in the DXF import UI
+6. Layout construction uses detected station positions with LOAD/UNLOAD/WDO anchor fallback
 
 ### Unit Test Specs
-*Deferred to backlog*
+1. DXF parser handles empty/invalid input gracefully
+2. DXF parser extracts TEXT entities with correct text and coordinates
+3. DXF parser skips non-text entities (LINE, etc.)
+4. Detector recognizes AS-tag stations
+5. Detector recognizes TANK-tag stations
+6. Detector sorts by number
+7. Detector handles non-station labels without error
+8. Validation returns high confidence for complete detection
+9. Validation reports missing stations
+10. Validation reports ambiguous (duplicate) stations
 
 ---
 
@@ -35,8 +49,8 @@ As a system designer, I want to upload a drawing/CAD file and detect stations, s
 
 ### Review Gates
 - [x] **DDD** — Domain concept: a *tank* is a process step with a *type* (chemical/rinse) and a *dwell time*. The *process sequence* is a domain invariant — baskets always flow LOAD → T1..TN → WDO → UNLOAD. Bounded context: recipe configuration.
-- [x] **Fowler** — Incremental: `TankType` already existed in types. Added select dropdown column to existing tank table, read it in `readParamsFromUi`. Removed the apply-to-all button. No simulation engine changes needed.
-- [x] **TDD** — 7 new layout tests cover preset defaults, tank type, per-tank dwell, WDO/LOAD/UNLOAD dwell. 36 total tests pass.
+- [x] **Fowler** — Incremental: `TankType` exists in types. Tank table columns: Station ID, Type (dropdown), Dwell (min). `readParamsFromUi` reads per-tank type and dwell. Apply-to-all button removed from active config. No simulation engine changes needed.
+- [x] **TDD** — 9 layout tests cover preset defaults, tank type, per-tank dwell, WDO/LOAD/UNLOAD dwell. 106 total tests pass.
 
 ### Description
 As a system designer, I want to classify each tank as chemical or rinse and set per-tank dwell times, so the simulation applies appropriate tolerance defaults and reflects the real process.
@@ -65,8 +79,8 @@ As a system designer, I want to classify each tank as chemical or rinse and set 
 
 ### Review Gates
 - [x] **DDD** — Domain concept: tolerance is the acceptable dwell window. Chemical tanks (±10%) are tight (over-dwell causes surface defects); rinse tanks (±50%) are wide. The process engineer knows which tanks are critical.
-- [x] **Fowler** — Incremental: added tolerance column to existing tank table; `defaultRecipe` sets tolerance from `tankType`; simulation reads per-tank `tolerancePct` from each `RecipeStep` instead of a global param; added under-dwell detection; removed global tolerance input and its `SimParams`/`UiElements` field.
-- [x] **TDD** — 2 new layout tests (default 10% tolerance, non-tank steps have none). Simulation test overrides per-tank tolerance via `recipeSteps` instead of global param. 38 total tests pass.
+- [x] **Fowler** — Incremental: added tolerance column to existing tank table; `defaultRecipe` sets tolerance from `tankType`; tolerance auto-updates when type changes in the UI; simulation reads per-tank `tolerancePct` from each `RecipeStep` instead of a global param; added under-dwell detection; removed global tolerance input and its `SimParams`/`UiElements` field.
+- [x] **TDD** — 9 layout tests (default 10% tolerance, non-tank steps have none) + per-tank tolerance simulation test (narrowed T1 tolerance produces T1 violations). 106 total tests pass.
 
 ### Description
 As a system designer, I want tank-specific tolerance windows, so the simulation reflects chemical vs rinse process differences.

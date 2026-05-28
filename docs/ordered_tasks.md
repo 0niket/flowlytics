@@ -128,16 +128,16 @@ Each phase below links to its parent user story via `US-NNN`.
 *User story: [US-001](user_stories.md#us-001-drawing--station-detection)*
 
 ### Task 1.0 — Station clarity validation
-- [ ] Add station clarity check in `DetectedStations` type:
+- [x] Add station clarity check in `DetectedStations` type:
   - `confidence: number` (0-1)
   - `missingStations: string[]` (stations not found)
   - `ambiguousStations: string[]` (stations with unclear labels)
-- [ ] Implement `validateStationClarity(detected, tankCount): StationValidation`
-- [ ] If confidence < threshold, flag drawing as insufficient
-- [ ] Show validation result in DXF import UI
-- [ ] Unit tests: `src/dxf/detector.test.ts`
-- [ ] Verify: drawing with incomplete labels is flagged
-- [ ] Verify: drawing with clear labels proceeds
+- [x] Implement `validateStationClarity(detected, tankCount): StationValidation`
+- [x] If confidence < threshold, flag drawing as insufficient
+- [x] Show validation result in DXF import UI
+- [x] Unit tests: `src/dxf/detector.test.ts`
+- [x] Verify: drawing with incomplete labels is flagged
+- [x] Verify: drawing with clear labels proceeds
 
 ### Task 1.1 — Manual station count override
 - [ ] Add UI: if station detection is ambiguous, show manual override input
