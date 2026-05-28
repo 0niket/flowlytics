@@ -106,6 +106,18 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     dwellMax.set(step.id, t * (1 + tol));
   }
 
+  const lastZoneIdx = resources.wagons.length - 1;
+  const boundaryTanks = new Set<string>();
+  for (let i = 0; i < resources.wagons.length - 1; i++) {
+    const w1 = resources.wagons[i];
+    const w2 = resources.wagons[i + 1];
+    const overlapStart = Math.max(w1.zone.startTank, w2.zone.startTank);
+    const overlapEnd = Math.min(w1.zone.endTank, w2.zone.endTank);
+    for (let t = overlapStart; t <= overlapEnd; t++) boundaryTanks.add(`T${t}`);
+  }
+  const lastBoundaryDrop = new Map<string, number>();
+  const handoffDelays: number[] = [];
+
   const baskets: Basket[] = [];
   const basketById = new Map<string, Basket>();
   const activeBasketIds = new Set<string>();
@@ -215,6 +227,23 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     return tank.occupants.size + tank.reserved < tank.cap;
   }
 
+  function canWagonService(wagon: (typeof resources.wagons)[number], src: string, dest: string): boolean {
+    const zone = wagon.zone;
+    function tankInZone(id: string): boolean {
+      const m = id.match(/^T(\d+)$/);
+      if (!m) return false;
+      const num = parseInt(m[1], 10);
+      return num >= zone.startTank && num <= zone.endTank;
+    }
+    if (src === "LOAD") { if (zone.idx !== 0) return false; }
+    else if (src === "WDO" || src === "UNLOAD") { if (zone.idx !== lastZoneIdx) return false; }
+    else if (!tankInZone(src)) return false;
+    if (dest === "DONE") return true;
+    if (dest === "WDO" || dest === "UNLOAD") { if (zone.idx !== lastZoneIdx) return false; }
+    else if (!tankInZone(dest)) return false;
+    return true;
+  }
+
   function reserveDest(destId: string): void {
     if (destId === "WDO") resources.wdo.reserved += 1;
     else if (resources.tanks[destId]) resources.tanks[destId].reserved += 1;
@@ -286,10 +315,14 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         continue;
       }
 
-      // Find closest available wagon
+      // Find closest available wagon that can service this src→dest move
       let wagon: (typeof resources.wagons)[number] | null = null;
       let best = Infinity;
-      for (const w of availableWagons) { const d = travelSecLocal(w.pos, c.src); if (d < best) { best = d; wagon = w; } }
+      for (const w of availableWagons) {
+        if (!canWagonService(w, c.src, c.dest)) continue;
+        const d = travelSecLocal(w.pos, c.src);
+        if (d < best) { best = d; wagon = w; }
+      }
       if (!wagon) {
         waits.wagon_busy += 1;
         if (b && !b.lastBlockReason) b.lastBlockReason = "wagon_unavailable";
@@ -429,6 +462,12 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
               }
             }
           }
+          // Handoff detection: next zone picks up from boundary tank
+          if (boundaryTanks.has(e.from!) && lastBoundaryDrop.has(e.basketId!)) {
+            const dropTime = lastBoundaryDrop.get(e.basketId!)!;
+            handoffDelays.push(t - dropTime);
+            lastBoundaryDrop.delete(e.basketId!);
+          }
           if (b.insertedAt != null && stationOccupancy[e.from!]) {
             const actualDwell = t - b.insertedAt;
             stationOccupancy[e.from!].dwellActuals.push(actualDwell);
@@ -455,6 +494,10 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         if (b) {
           b.loc = e.to!;
           if (inTransitCount > 0) inTransitCount -= 1;
+          // Track handoff at boundary tanks
+          if (boundaryTanks.has(e.to!)) {
+            lastBoundaryDrop.set(e.basketId!, t);
+          }
           const offset = params.dwellClockOffsetSec == null ? (params.pickDropSec + params.liftLowerSec) : params.dwellClockOffsetSec;
           b.insertedAt = t - Math.max(0, offset);
           if (e.to === "UNLOAD") {
@@ -606,6 +649,11 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     schedulingDecisions,
     failures: [],
     lineStopped: false,
+    handoffStats: handoffDelays.length > 0 ? {
+      count: handoffDelays.length,
+      avgDelaySec: handoffDelays.reduce((a, b) => a + b, 0) / handoffDelays.length,
+      maxDelaySec: Math.max(...handoffDelays),
+    } : undefined,
     targetThroughput: params.targetBph,
     simulatedThroughput: achievedBph,
     theoreticalMaxThroughput,

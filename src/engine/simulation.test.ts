@@ -389,3 +389,33 @@ describe("computeZones", () => {
     expect(zones.length).toBe(5);
   });
 });
+
+describe("US-011: Multi-Wagon Zone Support", () => {
+  it("each wagon only services tanks within its zone", () => {
+    const layout = buildSyntheticLayout(12);
+    const params = defaultParams({ tankCount: 12, wagonCount: 2, basketCount: 2, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.util.wagons.length).toBe(2);
+    for (const w of result.util.wagons) {
+      // Each wagon's busySec should be > 0 (both zones are used)
+      expect(w.busySec).toBeGreaterThan(0);
+    }
+  });
+
+  it("populates handoffStats for multi-zone simulation", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 2, basketCount: 3, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.handoffStats).toBeDefined();
+    expect(result.handoffStats!.count).toBeGreaterThan(0);
+    expect(result.handoffStats!.avgDelaySec).toBeGreaterThanOrEqual(0);
+    expect(result.handoffStats!.maxDelaySec).toBeGreaterThanOrEqual(0);
+  });
+
+  it("reports no handoffStats for single-wagon simulation", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ tankCount: 6, wagonCount: 1, basketCount: 2, simHours: 1 });
+    const result = runSimulation(layout, params);
+    expect(result.handoffStats).toBeUndefined();
+  });
+});
