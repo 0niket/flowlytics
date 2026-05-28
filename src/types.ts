@@ -23,9 +23,13 @@ export interface Layout {
 }
 
 export interface DxfLabel {
+  type: string;
+  layer: string;
   text: string;
   x: number;
   y: number;
+  rotation: number | null;
+  height: number | null;
 }
 
 export interface StationLabel {
