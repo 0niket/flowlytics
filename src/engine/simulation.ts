@@ -205,24 +205,48 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
 
   const schedulingDecisions: SimulationResult["schedulingDecisions"] = [];
 
+  type UrgencyCandidate = { basketId: string; src: string; dest: string; urgency: number; readyAt: number };
+
   function dispatch(now: number): void {
     startLoadIfPossible(now);
     startUnloadIfPossible(now);
     const ready: Basket[] = [];
     for (const id of activeBasketIds) { const b = basketById.get(id); if (b && basketReadyToMove(b, now)) ready.push(b); }
-    const candidates: { basketId: string; src: string; dest: string; deadline: number; insertedAt: number | null }[] = [];
+
+    const candidates: UrgencyCandidate[] = [];
     for (const b of ready) {
       const dest = nextDest(b);
       if (dest === "DONE") continue;
-      const max = dwellMax.get(b.loc);
-      const deadline = b.insertedAt != null && max != null ? b.insertedAt + max : Infinity;
-      candidates.push({ basketId: b.id, src: b.loc, dest, deadline, insertedAt: b.insertedAt });
+      const target = dwellTarget.get(b.loc) ?? 0;
+      const tol = stepTol.get(b.loc) ?? 0.1;
+      const elapsed = b.insertedAt != null ? now - b.insertedAt : 0;
+      const urgency = target > 0 && tol > 0 ? (elapsed - target) / (tol * target) : -Infinity;
+      candidates.push({ basketId: b.id, src: b.loc, dest, urgency, readyAt: b.readyAt ?? now });
     }
-    candidates.sort((a, b) => a.deadline - b.deadline || a.basketId.localeCompare(b.basketId));
+
+    candidates.sort((a, b) => {
+      if (a.urgency !== b.urgency) return b.urgency - a.urgency;
+      if (a.readyAt !== b.readyAt) return a.readyAt - b.readyAt;
+      return parseInt(a.basketId.slice(1), 10) - parseInt(b.basketId.slice(1), 10);
+    });
 
     const availableWagons = resources.wagons.filter((w) => w.availableAt <= now);
     for (const c of candidates) {
-      if (!destHasSpace(c.dest)) { waits.dest_full += 1; continue; }
+      const b = basketById.get(c.basketId);
+
+      // Sequence guard: verify destination matches expected next step
+      if (b) {
+        const expected = nextDest(b);
+        if (c.dest !== expected) continue;
+      }
+
+      // Destination capacity check
+      if (!destHasSpace(c.dest)) {
+        waits.dest_full += 1;
+        continue;
+      }
+
+      // Find closest available wagon
       let wagon: (typeof resources.wagons)[number] | null = null;
       let best = Infinity;
       for (const w of availableWagons) { const d = travelSecLocal(w.pos, c.src); if (d < best) { best = d; wagon = w; } }
@@ -244,17 +268,27 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       wagon.availableAt = tDropDone;
       wagon.busySec += tDropDone - start;
       wagon.state = { kind: "transfer" as const, from: c.src, to: c.dest, basketId: c.basketId, start, end: tDropDone };
-      const b = basketById.get(c.basketId);
       if (b) b.readyAt = null;
 
+      // Build rejected candidates list
+      const rejectedCandidates: { basketId: string; reason: string; urgency: number }[] = [];
+      for (const other of candidates) {
+        if (other.basketId === c.basketId) continue;
+        let reason = "lower_urgency";
+        if (!destHasSpace(other.dest)) reason = "dest_full";
+        else if (!availableWagons.some((w) => travelSecLocal(w.pos, other.src) < Infinity)) reason = "no_wagon_available";
+        rejectedCandidates.push({ basketId: other.basketId, reason, urgency: other.urgency });
+      }
+
+      const reasonStr = c.urgency >= 1 ? "violation_risk" : c.urgency >= 0 ? "exceeded_dwell" : "routine_pickup";
       schedulingDecisions.push({
         timestamp: now,
         wagonId: wagon.id,
         selectedBasketId: c.basketId,
-        urgencyScore: 0,
-        rejectedCandidates: [],
+        urgencyScore: c.urgency,
+        rejectedCandidates,
         travelTimeEstimate: emptyTravel + loadedTravel,
-        reason: `deadline=${c.deadline.toFixed(1)}`,
+        reason: reasonStr,
       });
 
       heapPush(eventQ, { t: tPickupDone, kind: "pickup" as const, wagonId: wagon.id, basketId: c.basketId, from: c.src, to: c.dest, start, end: tDropDone }, (a, b) => a.t < b.t);

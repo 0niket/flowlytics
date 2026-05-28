@@ -166,17 +166,35 @@ As a system designer, I want basket movement to begin only after a loading-compl
 
 ## US-007: Wagon Scheduling & Dispatch Priority
 
-**Status:** `DRAFT`  
+**Status:** `REVIEWING`  
 **Parent phase:** [Phase 7 — Wagon Scheduling & Dispatch Priority](ordered_tasks.md#phase-7-wagon-scheduling--dispatch-priority)
+
+### Review Gates
+- [x] **DDD** — Urgency formula `(elapsedDwell - targetDwell) / (tolerancePct * targetDwell)` models real PLC priority logic: baskets closest to or past their tolerance window get serviced first. Tie-breaking by earliest readyAt matches physical FIFO within the same urgency band. Sequence guard prevents moves that skip or regress in the recipe sequence.
+- [x] **Fowler** — Incremental: dispatch sort changed from deadline-based to urgency-based. Urgency computed from existing `dwellTarget`/`stepTol` maps. `schedulingDecisions` now logs real urgency scores and rejected candidates with reasons. Sequence guard as a defensive boundary check. Travel/handling/drip math unchanged.
+- [x] **TDD** — 4 new tests: urgency scores logged in decisions, higher-urgency baskets picked first, tie-breaking deterministic (same input = same output), decision log contains rejected candidates. 68 total tests pass.
 
 ### Description
 As a system designer, I want the wagon to prioritize baskets whose tank timing has completed, so the line minimizes dwell-time violations.
 
 ### Acceptance Criteria
-*TBD during review*
+1. Dispatch evaluates all baskets in `READY_FOR_PICKUP` state at each event time
+2. Urgency score computed as `(elapsedDwell - targetDwell) / (tolerancePct * targetDwell)`
+3. `urgency >= 1` means basket is past tolerance (active violation risk); higher urgency = higher priority
+4. Baskets at LOAD (no dwell target) get lowest priority (`-Infinity` urgency)
+5. Tie-breaking: urgency descending, then earliest `readyAt`, then smallest basket id (numeric)
+6. Tie-breaking is fully deterministic — same inputs always produce same ordering
+7. Scheduler never assigns a basket to a tank ahead of its next sequence step
+8. Scheduler never moves a basket backward in sequence
+9. Wagon travel may be non-sequential (can pass other tanks)
+10. Each dispatch decision is logged with urgency score, selected basket, and rejected candidates with reasons
 
 ### Unit Test Specs
-*TBD during review*
+1. Scheduling decisions contain non-zero urgency scores for over-dwell baskets
+2. Higher-urgency basket is picked before lower-urgency basket when both are ready
+3. Running simulation twice with same inputs produces identical scheduling decisions
+4. Rejected candidates list is populated with reasons in scheduling decisions
+5. Sequence guard rejects invalid destination moves
 
 ---
 

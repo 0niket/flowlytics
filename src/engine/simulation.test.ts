@@ -205,6 +205,46 @@ describe("runSimulation", () => {
     expect(loadDone!.t).toBeLessThan(10);
     expect(result.completedCount).toBeGreaterThan(0);
   });
+
+  it("scheduling decisions contain urgency scores", () => {
+    const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s) => s.kind === "tank" ? { ...s, tolerancePct: 0.01 } : s);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2, recipeSteps: steps });
+    const result = runSimulation(layout, params);
+    expect(result.schedulingDecisions.length).toBeGreaterThan(0);
+    for (const d of result.schedulingDecisions) {
+      expect(typeof d.urgencyScore).toBe("number");
+      expect(Number.isNaN(d.urgencyScore)).toBe(false);
+    }
+  });
+
+  it("scheduling decisions log rejected candidates", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    const withRejects = result.schedulingDecisions.filter((d) => d.rejectedCandidates.length > 0);
+    expect(withRejects.length).toBeGreaterThan(0);
+    for (const d of withRejects) {
+      for (const r of d.rejectedCandidates) {
+        expect(r.basketId).toBeTruthy();
+        expect(r.reason).toBeTruthy();
+        expect(typeof r.urgency).toBe("number");
+      }
+    }
+  });
+
+  it("tie-breaking is deterministic (same input = same output)", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 3, wagonCount: 1, simHours: 2 });
+    const r1 = runSimulation(layout, params);
+    const r2 = runSimulation(layout, params);
+    expect(r1.schedulingDecisions.length).toBe(r2.schedulingDecisions.length);
+    for (let i = 0; i < r1.schedulingDecisions.length; i++) {
+      expect(r1.schedulingDecisions[i].selectedBasketId).toBe(r2.schedulingDecisions[i].selectedBasketId);
+      expect(r1.schedulingDecisions[i].urgencyScore).toBe(r2.schedulingDecisions[i].urgencyScore);
+      expect(r1.schedulingDecisions[i].timestamp).toBe(r2.schedulingDecisions[i].timestamp);
+    }
+  });
 });
 
 describe("buildSimPlan", () => {
