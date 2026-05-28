@@ -42,6 +42,30 @@ export function makeResources(params: SimParams): Resources {
   return { tanks, wdo, load, unload, wagons };
 }
 
+const SATURATION_THRESHOLD = 0.95;
+
+export function detectThroughputLimitation(
+  simulatedBph: number,
+  targetBph: number,
+  wagonUtils: WagonUtil[],
+  loadUtil: number,
+  waits: Record<string, number>,
+): SimulationResult["throughputLimitation"] {
+  if (targetBph <= 0) return { factor: "configuration_incomplete", description: "Target throughput not configured" };
+  if (simulatedBph >= targetBph) return undefined;
+  if (wagonUtils.some((w) => w.util01 >= SATURATION_THRESHOLD)) {
+    return { factor: "wagon_bottleneck", description: `Wagon${wagonUtils.length > 1 ? "s" : ""} at ${Math.round(Math.max(...wagonUtils.map((w) => w.util01)) * 100)}% utilization` };
+  }
+  if (loadUtil >= SATURATION_THRESHOLD) {
+    return { factor: "loading_constraint", description: `Loading station at ${Math.round(loadUtil * 100)}% utilization` };
+  }
+  const destFullPct = (waits.dest_full || 0) / Math.max(1, Object.values(waits).reduce((a, b) => a + b, 0));
+  if (destFullPct > 0.5) {
+    return { factor: "tank_occupancy", description: `Destination blocked in ${Math.round(destFullPct * 100)}% of waits` };
+  }
+  return { factor: "dwell_bottleneck", description: "Dwell time is the dominant cycle constraint" };
+}
+
 // ─── Main simulation ──────────────────────────────────────────
 
 export function runSimulation(layout: Layout, params: SimParams): SimulationResult {
@@ -556,6 +580,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     targetThroughput: params.targetBph,
     simulatedThroughput: achievedBph,
     theoreticalMaxThroughput,
+    throughputLimitation: detectThroughputLimitation(achievedBph, params.targetBph, wagonUtilList, loadUtil, waits),
   };
 }
 

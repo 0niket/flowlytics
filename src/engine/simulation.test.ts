@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runSimulation, buildSimPlan, computeZones } from "./simulation";
+import { runSimulation, buildSimPlan, computeZones, detectThroughputLimitation } from "./simulation";
 import { buildSyntheticLayout, defaultRecipe } from "./layout";
 import type { SimParams } from "../types";
 
@@ -269,6 +269,56 @@ describe("runSimulation", () => {
     const result = runSimulation(layout, params);
     const blockedCauses = result.violations.filter((v) => v.cause === "destination_blocked");
     expect(blockedCauses.length).toBeGreaterThan(0);
+  });
+});
+
+describe("detectThroughputLimitation", () => {
+  it("returns undefined when simulated meets target", () => {
+    const r = detectThroughputLimitation(5, 5, [], 0, {});
+    expect(r).toBeUndefined();
+  });
+
+  it("returns configuration_incomplete when target is zero", () => {
+    const r = detectThroughputLimitation(1, 0, [], 0, {});
+    expect(r!.factor).toBe("configuration_incomplete");
+  });
+
+  it("returns wagon_bottleneck when wagon utilization is saturated", () => {
+    const wagonUtils = [{ id: "W1", util01: 0.98, zone: { idx: 0, startTank: 1, endTank: 6, homePos: "T3", label: "T1..T6" }, busySec: 100, idleSec: 2, movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0 }];
+    const r = detectThroughputLimitation(1, 5, wagonUtils, 0.5, {});
+    expect(r!.factor).toBe("wagon_bottleneck");
+  });
+
+  it("returns loading_constraint when load utilization is saturated", () => {
+    const wagonUtils = [{ id: "W1", util01: 0.5, zone: { idx: 0, startTank: 1, endTank: 6, homePos: "T3", label: "T1..T6" }, busySec: 50, idleSec: 50, movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0 }];
+    const r = detectThroughputLimitation(1, 5, wagonUtils, 0.97, {});
+    expect(r!.factor).toBe("loading_constraint");
+  });
+
+  it("returns tank_occupancy when dest_full dominates waits", () => {
+    const wagonUtils = [{ id: "W1", util01: 0.5, zone: { idx: 0, startTank: 1, endTank: 6, homePos: "T3", label: "T1..T6" }, busySec: 50, idleSec: 50, movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0 }];
+    const r = detectThroughputLimitation(1, 5, wagonUtils, 0.5, { dest_full: 60, wagon_busy: 10, unload_busy: 5, load_busy: 5 });
+    expect(r!.factor).toBe("tank_occupancy");
+  });
+
+  it("returns dwell_bottleneck as fallback", () => {
+    const wagonUtils = [{ id: "W1", util01: 0.5, zone: { idx: 0, startTank: 1, endTank: 6, homePos: "T3", label: "T1..T6" }, busySec: 50, idleSec: 50, movingSec: 0, waitingSec: 0, blockedSec: 0, handlingSec: 0 }];
+    const r = detectThroughputLimitation(1, 5, wagonUtils, 0.5, {});
+    expect(r!.factor).toBe("dwell_bottleneck");
+  });
+
+  it("integration: throughputLimitation present when simulated < target", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 1, wagonCount: 1, simHours: 1, targetBph: 100 });
+    const result = runSimulation(layout, params);
+    expect(result.throughputLimitation).toBeDefined();
+  });
+
+  it("integration: no limitation when target is low", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 1, wagonCount: 1, simHours: 1, targetBph: 0.1 });
+    const result = runSimulation(layout, params);
+    expect(result.throughputLimitation).toBeUndefined();
   });
 });
 

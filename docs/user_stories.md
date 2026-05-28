@@ -228,17 +228,33 @@ As a system designer, I want the system to detect when a basket overstays in a t
 
 ## US-009: Throughput Simulation
 
-**Status:** `DRAFT`  
+**Status:** `REVIEWING`  
 **Parent phase:** [Phase 9 — Throughput Simulation](ordered_tasks.md#phase-9-throughput-simulation)
+
+### Review Gates
+- [x] **DDD** — Three-tier throughput (target, simulated, theoretical max) maps to real production KPIs. Bottleneck detection follows Theory of Constraints: wagon saturation checked first (actionable), then loading station, then tank occupancy, then dwell time as fallback (typically chemistry-constrained). Thresholds (95% saturation = bottleneck) match engineering judgment.
+- [x] **Fowler** — Incremental: extracted `detectThroughputLimitation` as a pure function with all inputs already computed. Single call site in return block. No event loop changes. `SATURATION_THRESHOLD` constant extracted as domain constant.
+- [x] **TDD** — 8 new tests: 6 unit tests for `detectThroughputLimitation` (all 5 factors + no-limitation case) + 2 integration tests. 77 total tests pass.
 
 ### Description
 As a system designer, I want the system to calculate achievable throughput, so I can judge whether the line meets expected production output.
 
 ### Acceptance Criteria
-*TBD during review*
+1. Three throughput values computed: `targetThroughput` (user-entered target), `simulatedThroughput` (actual achieved), `theoreticalMaxThroughput` (3600 / bottleneck step cycle time)
+2. When `simulatedThroughput < targetThroughput`, `throughputLimitation` reports the binding factor
+3. Limitation factors: `wagon_bottleneck`, `dwell_bottleneck`, `tank_occupancy`, `loading_constraint`, `configuration_incomplete`
+4. Detection order: wagon saturation > loading saturation > tank occupancy > dwell bottleneck
+5. Achieved throughput is not artificially capped by target throughput
+6. `throughputLimitation` is `undefined` when simulated throughput meets or exceeds target
 
 ### Unit Test Specs
-*TBD during review*
+1. `detectThroughputLimitation` returns `undefined` when simulated >= target
+2. Returns `configuration_incomplete` when target is zero
+3. Returns `wagon_bottleneck` when wagon utilization >= 95%
+4. Returns `loading_constraint` when load utilization >= 95%
+5. Returns `tank_occupancy` when dest_full > 50% of waits
+6. Returns `dwell_bottleneck` as fallback
+7. Integration: limitation is present when target is set very high
 
 ---
 
