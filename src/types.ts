@@ -40,6 +40,12 @@ export interface StationLabel {
   label: string;
 }
 
+export interface StationValidation {
+  confidence: number;
+  missingStations: string[];
+  ambiguousStations: string[];
+}
+
 // ─── Recipe & Process ──────────────────────────────────────────
 
 export type TankType = "chemical" | "rinse";

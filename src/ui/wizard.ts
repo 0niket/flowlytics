@@ -1,6 +1,6 @@
 import { ui, state } from "./state";
 import { extractLabelsFromDxfText } from "../dxf/parser";
-import { detectStationsFromLabels } from "../dxf/detector";
+import { detectStationsFromLabels, validateStationClarity } from "../dxf/detector";
 import { clamp } from "../utils";
 import { recomputeAndRender } from "./config";
 
@@ -88,7 +88,14 @@ function applyDxfLabels(labels: import("../types").DxfLabel[]): void {
     const count = clamp(detectedStations.length, 3, 20);
     ui.tankCount.value = String(count);
     state.detectedStations = detectedStations;
-    ui.layoutStatus.textContent = "DXF layout: " + detectedStations.length + " stations detected (" + detectedStations.map((s) => s.id).join(", ") + ").";
+    const validation = validateStationClarity(detectedStations, count);
+    let status = `DXF layout: ${detectedStations.length} stations detected (${detectedStations.map((s) => s.id).join(", ")}).`;
+    if (validation.confidence < 0.5) {
+      status += ` Warning: low clarity (${Math.round(validation.confidence * 100)}%).`;
+      if (validation.missingStations.length > 0) status += ` Missing: ${validation.missingStations.join(", ")}.`;
+      if (validation.ambiguousStations.length > 0) status += ` Ambiguous: ${validation.ambiguousStations.join(", ")}.`;
+    }
+    ui.layoutStatus.textContent = status;
   } else {
     state.detectedStations = null;
     ui.layoutStatus.textContent = "DXF layout (" + labels.length + " labels, no station tags found).";

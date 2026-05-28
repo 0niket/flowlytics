@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectStationsFromLabels } from "./detector";
+import { detectStationsFromLabels, validateStationClarity } from "./detector";
 import type { DxfLabel } from "../types";
 
 function label(text: string, x = 0, y = 0): DxfLabel {
@@ -50,5 +50,52 @@ describe("detectStationsFromLabels", () => {
     const stations = detectStationsFromLabels(labels);
     expect(stations[0].x).toBe(150);
     expect(stations[0].y).toBe(250);
+  });
+});
+
+describe("validateStationClarity", () => {
+  it("returns high confidence when all stations detected", () => {
+    const stations = [
+      { id: "T1", num: 1, x: 0, y: 0, label: "TANK 1" },
+      { id: "T2", num: 2, x: 100, y: 0, label: "TANK 2" },
+      { id: "T3", num: 3, x: 200, y: 0, label: "TANK 3" },
+    ];
+    const result = validateStationClarity(stations, 3);
+    expect(result.confidence).toBeGreaterThan(0.9);
+    expect(result.missingStations.length).toBe(0);
+    expect(result.ambiguousStations.length).toBe(0);
+  });
+
+  it("reports missing stations", () => {
+    const stations = [
+      { id: "T1", num: 1, x: 0, y: 0, label: "TANK 1" },
+      { id: "T3", num: 3, x: 200, y: 0, label: "TANK 3" },
+    ];
+    const result = validateStationClarity(stations, 4);
+    expect(result.missingStations).toContain("T2");
+    expect(result.missingStations).toContain("T4");
+    expect(result.confidence).toBeLessThan(0.7);
+  });
+
+  it("reports ambiguous stations (duplicate numbers)", () => {
+    const stations = [
+      { id: "T1", num: 1, x: 0, y: 0, label: "TANK 1" },
+      { id: "T1-dup", num: 1, x: 50, y: 0, label: "TANK 1" },
+      { id: "T2", num: 2, x: 100, y: 0, label: "TANK 2" },
+    ];
+    const result = validateStationClarity(stations, 2);
+    expect(result.ambiguousStations).toContain("T1");
+    expect(result.confidence).toBeLessThan(0.8);
+  });
+
+  it("returns low confidence when detected far exceeds expected", () => {
+    const stations = [
+      { id: "T1", num: 1, x: 0, y: 0, label: "TANK 1" },
+      { id: "T2", num: 2, x: 100, y: 0, label: "TANK 2" },
+      { id: "T3", num: 3, x: 200, y: 0, label: "TANK 3" },
+      { id: "T4", num: 4, x: 300, y: 0, label: "TANK 4" },
+    ];
+    const result = validateStationClarity(stations, 2);
+    expect(result.confidence).toBeLessThanOrEqual(0.5);
   });
 });
