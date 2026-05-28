@@ -154,6 +154,57 @@ describe("runSimulation", () => {
     expect(result.simulatedThroughput).toBeGreaterThan(0);
     expect(result.theoreticalMaxThroughput).toBeGreaterThan(0);
   });
+
+  it("pickup from LOAD only after load_done fires", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    for (const e of result.events) {
+      if (e.kind === "pickup" && e.from === "LOAD") {
+        const hasPreceding = result.events.some(
+          (ld) => ld.kind === "load_done" && ld.basketId === e.basketId && ld.t <= e.t,
+        );
+        expect(hasPreceding).toBe(true);
+      }
+    }
+  });
+
+  it("blocked basket waits at LOAD when T1 is occupied", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    const b2LoadDone = result.events.find(
+      (e) => e.kind === "load_done" && e.basketId === "B2",
+    )!;
+    const b2PickupFromLoad = result.events.find(
+      (e) => e.kind === "pickup" && e.basketId === "B2" && e.from === "LOAD",
+    )!;
+    expect(b2PickupFromLoad.t - b2LoadDone.t).toBeGreaterThan(10);
+  });
+
+  it("FIFO: load_done occurs in creation order for first cycle", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 3, wagonCount: 1, simHours: 2 });
+    const result = runSimulation(layout, params);
+    const firstLoadEach = new Map<string, number>();
+    for (const e of result.events) {
+      if (e.kind === "load_done" && !firstLoadEach.has(e.basketId!)) {
+        firstLoadEach.set(e.basketId!, e.t);
+      }
+    }
+    expect(firstLoadEach.get("B1")).toBeLessThanOrEqual(firstLoadEach.get("B2")!);
+    expect(firstLoadEach.get("B2")).toBeLessThanOrEqual(firstLoadEach.get("B3")!);
+  });
+
+  it("handles loadTimeMin = 0 edge case", () => {
+    const layout = buildSyntheticLayout(6);
+    const params = defaultParams({ basketCount: 1, wagonCount: 1, simHours: 1, loadTimeMin: 0 });
+    const result = runSimulation(layout, params);
+    const loadDone = result.events.find((e) => e.kind === "load_done" && e.basketId === "B1");
+    expect(loadDone).toBeDefined();
+    expect(loadDone!.t).toBeLessThan(10);
+    expect(result.completedCount).toBeGreaterThan(0);
+  });
 });
 
 describe("buildSimPlan", () => {

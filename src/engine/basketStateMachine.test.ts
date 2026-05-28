@@ -90,6 +90,11 @@ describe("transitionBasketWithLog", () => {
     });
   });
 
+  it("rejects PICKUP on LOADING state (no transition defined)", () => {
+    const s = basketMachine.transition("LOADING", "PICKUP");
+    expect(s.value).toBe("LOADING");
+  });
+
   it("accumulates multiple transitions in stateHistory", () => {
     const basket: Basket = {
       id: "B1", createdAt: 0, cycleCount: 0, currentState: "WAITING_LOAD", stateEnteredAt: 0, elapsedInState: 0,

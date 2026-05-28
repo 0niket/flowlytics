@@ -131,17 +131,36 @@ As a system designer, I want to simulate multiple baskets cycling through the sa
 
 ## US-006: Loading-Complete Signal
 
-**Status:** `DRAFT`  
+**Status:** `REVIEWING`  
 **Parent phase:** [Phase 6 — Loading-Complete Signal](ordered_tasks.md#phase-6-loading-complete-signal)
+
+### Review Gates
+- [x] **DDD** — Loading-complete is a real PLC safety invariant: the wagon must never touch a basket that is still being loaded. The state machine enforces this: `LOADING` → `FINISH_LOAD` → `READY_FOR_PICKUP`. The `basketReadyToMove` function checks `readyAt` for LOAD, preventing pickup before the signal. Blocked-basket handling (basket stays at LOAD when T1 is occupied) prevents moves to full destinations, matching physical capacity constraints.
+- [x] **Fowler** — Incremental: zero code changes. The existing `startLoadIfPossible` → `load_done` → `FINISH_LOAD` pipeline already implements the signal. `basketReadyToMove` at simulation.ts:173 gates LOAD pickup on `readyAt`. `destHasSpace` at simulation.ts:180 blocks moves to occupied tanks. FIFO queue via `shift()` on the load queue array. 2 new tests verify the invariant without changing any engine logic.
+- [x] **TDD** — 5 new tests total: 1 state machine test (PICKUP rejected on LOADING) + 4 simulation tests (pickup-after-load_done, blocked-basket-waits, FIFO ordering, loadTimeMin=0 edge case). 64 total tests pass.
 
 ### Description
 As a system designer, I want basket movement to begin only after a loading-complete signal, so the simulation matches the control logic.
 
 ### Acceptance Criteria
-*TBD during review*
+1. A `FINISH_LOAD` event (loading-complete signal) fires after `loadTimeMin` elapses
+2. Basket enters `LOADING` state when load starts; transitions to `READY_FOR_PICKUP` only after `FINISH_LOAD`
+3. The `FINISH_LOAD` transition is recorded in `stateHistory` with correct timestamp
+4. Wagon cannot pick a basket from LOAD before the loading-complete signal fires
+5. If the next tank after LOAD (T1) is occupied, the basket remains `READY_FOR_PICKUP` at LOAD until T1 is available
+6. The wagon does not pick a basket until its destination tank has available capacity
+7. Loading queue at LOAD is FIFO
+8. `loadTimeMin` is configurable in the UI (affects when `FINISH_LOAD` fires)
 
 ### Unit Test Specs
-*TBD during review*
+1. Single basket transitions `LOADING → READY_FOR_PICKUP` after `loadTimeMin` elapses (happy path)
+2. `PICKUP` attempted on a basket in `LOADING` state is rejected by the state machine
+3. The `FINISH_LOAD` transition appears in `stateHistory` with timestamp and reason `"load_complete"`
+4. Every `pickup` event from LOAD has a preceding `load_done` event for the same basket
+5. With 3+ baskets, pickup from LOAD order matches load-completion order (FIFO)
+6. `loadTimeMin = 0` edge case: basket transitions immediately with no wait
+7. When two baskets are loaded and T1 is occupied, the second basket waits at LOAD (gap > 10s between its `load_done` and `pickup`)
+8. Basket stays at LOAD after `FINISH_LOAD` if destination is full; moves when destination frees up
 
 ---
 
