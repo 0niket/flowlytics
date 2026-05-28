@@ -89,7 +89,10 @@ export function rebuildTankTable(tankCount: number, dwellMinDefault: number, tol
 
     const onChange = () => { if (ui.autoRun.checked) recomputeAndRender(); };
     input.addEventListener("input", onChange);
-    select.addEventListener("change", onChange);
+    select.addEventListener("change", () => {
+      tolInput.value = select.value === "rinse" ? "50" : "10";
+      if (ui.autoRun.checked) recomputeAndRender();
+    });
     tolInput.addEventListener("input", onChange);
   }
 }

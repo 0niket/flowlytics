@@ -57,6 +57,21 @@ describe("runSimulation", () => {
     expect(result.violations.length).toBeGreaterThan(0);
   });
 
+  it("per-tank tolerance: narrow tolerance on one tank increases its violations", () => {
+    const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s) => s.id === "T1" ? { ...s, tolerancePct: 0.01 } : s);
+    const params = defaultParams({
+      recipeSteps: steps,
+      wagonCount: 1,
+      wagonSpeedMPerMin: 8,
+      targetBph: 3,
+    });
+    const result = runSimulation(layout, params);
+    expect(result.violations.length).toBeGreaterThan(0);
+    const t1Violations = result.violations.filter((v) => v.tankId === "T1");
+    expect(t1Violations.length).toBeGreaterThan(0);
+  });
+
   it("populates stateHistory on every basket", () => {
     const layout = buildSyntheticLayout(6);
     const params = defaultParams({ basketCount: 2, wagonCount: 1, simHours: 1 });

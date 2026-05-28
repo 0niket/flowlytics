@@ -83,11 +83,10 @@ export function defaultRecipe(tankCount: number, preset: string): RecipeStep[] {
   let dwellMin = 2;
   if (preset === "ms") dwellMin = 2.5;
   if (preset === "al") dwellMin = 1.5;
-  const tolerance = 0.1;
   const steps: RecipeStep[] = [];
   steps.push({ id: "LOAD", label: "Load", dwellSec: 0, kind: "station" });
   for (let i = 0; i < tankCount; i++) {
-    steps.push({ id: `T${i + 1}`, label: `Tank ${i + 1}`, dwellSec: minutesToSeconds(dwellMin), kind: "tank", tankType: "chemical", tolerancePct: tolerance });
+    steps.push({ id: `T${i + 1}`, label: `Tank ${i + 1}`, dwellSec: minutesToSeconds(dwellMin), kind: "tank", tankType: "chemical", tolerancePct: 0.1 });
   }
   steps.push({ id: "WDO", label: "Dry-Off Oven", dwellSec: minutesToSeconds(10), kind: "oven" });
   steps.push({ id: "UNLOAD", label: "Unload", dwellSec: 0, kind: "station" });
