@@ -9,33 +9,52 @@ Each story was reviewed through DDD (Eric Evans), Refactoring (Martin Fowler), a
 
 ## US-001: Drawing & Station Detection
 
-**Status:** `DRAFT`  
+**Status:** `BACKLOG`  
 **Parent phase:** [Phase 1 — Drawing & Station Detection](ordered_tasks.md#phase-1-drawing--station-detection)
+
+### Review Gates
+- [ ] **DDD** — *deferred*
+- [ ] **Fowler** — *deferred*
+- [ ] **TDD** — *deferred*
 
 ### Description
 As a system designer, I want to upload a drawing/CAD file and detect stations, so I can configure the line without manually recreating the layout.
 
 ### Acceptance Criteria
-*TBD during review*
+*Deferred to backlog*
 
 ### Unit Test Specs
-*TBD during review*
+*Deferred to backlog*
 
 ---
 
 ## US-002: Tank Sequence & Configuration
 
-**Status:** `DRAFT`  
+**Status:** `DONE`  
 **Parent phase:** [Phase 2 — Tank Sequence & Configuration](ordered_tasks.md#phase-2-tank-sequence--configuration)
 
+### Review Gates
+- [x] **DDD** — Domain concept: a *tank* is a process step with a *type* (chemical/rinse) and a *dwell time*. The *process sequence* is a domain invariant — baskets always flow LOAD → T1..TN → WDO → UNLOAD. Bounded context: recipe configuration.
+- [x] **Fowler** — Incremental: `TankType` already existed in types. Added select dropdown column to existing tank table, read it in `readParamsFromUi`. Removed the apply-to-all button. No simulation engine changes needed.
+- [x] **TDD** — 7 new layout tests cover preset defaults, tank type, per-tank dwell, WDO/LOAD/UNLOAD dwell. 36 total tests pass.
+
 ### Description
-As a system designer, I want to define the tank sequence, tank type, and dwell timing, so the simulation matches the real process flow.
+As a system designer, I want to classify each tank as chemical or rinse and set per-tank dwell times, so the simulation applies appropriate tolerance defaults and reflects the real process.
 
 ### Acceptance Criteria
-*TBD during review*
+1. Tank table shows three columns: Station ID (read-only), Type (dropdown: chemical/rinse), Dwell (min) (editable number)
+2. Both recipe presets (MS, AL) default all tanks to chemical
+3. User can override per-tank type independently
+4. Per-tank dwell is independently editable
+5. LOAD, WDO, UNLOAD are always stations — never appear in the tank table
+6. Apply-to-all button was removed
+7. Tank type is wired into simulation's `RecipeStep.tankType` and accessible in output
 
 ### Unit Test Specs
-*TBD during review*
+1. `defaultRecipe("ms", 6)` — correct step count, dwell 150s, all chemical ✓
+2. `defaultRecipe("al", 6)` — dwell 90s, all chemical ✓
+3. LOAD and UNLOAD have 0 dwell ✓
+4. WDO has 600s dwell ✓
 
 ---
 

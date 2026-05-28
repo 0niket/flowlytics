@@ -2,7 +2,7 @@ import { ui, state } from "./state";
 import { defaultRecipe, buildSyntheticLayout, buildLayoutFromDxfLabels } from "../engine/layout";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
 import { minutesToSeconds, clamp } from "../utils";
-import type { SimParams, RecipeStep } from "../types";
+import type { SimParams, RecipeStep, TankType } from "../types";
 
 export function readParamsFromUi(): SimParams {
   const tankCount = clamp(Number(ui.tankCount.value), 3, 20);
@@ -10,11 +10,16 @@ export function readParamsFromUi(): SimParams {
   const recipeSteps: RecipeStep[] = defaultRecipe(tankCount, preset).map((s) => ({ ...s }));
   for (const tr of ui.tankTableBody.querySelectorAll("tr")) {
     const id = tr.getAttribute("data-id");
-    const input = tr.querySelector("input");
-    const v = input ? Number(input.value) : 0;
+    const dwellInput = tr.querySelector<HTMLInputElement>(".dwell-input");
+    const typeSelect = tr.querySelector<HTMLSelectElement>(".type-select");
+    const dwell = dwellInput ? Number(dwellInput.value) : 0;
+    const tankType = typeSelect ? (typeSelect.value as TankType) : undefined;
     if (id && id.startsWith("T")) {
       const step = recipeSteps.find((x) => x.id === id);
-      if (step) step.dwellSec = minutesToSeconds(Math.max(0, v));
+      if (step) {
+        step.dwellSec = minutesToSeconds(Math.max(0, dwell));
+        if (tankType) step.tankType = tankType;
+      }
     }
   }
   const wdoStep = recipeSteps.find((x) => x.id === "WDO");
@@ -43,19 +48,33 @@ export function rebuildTankTable(tankCount: number, dwellMinDefault: number): vo
     const id = `T${i + 1}`;
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", id);
+
     const td1 = document.createElement("td");
     td1.textContent = id;
+
     const td2 = document.createElement("td");
+    const select = document.createElement("select");
+    select.className = "type-select";
+    select.innerHTML = `<option value="chemical">Chemical</option><option value="rinse">Rinse</option>`;
+    td2.appendChild(select);
+
+    const td3 = document.createElement("td");
     const input = document.createElement("input");
+    input.className = "dwell-input";
     input.type = "number";
     input.min = "0";
     input.step = "0.5";
     input.value = String(dwellMinDefault);
-    td2.appendChild(input);
+    td3.appendChild(input);
+
     tr.appendChild(td1);
     tr.appendChild(td2);
+    tr.appendChild(td3);
     ui.tankTableBody.appendChild(tr);
-    input.addEventListener("input", () => { if (ui.autoRun.checked) recomputeAndRender(); });
+
+    const onChange = () => { if (ui.autoRun.checked) recomputeAndRender(); };
+    input.addEventListener("input", onChange);
+    select.addEventListener("change", onChange);
   }
 }
 
@@ -619,11 +638,6 @@ export async function setupConfigPanel(): Promise<void> {
     if (preset === "al") dwell = 1.5;
     ui.dwellPreset.value = String(dwell);
     if (preset !== "custom") rebuildTankTable(Number(ui.tankCount.value), dwell);
-    if (ui.autoRun.checked) recomputeAndRender();
-  });
-  ui.applyDwellBtn.addEventListener("click", () => {
-    const dwell = Number(ui.dwellPreset.value);
-    for (const input of ui.tankTableBody.querySelectorAll("input")) (input as HTMLInputElement).value = String(dwell);
     if (ui.autoRun.checked) recomputeAndRender();
   });
 

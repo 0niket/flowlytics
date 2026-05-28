@@ -387,7 +387,6 @@ export interface UiElements {
   targetBph: HTMLInputElement;
   simHours: HTMLInputElement;
   dwellPreset: HTMLInputElement;
-  applyDwellBtn: HTMLButtonElement;
   tankTableBody: HTMLElement;
   tankOverridesDetails: HTMLDetailsElement;
   wagonSpeedMPerMin: HTMLInputElement;

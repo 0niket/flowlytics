@@ -29,7 +29,6 @@ export const ui: UiElements = {
   targetBph: el("targetBph"),
   simHours: el("simHours"),
   dwellPreset: el("dwellPreset"),
-  applyDwellBtn: el("applyDwellBtn"),
   tankTableBody: el("tankTableBody"),
   tankOverridesDetails: el("tankOverridesDetails"),
   wagonSpeedMPerMin: el("wagonSpeedMPerMin"),

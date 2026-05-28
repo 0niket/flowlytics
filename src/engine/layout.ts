@@ -86,7 +86,7 @@ export function defaultRecipe(tankCount: number, preset: string): RecipeStep[] {
   const steps: RecipeStep[] = [];
   steps.push({ id: "LOAD", label: "Load", dwellSec: 0, kind: "station" });
   for (let i = 0; i < tankCount; i++) {
-    steps.push({ id: `T${i + 1}`, label: `Tank ${i + 1}`, dwellSec: minutesToSeconds(dwellMin), kind: "tank" });
+    steps.push({ id: `T${i + 1}`, label: `Tank ${i + 1}`, dwellSec: minutesToSeconds(dwellMin), kind: "tank", tankType: "chemical" });
   }
   steps.push({ id: "WDO", label: "Dry-Off Oven", dwellSec: minutesToSeconds(10), kind: "oven" });
   steps.push({ id: "UNLOAD", label: "Unload", dwellSec: 0, kind: "station" });
