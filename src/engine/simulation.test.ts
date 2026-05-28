@@ -7,7 +7,6 @@ function defaultParams(overrides?: Partial<SimParams>): SimParams {
   const base: SimParams = {
     preset: "ms",
     tankCount: 6,
-    basketCount: 2,
     recipeSteps: defaultRecipe(6, "ms"),
     wdoTimeMin: 10,
     loadTimeMin: 1,

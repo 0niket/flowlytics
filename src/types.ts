@@ -40,23 +40,6 @@ export interface StationLabel {
   label: string;
 }
 
-export interface DetectedStations {
-  labels: StationLabel[];
-  count: number;
-  stationIds: string[];
-  confidence: number;
-  missingStations: string[];
-  ambiguousStations: string[];
-}
-
-export interface StationValidation {
-  valid: boolean;
-  confidence: number;
-  missingStations: string[];
-  ambiguousStations: string[];
-  message: string;
-}
-
 // ─── Recipe & Process ──────────────────────────────────────────
 
 export type TankType = "chemical" | "rinse";
@@ -84,7 +67,6 @@ export interface TankConfig {
 export interface SimParams {
   preset: string;
   tankCount: number;
-  basketCount: number;
   recipeSteps: RecipeStep[];
   wdoTimeMin: number;
   loadTimeMin: number;
@@ -413,7 +395,6 @@ export interface UiElements {
   pickDropSec: HTMLInputElement;
   wagonCount: HTMLInputElement;
   distanceMode: HTMLSelectElement;
-  basketCount: HTMLInputElement;
   autoRun: HTMLInputElement;
   kpiThroughput: HTMLElement;
   kpiThroughputSub: HTMLElement;
@@ -432,10 +413,10 @@ export interface UiElements {
   stationMetricsBody: HTMLElement;
   wagonMetricsBody: HTMLElement;
   loadingKvGrid: HTMLElement;
-  loadingQueueSvg: SVGElement;
-  throughputSvg: SVGElement;
-  wipSvg: SVGElement;
-  ganttSvg: SVGElement;
+  loadingQueueSvg: SVGSVGElement;
+  throughputSvg: SVGSVGElement;
+  wipSvg: SVGSVGElement;
+  ganttSvg: SVGSVGElement;
   exportSummaryBtn: HTMLButtonElement | null;
   summaryInline: HTMLElement;
   summaryText: HTMLTextAreaElement;
