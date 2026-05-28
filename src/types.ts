@@ -120,12 +120,17 @@ export interface WagonState {
   availableAt: number;
   busySec: number;
   zone: WagonZone;
-  state: { kind: "idle" | "transfer" | "failed" };
+  state: WagonActivityState;
   movingSec: number;
   waitingSec: number;
   blockedSec: number;
   handlingSec: number;
 }
+
+export type WagonActivityState =
+  | { kind: "idle" }
+  | { kind: "transfer"; from: string; to: string; basketId: string; start: number; end: number }
+  | { kind: "failed" };
 
 export interface StationResource {
   id: string;
@@ -201,6 +206,10 @@ export interface SimEvent {
   dst?: string;
   start?: number;
   end?: number;
+  from?: string;
+  to?: string;
+  at?: string;
+  arriveDestAt?: number;
 }
 
 // ─── Violations ────────────────────────────────────────────────
@@ -249,7 +258,6 @@ export interface LoadingMetrics {
   maxQueueDepth: number;
   processingUtil01: number;
   totalBasketsLoaded: number;
-  processingTimeSec: number;
 }
 
 export interface UnloadingMetrics {
@@ -311,7 +319,7 @@ export interface SimulationResult {
   inventory: InventoryAnalysis;
   baskets: Basket[];
   events: SimEvent[];
-  snapshots: { t: number; completed: number; locCounts: Record<string, number> }[];
+  snapshots: { t: number; completed: number; locCounts: Record<string, number>; wagonStates?: { id: string; pos: string; availableAt: number; state: WagonActivityState }[] }[];
   schedulingDecisions: SchedulingDecision[];
   failures: FailureRecord[];
   lineStopped: boolean;
