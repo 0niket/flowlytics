@@ -13,7 +13,7 @@ export interface LayoutNode {
 export interface LayoutMeta {
   source: "synthetic" | "dxf_labels";
   distanceMode: DistanceMode;
-  anchors?: Record<string, number>;
+  anchors?: Record<string, { x: number; y: number }>;
   detectedStations?: number;
 }
 
@@ -28,8 +28,16 @@ export interface DxfLabel {
   y: number;
 }
 
+export interface StationLabel {
+  id: string;
+  num: number;
+  x: number;
+  y: number;
+  label: string;
+}
+
 export interface DetectedStations {
-  labels: DxfLabel[];
+  labels: StationLabel[];
   count: number;
   stationIds: string[];
   confidence: number;
@@ -439,5 +447,5 @@ export interface AppState {
   chartsStale: boolean;
   chartMeta: Record<string, unknown> | null;
   activeTab: string;
-  detectedStations: DetectedStations | null;
+  detectedStations: StationLabel[] | null;
 }
