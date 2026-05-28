@@ -54,7 +54,7 @@ describe("runSimulation", () => {
       targetBph: 4,
     });
     const result = runSimulation(layout, params);
-    expect(result.violations.length).toBeGreaterThanOrEqual(0);
+    expect(result.violations.length).toBeGreaterThan(0);
   });
 
   it("populates stateHistory on every basket", () => {
@@ -244,6 +244,31 @@ describe("runSimulation", () => {
       expect(r1.schedulingDecisions[i].urgencyScore).toBe(r2.schedulingDecisions[i].urgencyScore);
       expect(r1.schedulingDecisions[i].timestamp).toBe(r2.schedulingDecisions[i].timestamp);
     }
+  });
+
+  it("violation cause is wagon_unavailable when wagon is too slow", () => {
+    const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s) => s.kind === "tank" ? { ...s, tolerancePct: 0.01 } : s);
+    const params = defaultParams({
+      recipeSteps: steps, wagonCount: 1, wagonSpeedMPerMin: 5, targetBph: 5,
+      basketCount: 2, simHours: 2,
+    });
+    const result = runSimulation(layout, params);
+    expect(result.violations.length).toBeGreaterThan(0);
+    const wagonCauses = result.violations.filter((v) => v.cause === "wagon_unavailable");
+    expect(wagonCauses.length).toBeGreaterThan(0);
+  });
+
+  it("violation cause is destination_blocked when next tank is occupied", () => {
+    const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s) => s.kind === "tank" ? { ...s, tolerancePct: 0.05 } : s);
+    const params = defaultParams({
+      recipeSteps: steps, wagonCount: 1, wagonSpeedMPerMin: 40, targetBph: 6,
+      basketCount: 3, simHours: 3,
+    });
+    const result = runSimulation(layout, params);
+    const blockedCauses = result.violations.filter((v) => v.cause === "destination_blocked");
+    expect(blockedCauses.length).toBeGreaterThan(0);
   });
 });
 

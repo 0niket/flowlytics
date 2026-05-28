@@ -200,17 +200,29 @@ As a system designer, I want the wagon to prioritize baskets whose tank timing h
 
 ## US-008: Violation Detection
 
-**Status:** `DRAFT`  
+**Status:** `REVIEWING`  
 **Parent phase:** [Phase 8 — Violation Detection](ordered_tasks.md#phase-8-violation-detection)
+
+### Review Gates
+- [x] **DDD** — Dwell violations (under/over) mirror real process quality control: chemical tanks have a minimum and maximum dwell window. `lastBlockReason` on each Basket records why it was delayed (wagon unavailable, destination blocked), matching real root-cause analysis. `line_design` fallback captures structurally impossible schedules.
+- [x] **Fowler** — Incremental: added `lastBlockReason` to Basket type, set during dispatch rejection (preserving `destination_blocked` over `wagon_unavailable`), cleared on drop/RESTART. `deriveViolationCause` reads it at pickup time. Detection logic unchanged.
+- [x] **TDD** — 3 new tests: fixed weak violation assertion (`>=0` → `>0`), wagon_unavailable cause, destination_blocked cause. 69 total tests pass.
 
 ### Description
 As a system designer, I want the system to detect when a basket overstays in a tank beyond tolerance, so I can identify quality or scheduling issues.
 
 ### Acceptance Criteria
-*TBD during review*
+1. On each pickup event, check if basket dwell is within tolerance window (earliestExit to latestExit)
+2. If `dwellElapsed < earliestExit` → record under-dwell violation
+3. If `dwellElapsed > latestExit` → record over-dwell violation
+4. Violation record includes: `{ basketId, tankId, type, elapsed, limit, timestamp, cause }`
+5. Root cause attribution: `wagon_unavailable` (wagon couldn't reach basket), `destination_blocked` (next tank occupied), `line_design` (structurally impossible timing)
+6. `destination_blocked` is reported when destination occupancy prevented pickup; preserved as the primary cause over `wagon_unavailable`
 
 ### Unit Test Specs
-*TBD during review*
+1. Tight tolerance with slow wagon produces over-dwell violations (cause: `wagon_unavailable`)
+2. Multiple baskets with limited tanks produce violations (cause: `destination_blocked`)
+3. Violation records contain all required fields
 
 ---
 

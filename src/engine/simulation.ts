@@ -85,6 +85,11 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   const baskets: Basket[] = [];
   const basketById = new Map<string, Basket>();
   const activeBasketIds = new Set<string>();
+
+  function deriveViolationCause(basket: Basket): ViolationCause {
+    if (basket.lastBlockReason) return basket.lastBlockReason;
+    return "line_design";
+  }
   let nextBasketId = 1;
 
   const events: SimEvent[] = [];
@@ -243,6 +248,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       // Destination capacity check
       if (!destHasSpace(c.dest)) {
         waits.dest_full += 1;
+        if (b) b.lastBlockReason = "destination_blocked";
         continue;
       }
 
@@ -250,7 +256,11 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       let wagon: (typeof resources.wagons)[number] | null = null;
       let best = Infinity;
       for (const w of availableWagons) { const d = travelSecLocal(w.pos, c.src); if (d < best) { best = d; wagon = w; } }
-      if (!wagon) { waits.wagon_busy += 1; continue; }
+      if (!wagon) {
+        waits.wagon_busy += 1;
+        if (b && !b.lastBlockReason) b.lastBlockReason = "wagon_unavailable";
+        continue;
+      }
       const wi = availableWagons.indexOf(wagon);
       if (wi >= 0) availableWagons.splice(wi, 1);
 
@@ -268,7 +278,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       wagon.availableAt = tDropDone;
       wagon.busySec += tDropDone - start;
       wagon.state = { kind: "transfer" as const, from: c.src, to: c.dest, basketId: c.basketId, start, end: tDropDone };
-      if (b) b.readyAt = null;
+      if (b) { b.readyAt = null; }
 
       // Build rejected candidates list
       const rejectedCandidates: { basketId: string; reason: string; urgency: number }[] = [];
@@ -344,6 +354,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
           b.insertedAt = null;
           b.readyAt = null;
           b.doneAt = null;
+          b.lastBlockReason = undefined;
           b.loc = "LOAD";
           transitionBasketWithLog(b, "RESTART", t, "cycle_restart");
           b.stateEnteredAt = t;
@@ -365,7 +376,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
                 elapsed: t - b.insertedAt, dwellTime: target, tolerancePct: stepTol.get(e.from!)!,
                 earliestExit: b.insertedAt + (target * (1 - (stepTol.get(e.from!) ?? 0.1))),
                 latestExit: b.insertedAt + max,
-                timestamp: t, cause: "wagon_unavailable" as ViolationCause,
+                timestamp: t, cause: deriveViolationCause(b),
               });
               if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
             } else if (min != null) {
@@ -376,7 +387,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
                   elapsed: t - b.insertedAt, dwellTime: target, tolerancePct: stepTol.get(e.from!)!,
                   earliestExit: b.insertedAt + min,
                   latestExit: b.insertedAt + max,
-                  timestamp: t, cause: "wagon_unavailable" as ViolationCause,
+                  timestamp: t, cause: deriveViolationCause(b),
                 });
                 if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
               }
@@ -423,6 +434,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
             if (stationOccupancy[e.to!]) stationOccupancy[e.to!].entries.push({ start: t, end: null });
             const reqMin = dwellMin.get(e.to!) ?? 0;
             b.readyAt = Math.max(t, (b.insertedAt ?? t) + reqMin);
+            b.lastBlockReason = undefined;
             transitionBasketWithLog(b, "DROP_AT_TANK", t, `dropped_at_${e.to}`);
             b.stateEnteredAt = t;
             heapPush(eventQ, { t: b.readyAt, kind: "dwell_done", basketId: e.basketId, at: e.to }, (a, b) => a.t < b.t);

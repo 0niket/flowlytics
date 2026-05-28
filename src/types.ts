@@ -162,6 +162,7 @@ export interface Basket {
   totalWaitSec: number;
   totalTravelSec: number;
   totalDwellSec: number;
+  lastBlockReason?: ViolationCause;
   stateHistory?: BasketStateTransition[];
 }
 
