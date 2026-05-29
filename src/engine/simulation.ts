@@ -3,7 +3,7 @@ import { clamp, distanceMm, mPerMinToMmPerSec, minutesToSeconds } from "../utils
 import { heapPush, heapPop, heapPeek } from "./heap";
 import { transitionBasketWithLog } from "./basketStateMachine";
 
-function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec: number; pickDropSec: number; dripSec: number } {
+function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec: number; pickDropSec: number; dripSec: number; speedMPerMin: number } {
   if (params.perWagonHandling) {
     const wh = params.perWagonHandling.find((h) => h.wagonId === wagonId);
     if (wh) {
@@ -11,6 +11,7 @@ function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec
         liftLowerSec: wh.liftSec + wh.lowerSec,
         pickDropSec: wh.pickSec + wh.dropSec,
         dripSec: wh.dripSec,
+        speedMPerMin: wh.speedMPerMin,
       };
     }
   }
@@ -18,6 +19,7 @@ function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec
     liftLowerSec: params.liftLowerSec,
     pickDropSec: params.pickDropSec,
     dripSec: params.dripTimeSec || 0,
+    speedMPerMin: params.wagonSpeedMPerMin,
   };
 }
 
@@ -105,11 +107,12 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     return "DONE";
   }
 
-  function travelSecLocal(fromId: string, toId: string): number {
+  function travelSecLocal(fromId: string, toId: string, wagonId?: string): number {
     const a = nodeMap.get(fromId);
     const b = nodeMap.get(toId);
     if (!a || !b) return 0;
-    return distanceMm(a, b, layout.meta?.distanceMode || "manhattan") / Math.max(1e-6, mmPerSec);
+    const speed = wagonId ? mPerMinToMmPerSec(getHandlingForWagon(params, wagonId).speedMPerMin) : mmPerSec;
+    return distanceMm(a, b, layout.meta?.distanceMode || "manhattan") / Math.max(1e-6, speed);
   }
 
   const dwellTarget = new Map(params.recipeSteps.map((s) => [s.id, s.dwellSec]));
@@ -343,7 +346,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       let best = Infinity;
       for (const w of availableWagons) {
         if (!canWagonService(w, c.src, c.dest)) continue;
-        const d = travelSecLocal(w.pos, c.src);
+        const d = travelSecLocal(w.pos, c.src, w.id);
         if (d < best) { best = d; wagon = w; }
       }
       if (!wagon) {
@@ -354,8 +357,8 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       const wi = availableWagons.indexOf(wagon);
       if (wi >= 0) availableWagons.splice(wi, 1);
 
-      const emptyTravel = travelSecLocal(wagon.pos, c.src);
-      const loadedTravel = travelSecLocal(c.src, c.dest === "DONE" ? "UNLOAD" : c.dest);
+      const emptyTravel = travelSecLocal(wagon.pos, c.src, wagon.id);
+      const loadedTravel = travelSecLocal(c.src, c.dest === "DONE" ? "UNLOAD" : c.dest, wagon.id);
       const wagonHandling = getHandlingForWagon(params, wagon.id);
       const handling = wagonHandling.pickDropSec + wagonHandling.liftLowerSec;
       const drip = wagonHandling.dripSec;
@@ -379,7 +382,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
         if (other.basketId === c.basketId) continue;
         let reason = "lower_urgency";
         if (!destHasSpace(other.dest)) reason = "dest_full";
-        else if (!availableWagons.some((w) => travelSecLocal(w.pos, other.src) < Infinity)) reason = "no_wagon_available";
+        else if (!availableWagons.some((w) => travelSecLocal(w.pos, other.src, w.id) < Infinity)) reason = "no_wagon_available";
         rejectedCandidates.push({ basketId: other.basketId, reason, urgency: other.urgency });
       }
 

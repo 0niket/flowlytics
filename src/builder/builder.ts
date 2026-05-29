@@ -13,6 +13,9 @@ export class Builder {
 
   constructor(existing?: LineConfig) {
     this._config = existing ? JSON.parse(JSON.stringify(existing)) : createDefaultLineConfig();
+    if (!this._config.transport.wagons || this._config.transport.wagons.length === 0) {
+      this._syncWagonConfigs();
+    }
   }
 
   get config(): LineConfig {
@@ -225,6 +228,13 @@ export class Builder {
     wagon[field] = Math.max(0, value);
   }
 
+  setWagonSpeedMPerMin(wagonIndex: number, value: number): void {
+    if (!this._config.transport.wagons) return;
+    const wagon = this._config.transport.wagons[wagonIndex];
+    if (!wagon) return;
+    wagon.speedMPerMin = Math.max(1, value);
+  }
+
   // ─── Settings Operations ─────────────────────────────────
 
   setArticleMaterial(type: ArticleMaterialType): void {
@@ -255,35 +265,32 @@ export class Builder {
 
   _syncWagonConfigs(): void {
     const count = this._config.transport.wagonCount;
-    if (count <= 1) {
-      this._config.transport.wagons = undefined;
-      return;
-    }
     const processStations = this._config.stations.filter(
       (s) => s.kind === "tank" || s.kind === "wdo"
     );
     if (processStations.length === 0) {
-      this._config.transport.wagons = undefined;
+      this._config.transport.wagons = [];
       return;
     }
-    const t = this._config.transport;
+    const existing = this._config.transport.wagons ?? [];
     // Distribute stations across wagons with 1-station overlap between consecutive wagons.
-    // E.g. 8 stations, 2 wagons: W1=[0..4], W2=[4..7] (station 4 is the handoff point).
-    // With 3 wagons: W1=[0..3], W2=[3..5], W3=[5..7].
     const n = processStations.length;
     const wagons: WagonConfig[] = [];
     for (let i = 0; i < count; i++) {
       const startIdx = Math.min(Math.round(i * (n - 1) / count), n - 1);
       const endIdx = Math.min(Math.round((i + 1) * (n - 1) / count), n - 1);
+      // Preserve existing wagon config if available, otherwise use defaults
+      const prev = existing[i];
       wagons.push({
         id: `W${i + 1}`,
         fromStationId: processStations[startIdx].id,
         toStationId: processStations[endIdx].id,
-        liftSec: t.liftSec,
-        dripSec: t.dripSec,
-        lowerSec: t.lowerSec,
-        pickSec: t.pickSec,
-        dropSec: t.dropSec,
+        speedMPerMin: prev?.speedMPerMin ?? 18,
+        liftSec: prev?.liftSec ?? 10,
+        dripSec: prev?.dripSec ?? 4,
+        lowerSec: prev?.lowerSec ?? 6,
+        pickSec: prev?.pickSec ?? 6,
+        dropSec: prev?.dropSec ?? 4,
       });
     }
     this._config.transport.wagons = wagons;

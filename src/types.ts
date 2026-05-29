@@ -74,6 +74,7 @@ export interface SimParams {
   customZones?: { fromStationId: string; toStationId: string }[];
   perWagonHandling?: {
     wagonId: string;
+    speedMPerMin: number;
     liftSec: number;
     dripSec: number;
     lowerSec: number;

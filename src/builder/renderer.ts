@@ -224,39 +224,10 @@ function renderTransportSection(container: HTMLElement): void {
   section.id = "cvTransportSection";
 
   section.innerHTML = `
-    <div class="config-view__section-title">Transport &amp; Wagons</div>
-    <div class="grid2" style="margin-bottom:8px;">
-      <div class="field">
-        <label class="field__label"># Wagons</label>
-        <input id="bldrWagonCount" class="field__control" type="number" min="1" step="1" value="${t.wagonCount}" />
-      </div>
-      <div class="field">
-        <label class="field__label">Speed (m/min)</label>
-        <input id="bldrWagonSpeed" class="field__control" type="number" min="1" step="1" value="${t.wagonSpeedMPerMin}" />
-      </div>
-    </div>
-    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Global Handling Times (seconds)</div>
-    <div class="grid2" style="margin-bottom:8px;">
-      <div class="field">
-        <label class="field__label">Lift</label>
-        <input id="bldrLift" class="field__control" type="number" min="0" step="1" value="${t.liftSec}" />
-      </div>
-      <div class="field">
-        <label class="field__label">Drip</label>
-        <input id="bldrDrip" class="field__control" type="number" min="0" step="1" value="${t.dripSec}" />
-      </div>
-      <div class="field">
-        <label class="field__label">Lower</label>
-        <input id="bldrLower" class="field__control" type="number" min="0" step="1" value="${t.lowerSec}" />
-      </div>
-      <div class="field">
-        <label class="field__label">Pick</label>
-        <input id="bldrPick" class="field__control" type="number" min="0" step="1" value="${t.pickSec}" />
-      </div>
-      <div class="field">
-        <label class="field__label">Drop</label>
-        <input id="bldrDrop" class="field__control" type="number" min="0" step="1" value="${t.dropSec}" />
-      </div>
+    <div class="config-view__section-title">Wagons</div>
+    <div class="field" style="margin-bottom:10px;max-width:120px;">
+      <label class="field__label"># Wagons</label>
+      <input id="bldrWagonCount" class="field__control" type="number" min="1" step="1" value="${t.wagonCount}" />
     </div>
     <div id="cvWagonCards"></div>
   `;
@@ -266,19 +237,19 @@ function renderTransportSection(container: HTMLElement): void {
 }
 
 function renderWagonCards(): void {
-  const section = document.getElementById("cvWagonCards");
-  if (!section) return;
+  const container = document.getElementById("cvWagonCards");
+  if (!container) return;
 
-  const t = builder.config.transport;
-  if (t.wagonCount <= 1) {
-    section.innerHTML = "";
+  const wagons = builder.config.transport.wagons ?? [];
+  if (wagons.length === 0) {
+    container.innerHTML = "";
     return;
   }
 
-  const wagons = t.wagons ?? [];
   const processStations = builder.config.stations.filter(
     (s) => s.kind === "tank" || s.kind === "wdo"
   );
+  const showZones = wagons.length > 1;
 
   let cardsHtml = "";
   for (let i = 0; i < wagons.length; i++) {
@@ -293,14 +264,20 @@ function renderWagonCards(): void {
     cardsHtml += `
       <div class="wagon-config-card">
         <div class="wagon-config-card__title">${w.id}</div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-          <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">From</div>
-            <select class="bldr-wagon-from field__control" data-wagon-index="${i}" style="font-size:11px;">${fromOptions}</select>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">To</div>
-            <select class="bldr-wagon-to field__control" data-wagon-index="${i}" style="font-size:11px;">${toOptions}</select>
+        <div class="grid2" style="margin-bottom:8px;">
+          ${showZones ? `
+            <div class="field" style="margin:0;">
+              <label class="field__label">From</label>
+              <select class="bldr-wagon-from field__control" data-wagon-index="${i}">${fromOptions}</select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label class="field__label">To</label>
+              <select class="bldr-wagon-to field__control" data-wagon-index="${i}">${toOptions}</select>
+            </div>
+          ` : ""}
+          <div class="field" style="margin:0;">
+            <label class="field__label">Speed (m/min)</label>
+            <input class="bldr-wagon-speed field__control" data-wagon-index="${i}" type="number" min="1" step="1" value="${w.speedMPerMin}" />
           </div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Handling (sec)</div>
@@ -330,11 +307,7 @@ function renderWagonCards(): void {
     `;
   }
 
-  section.innerHTML = `
-    <div style="font-size:11px;font-weight:600;margin-bottom:4px;">Per-Wagon Station Ranges</div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Define which stations each wagon covers and its handling times.</div>
-    <div class="wagon-config-grid">${cardsHtml}</div>
-  `;
+  container.innerHTML = `<div class="wagon-config-grid">${cardsHtml}</div>`;
 }
 
 // ─── Sim Settings Section ───────────────────────────────────
@@ -501,39 +474,6 @@ function wireListeners(signal: AbortSignal): void {
         autoRunIfEnabled();
         return;
       }
-      if (target.id === "bldrWagonSpeed") {
-        try {
-          builder.setWagonSpeed(Number((target as HTMLInputElement).value) || 1);
-        } catch { /* clamp silently */ }
-        autoRunIfEnabled();
-        return;
-      }
-      if (target.id === "bldrLift") {
-        builder.setLiftTime(Number((target as HTMLInputElement).value) || 0);
-        autoRunIfEnabled();
-        return;
-      }
-      if (target.id === "bldrDrip") {
-        builder.setDripTime(Number((target as HTMLInputElement).value) || 0);
-        autoRunIfEnabled();
-        return;
-      }
-      if (target.id === "bldrLower") {
-        builder.setLowerTime(Number((target as HTMLInputElement).value) || 0);
-        autoRunIfEnabled();
-        return;
-      }
-      if (target.id === "bldrPick") {
-        builder.setPickTime(Number((target as HTMLInputElement).value) || 0);
-        autoRunIfEnabled();
-        return;
-      }
-      if (target.id === "bldrDrop") {
-        builder.setDropTime(Number((target as HTMLInputElement).value) || 0);
-        autoRunIfEnabled();
-        return;
-      }
-
       // Wagon range selects
       if (target.classList.contains("bldr-wagon-from")) {
         const idx = Number(target.getAttribute("data-wagon-index"));
@@ -552,6 +492,15 @@ function wireListeners(signal: AbortSignal): void {
         ) as HTMLSelectElement | null;
         const fromVal = fromSelect?.value ?? "";
         builder.setWagonRange(idx, fromVal, (target as HTMLSelectElement).value);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-wagon speed
+      if (target.classList.contains("bldr-wagon-speed")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const val = Number((target as HTMLInputElement).value) || 1;
+        builder.setWagonSpeedMPerMin(idx, val);
         autoRunIfEnabled();
         return;
       }

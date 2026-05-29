@@ -28,6 +28,7 @@ export interface WagonConfig {
   id: string;
   fromStationId: string;
   toStationId: string;
+  speedMPerMin: number;
   liftSec: number;
   dripSec: number;
   lowerSec: number;
@@ -163,6 +164,7 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
     }));
     perWagonHandling = config.transport.wagons.map((w) => ({
       wagonId: w.id,
+      speedMPerMin: w.speedMPerMin,
       liftSec: w.liftSec,
       dripSec: w.dripSec,
       lowerSec: w.lowerSec,

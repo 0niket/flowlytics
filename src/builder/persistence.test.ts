@@ -95,7 +95,7 @@ describe("persistence", () => {
   it("round-trips per-wagon handling times", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", liftSec: 12, dripSec: 5, lowerSec: 8, pickSec: 7, dropSec: 3 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 12, dripSec: 5, lowerSec: 8, pickSec: 7, dropSec: 3 },
     ];
     saveDraft(config);
     const draft = loadDraft()!;

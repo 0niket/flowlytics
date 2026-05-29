@@ -315,11 +315,10 @@ describe("Builder — per-wagon handling times", () => {
     expect(b.config.transport.wagons![0].dripSec).toBe(0);
   });
 
-  it("setWagonHandlingTime is safe when wagons is undefined", () => {
+  it("setWagonHandlingTime works for single wagon", () => {
     const b = new Builder();
-    // wagons is undefined for 1 wagon
-    b.setWagonHandlingTime(0, "liftSec", 10);
-    expect(b.config.transport.wagons).toBeUndefined();
+    b.setWagonHandlingTime(0, "liftSec", 15);
+    expect(b.config.transport.wagons![0].liftSec).toBe(15);
   });
 
   it("setWagonHandlingTime is safe for out-of-range index", () => {
@@ -330,20 +329,15 @@ describe("Builder — per-wagon handling times", () => {
     expect(b.config.transport.wagons!.length).toBe(2);
   });
 
-  it("wagon configs are initialized from global transport defaults", () => {
+  it("wagon configs are initialized with sensible defaults", () => {
     const b = new Builder();
-    b.setLiftTime(12);
-    b.setDripTime(5);
-    b.setLowerTime(8);
-    b.setPickTime(7);
-    b.setDropTime(3);
-    b.setWagonCount(2);
     const w = b.config.transport.wagons![0];
-    expect(w.liftSec).toBe(12);
-    expect(w.dripSec).toBe(5);
-    expect(w.lowerSec).toBe(8);
-    expect(w.pickSec).toBe(7);
-    expect(w.dropSec).toBe(3);
+    expect(w.speedMPerMin).toBe(18);
+    expect(w.liftSec).toBe(10);
+    expect(w.dripSec).toBe(4);
+    expect(w.lowerSec).toBe(6);
+    expect(w.pickSec).toBe(6);
+    expect(w.dropSec).toBe(4);
   });
 });
 
@@ -357,12 +351,14 @@ describe("Builder — wagon config sync", () => {
     expect(b.config.transport.wagons![1].id).toBe("W2");
   });
 
-  it("setWagonCount = 1 clears wagon configs", () => {
+  it("setWagonCount = 1 creates a single wagon config", () => {
     const b = new Builder();
     b.setWagonCount(2);
-    expect(b.config.transport.wagons).toBeDefined();
+    expect(b.config.transport.wagons!.length).toBe(2);
     b.setWagonCount(1);
-    expect(b.config.transport.wagons).toBeUndefined();
+    expect(b.config.transport.wagons).toBeDefined();
+    expect(b.config.transport.wagons!.length).toBe(1);
+    expect(b.config.transport.wagons![0].id).toBe("W1");
   });
 
   it("_syncWagonConfigs divides stations with overlap", () => {
@@ -385,10 +381,12 @@ describe("Builder — wagon config sync", () => {
     expect(b.config.transport.wagons![0].toStationId).toBe("T2");
   });
 
-  it("setWagonRange is safe when wagons is undefined", () => {
+  it("setWagonRange updates the default single wagon", () => {
     const b = new Builder();
     b.setWagonRange(0, "T1", "T1");
-    expect(b.config.transport.wagons).toBeUndefined();
+    expect(b.config.transport.wagons).toBeDefined();
+    expect(b.config.transport.wagons![0].fromStationId).toBe("T1");
+    expect(b.config.transport.wagons![0].toStationId).toBe("T1");
   });
 });
 
@@ -459,7 +457,7 @@ describe("Builder — validateWagons", () => {
     expect(b.validateWagons()).toEqual([]);
   });
 
-  it("returns empty when no wagons defined", () => {
+  it("returns empty for default single wagon", () => {
     const b = new Builder();
     expect(b.validateWagons()).toEqual([]);
   });
