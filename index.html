@@ -325,101 +325,48 @@
       </div>
     </div>
 
-    <!-- Startup Wizard -->
-    <div class="modal-overlay" id="startupModal">
+    <!-- Builder Modal -->
+    <div class="modal-overlay" id="builderModal">
       <div class="modal">
         <div class="modal__header">
           <div class="modal__brand">Flowlytics</div>
-          <div class="modal__subtitle">Pretreatment Transporter Simulator</div>
-          <div class="wizard-steps" id="wizardSteps">
-            <div class="wizard-step wizard-step--active" data-step="1">
-              <span class="wizard-step__num">1</span>
-              <span class="wizard-step__label">Plant Layout</span>
-            </div>
-            <div class="wizard-step__connector"></div>
-            <div class="wizard-step" data-step="2">
-              <span class="wizard-step__num">2</span>
-              <span class="wizard-step__label">Targets</span>
-            </div>
-          </div>
+          <div class="modal__subtitle">Line Builder</div>
+          <div class="step-indicator" id="stepIndicator"><!-- JS renders 4 dots --></div>
         </div>
 
-        <!-- Step 1: Load Layout -->
-        <div class="modal__body wizard-page" id="wizardStep1">
-          <div class="wizard-page__intro">
-            <div class="wizard-page__title">Load your plant layout</div>
-            <div class="wizard-page__desc">
-              Upload your factory floor plan so the simulator uses real station positions and travel distances.
-              This directly affects throughput and bottleneck calculations.
-            </div>
-          </div>
-          <div class="drop-zone" id="dropZone">
-            <div class="drop-zone__icon">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect x="8" y="6" width="32" height="36" rx="4" stroke="rgba(146,162,187,0.5)" stroke-width="2" fill="none"/>
-                <path d="M16 20l8-8 8 8M24 12v18" stroke="rgba(74,163,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="drop-zone__text">
-              Drop a <strong>.dxf</strong> or <strong>.dwg</strong> file here
-            </div>
-            <div class="drop-zone__hint">or click to browse</div>
-            <input id="dxfFilePicker" type="file" accept=".dxf,.dwg" hidden />
-          </div>
-          <div class="modal__status" id="modalStatus"></div>
-          <div class="modal__divider"><span>or</span></div>
-          <button id="skipDxfBtn" class="btn btn--full" type="button">
-            Use synthetic layout
-          </button>
-          <div class="modal__skip-hint">
-            Auto-generate a straight-line layout — useful for early-stage estimates before CAD is ready
-          </div>
-          <div class="wizard-nav">
+        <!-- Step 1: Stations -->
+        <div class="modal__body builder-step" id="builderStep1">
+          <div id="stepContent1"><!-- rendered by renderer.ts --></div>
+          <div class="builder-nav">
             <div></div>
-            <button id="wizardNext1" class="btn btn--primary btn--full-sm" type="button" disabled>
-              Next &rarr;
-            </button>
+            <button id="builderNext1" class="btn btn--primary btn--full-sm" disabled>Next &rarr;</button>
           </div>
         </div>
 
-        <!-- Step 2: Simulation Targets -->
-        <div class="modal__body wizard-page" id="wizardStep2" hidden>
-          <div class="wizard-page__intro">
-            <div class="wizard-page__title">Set simulation targets</div>
-            <div class="wizard-page__desc">
-              Define the throughput goal you want to achieve and how long to run the simulation.
-              The system will compare its results against these targets to identify gaps and bottlenecks.
-            </div>
+        <!-- Step 2: Transport -->
+        <div class="modal__body builder-step" id="builderStep2" hidden>
+          <div id="stepContent2"><!-- rendered by renderer.ts --></div>
+          <div class="builder-nav">
+            <button id="builderBack2" class="btn btn--full-sm">&larr; Back</button>
+            <button id="builderNext2" class="btn btn--primary btn--full-sm">Next &rarr;</button>
           </div>
-          <div class="wizard-field">
-            <label class="wizard-field__label" for="wizTargetBph">Target throughput</label>
-            <div class="wizard-field__row">
-              <input id="wizTargetBph" class="field__control wizard-field__input" type="number" min="0.1" step="0.1" value="2.0" />
-              <span class="wizard-field__unit">baskets / hour</span>
-            </div>
-            <div class="wizard-field__help">
-              How many baskets per hour do you need for the customer quotation?
-              A typical range is 1.5 – 4.0 depending on tank count and recipe complexity.
-            </div>
+        </div>
+
+        <!-- Step 3: Settings -->
+        <div class="modal__body builder-step" id="builderStep3" hidden>
+          <div id="stepContent3"><!-- rendered by renderer.ts --></div>
+          <div class="builder-nav">
+            <button id="builderBack3" class="btn btn--full-sm">&larr; Back</button>
+            <button id="builderNext3" class="btn btn--primary btn--full-sm">Next &rarr;</button>
           </div>
-          <div class="wizard-field">
-            <label class="wizard-field__label" for="wizSimHours">Simulation duration</label>
-            <div class="wizard-field__row">
-              <input id="wizSimHours" class="field__control wizard-field__input" type="number" min="0.5" step="0.5" value="2" />
-              <span class="wizard-field__unit">hours</span>
-            </div>
-            <div class="wizard-field__help">
-              Longer runs (2–4 hours) produce more accurate steady-state results.
-              The first few baskets are always slower as the line fills up — longer durations smooth this out.
-            </div>
-          </div>
-          <div class="wizard-nav">
-            <button id="wizardBack2" class="btn btn--full-sm" type="button">
-              &larr; Back
-            </button>
-            <button id="wizardFinish" class="btn btn--primary btn--full-sm" type="button">
-              Start simulation
-            </button>
+        </div>
+
+        <!-- Step 4: Review -->
+        <div class="modal__body builder-step" id="builderStep4" hidden>
+          <div id="stepContent4"><!-- rendered by renderer.ts --></div>
+          <div class="builder-nav">
+            <button id="builderBack4" class="btn btn--full-sm">&larr; Back</button>
+            <button id="builderFinish" class="btn btn--primary btn--full-sm">Start Simulation</button>
           </div>
         </div>
       </div>

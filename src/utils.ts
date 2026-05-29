@@ -82,3 +82,7 @@ export function mPerMinToMmPerSec(mPerMin: number): number {
 export function minutesToSeconds(min: number): number {
   return min * 60;
 }
+
+export function secondsToMinutes(sec: number): number {
+  return sec / 60;
+}
