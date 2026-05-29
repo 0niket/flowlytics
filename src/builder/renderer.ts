@@ -402,47 +402,43 @@ function applyToSidebar(): void {
   const cfg = builder.toLineConfig();
   const layout = lineConfigToLayout(cfg);
 
-  // Write to sidebar DOM elements so existing readParamsFromUi picks them up
   const setVal = (id: string, val: string | number) => {
     const e = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
     if (e) e.value = String(val);
   };
 
-  setVal("tankCount", cfg.stations.filter((s) => s.kind === "tank").length);
-  setVal("wdoTimeMin", secondsToMinutes(cfg.stations.find((s) => s.kind === "wdo")?.dwellSec ?? 600));
-  setVal("loadTimeMin", secondsToMinutes(cfg.stations.find((s) => s.kind === "loading")?.dwellSec ?? 0));
-  setVal("unloadTimeMin", secondsToMinutes(cfg.stations.find((s) => s.kind === "unloading")?.dwellSec ?? 0));
-  setVal("dripTimeSec", cfg.transport.dripSec);
-  setVal("targetBph", cfg.settings.targetBph);
-  setVal("simHours", cfg.settings.simHours);
-  setVal("wagonSpeedMPerMin", cfg.transport.wagonSpeedMPerMin);
-  setVal("liftLowerSec", cfg.transport.liftSec + cfg.transport.lowerSec);
-  setVal("pickDropSec", cfg.transport.pickSec + cfg.transport.dropSec);
+  setVal("articleMaterialType", cfg.settings.articleMaterialType);
   setVal("wagonCount", cfg.transport.wagonCount);
+  setVal("wagonSpeedMPerMin", cfg.transport.wagonSpeedMPerMin);
+  setVal("liftSec", cfg.transport.liftSec);
+  setVal("dripSec", cfg.transport.dripSec);
+  setVal("lowerSec", cfg.transport.lowerSec);
+  setVal("pickSec", cfg.transport.pickSec);
+  setVal("dropSec", cfg.transport.dropSec);
   setVal("distanceMode", cfg.transport.distanceMode);
+  setVal("targetBph", cfg.settings.targetBph);
   setVal("basketCount", cfg.settings.basketCount);
-  setVal("recipePreset", "custom");
+  setVal("simHours", cfg.settings.simHours);
 
-  // Rebuild the per-tank table from builder config
-  const tableBody = document.getElementById("tankTableBody");
-  if (tableBody) {
-    tableBody.innerHTML = "";
+  // Render station sequence lane
+  const lane = document.getElementById("sidebarLane");
+  if (lane) {
+    lane.innerHTML = "";
     const tanks = cfg.stations.filter((s) => s.kind === "tank");
-    for (let i = 0; i < tanks.length; i++) {
-      const t = tanks[i];
-      const tr = document.createElement("tr");
-      tr.setAttribute("data-id", t.id);
-      tr.innerHTML = `
-        <td>${t.id}</td>
-        <td><select class="type-select"><option value="chemical"${t.tankType === "chemical" ? " selected" : ""}>Chemical</option><option value="rinse"${t.tankType === "rinse" ? " selected" : ""}>Rinse</option></select></td>
-        <td><input class="dwell-input" type="number" min="0" step="0.5" value="${secondsToMinutes(t.dwellSec)}" /></td>
-        <td><input class="tol-input" type="number" min="0" max="50" step="1" value="${((t.tolerancePct ?? 0.1) * 100).toFixed(0)}" /></td>
-      `;
-      tableBody.appendChild(tr);
+    const hasWdo = cfg.stations.some((s) => s.kind === "wdo");
+    const parts: string[] = [];
+    parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">LOAD</span>');
+    for (const t of tanks) {
+      parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(255,191,105,0.15);color:var(--warn);font-weight:600;">' + t.id + '</span>');
     }
+    if (hasWdo) {
+      parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(112,240,184,0.15);color:var(--accent2);font-weight:600;">WDO</span>');
+    }
+    parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">UNLOAD</span>');
+    lane.innerHTML = parts.join('<span style="color:var(--muted);font-size:10px;margin:0 1px;">→</span>');
   }
 
-  // Set state directly
+  // State and run
   state.layout = layout;
   recomputeAndRender();
 }

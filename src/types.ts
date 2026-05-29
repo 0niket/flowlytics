@@ -368,20 +368,9 @@ export interface GlossaryEntry {
 // ─── UI Elements ───────────────────────────────────────────────
 
 export interface UiElements {
-  recipePreset: HTMLSelectElement;
-  tankCount: HTMLInputElement;
-  wdoTimeMin: HTMLInputElement;
-  loadTimeMin: HTMLInputElement;
-  unloadTimeMin: HTMLInputElement;
-  dripTimeSec: HTMLInputElement;
   basketCount: HTMLInputElement;
   simHours: HTMLInputElement;
-  dwellPreset: HTMLInputElement;
-  tankTableBody: HTMLElement;
-  tankOverridesDetails: HTMLDetailsElement;
   wagonSpeedMPerMin: HTMLInputElement;
-  liftLowerSec: HTMLInputElement;
-  pickDropSec: HTMLInputElement;
   wagonCount: HTMLInputElement;
   distanceMode: HTMLSelectElement;
   autoRun: HTMLInputElement;
@@ -413,7 +402,6 @@ export interface UiElements {
   summaryHideBtn: HTMLButtonElement;
   configPanel: HTMLElement;
   recipeSummary: HTMLElement;
-  manualSummary: HTMLElement;
   transportSummary: HTMLElement;
   simSettingsSummary: HTMLElement;
 }

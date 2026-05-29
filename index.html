@@ -14,71 +14,43 @@
           <div class="config-panel__title">Configuration</div>
         </div>
 
-        <!-- Process Recipe -->
-        <details class="config-section config-section--details" open>
-          <summary class="config-section__header">
-            <span class="config-section__title">Process Recipe</span>
-            <span class="config-section__summary mono small" id="recipeSummary">12 tanks, MS</span>
-          </summary>
-          <div class="config-section__body">
-            <div class="field">
-              <label class="field__label" for="recipePreset">Preset</label>
-              <select id="recipePreset" class="field__control">
-                <option value="ms">Mild Steel (Example)</option>
-                <option value="al">Aluminum (Example)</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
+        <!-- Edit line structure -->
+        <button id="editLineBtn" class="btn btn--full" type="button" style="margin-bottom:12px;">
+          Edit line structure
+        </button>
 
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="tankCount"># Tanks</label>
-                <input id="tankCount" class="field__control" type="number" min="3" max="20" step="1" value="12" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="dwellPreset">Tank dwell (min)</label>
-                <input id="dwellPreset" class="field__control" type="number" min="0" step="0.5" value="2" title="Default chemical dwell time per tank." />
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="wdoTimeMin" title="Water Dry-Off Oven time">WDO (min)</label>
-              <input id="wdoTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
-            </div>
-
-            <details class="inner-details" id="tankOverridesDetails">
-              <summary class="inner-details__summary">Per-tank overrides</summary>
-              <div class="tableWrap">
-                <table class="table" aria-label="Tank dwell times">
-                  <thead><tr><th>Step</th><th>Type</th><th>Dwell (min)</th><th>Tolerance (±%)</th></tr></thead>
-                  <tbody id="tankTableBody"></tbody>
-                </table>
-              </div>
-            </details>
+        <!-- Article Material + Station Sequence -->
+        <div class="config-section" style="margin-bottom:12px;">
+          <div class="field">
+            <label class="field__label" for="articleMaterialType">Article Material</label>
+            <input id="articleMaterialType" class="field__control" list="sidebarMatList" value="mild_steel" style="font-size:13px;" />
+            <datalist id="sidebarMatList">
+              <option value="mild_steel">Mild Steel</option>
+              <option value="aluminium">Aluminium</option>
+              <option value="stainless_steel">Stainless Steel</option>
+              <option value="galvanised_steel">Galvanised Steel</option>
+              <option value="cast_iron">Cast Iron</option>
+              <option value="brass">Brass</option>
+              <option value="copper">Copper</option>
+              <option value="zinc_die_cast">Zinc Die Cast</option>
+              <option value="hss">HSS</option>
+              <option value="other">Other</option>
+            </datalist>
           </div>
-        </details>
+          <div class="field">
+            <div class="field__label">Station Sequence</div>
+            <div id="sidebarLane" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--muted);">-</div>
+          </div>
+        </div>
 
-        <!-- Manual Operations -->
+        <!-- Per-Station Parameters -->
         <details class="config-section config-section--details" open>
           <summary class="config-section__header">
-            <span class="config-section__title">Manual Operations</span>
-            <span class="config-section__summary mono small" id="manualSummary">Load 20m, Unload 10m</span>
+            <span class="config-section__title">Station Parameters</span>
+            <span class="config-section__summary mono small" id="recipeSummary">-</span>
           </summary>
-          <div class="config-section__body">
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="loadTimeMin">Load time (min)</label>
-                <input id="loadTimeMin" class="field__control" type="number" min="0" step="0.5" value="20" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="unloadTimeMin">Unload time (min)</label>
-                <input id="unloadTimeMin" class="field__control" type="number" min="0" step="0.5" value="10" />
-              </div>
-            </div>
-            <div class="field">
-              <label class="field__label" for="dripTimeSec" title="Drip/drag-out time after lifting">Drip / Drag-out (s)</label>
-              <input id="dripTimeSec" class="field__control" type="number" min="0" step="1" value="15" />
-            </div>
+          <div class="config-section__body" id="stationParamsBody">
+            <!-- Rendered dynamically by renderStationParams() -->
           </div>
         </details>
 
@@ -99,17 +71,30 @@
                 <input id="wagonSpeedMPerMin" class="field__control" type="number" min="1" step="1" value="18" />
               </div>
             </div>
+            <div style="margin-top:8px;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Handling Times (seconds)</div>
             <div class="grid2">
               <div class="field">
-                <label class="field__label" for="liftLowerSec">Lift+Lower (s)</label>
-                <input id="liftLowerSec" class="field__control" type="number" min="0" step="1" value="20" />
+                <label class="field__label" for="liftSec">Lift</label>
+                <input id="liftSec" class="field__control" type="number" min="0" step="1" value="10" />
               </div>
               <div class="field">
-                <label class="field__label" for="pickDropSec">Pick+Drop (s)</label>
-                <input id="pickDropSec" class="field__control" type="number" min="0" step="1" value="10" />
+                <label class="field__label" for="dripSec">Drip</label>
+                <input id="dripSec" class="field__control" type="number" min="0" step="1" value="4" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="lowerSec">Lower</label>
+                <input id="lowerSec" class="field__control" type="number" min="0" step="1" value="6" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="pickSec">Pick</label>
+                <input id="pickSec" class="field__control" type="number" min="0" step="1" value="6" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="dropSec">Drop</label>
+                <input id="dropSec" class="field__control" type="number" min="0" step="1" value="4" />
               </div>
             </div>
-            <div class="field">
+            <div class="field" style="margin-top:8px;">
               <label class="field__label" for="distanceMode">Distance model</label>
               <select id="distanceMode" class="field__control">
                 <option value="manhattan">Rail (Manhattan)</option>
@@ -119,50 +104,36 @@
           </div>
         </details>
 
-        <!-- Simulation Settings -->
+        <!-- Run Settings -->
         <details class="config-section config-section--details" open>
           <summary class="config-section__header">
-            <span class="config-section__title">Simulation</span>
+            <span class="config-section__title">Run Settings</span>
             <span class="config-section__summary mono small" id="simSettingsSummary">2.0 bph, 2hr</span>
           </summary>
           <div class="config-section__body">
             <div class="grid2">
               <div class="field">
+                <label class="field__label" for="targetBph">Target throughput</label>
+                <input id="targetBph" class="field__control" type="number" min="0.1" step="0.1" value="2.0" />
+              </div>
+              <div class="field">
                 <label class="field__label" for="basketCount">Baskets</label>
                 <input id="basketCount" class="field__control" type="number" min="1" max="20" step="1" value="2" />
               </div>
+            </div>
+            <div class="grid2">
               <div class="field">
                 <label class="field__label" for="simHours">Duration (hr)</label>
                 <input id="simHours" class="field__control" type="number" min="0.25" step="0.25" value="2" />
               </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <label class="toggle" style="margin-top:6px;">
+                  <input id="autoRun" type="checkbox" checked />
+                  <span>Auto-run</span>
+                </label>
+              </div>
             </div>
-            <div class="row">
-              <label class="toggle">
-                <input id="autoRun" type="checkbox" checked />
-                <span>Auto-run on change</span>
-              </label>
-            </div>
-          </div>
-        </details>
-
-        <!-- Layout (Advanced) -->
-        <details class="config-section config-section--details">
-          <summary class="config-section__header">
-            <span class="config-section__title">Layout (Advanced)</span>
-          </summary>
-          <div class="config-section__body">
-            <div class="field">
-              <label class="field__label" for="layoutMode">Mode</label>
-              <select id="layoutMode" class="field__control">
-                <option value="synthetic">Synthetic (Default)</option>
-                <option value="dxf_labels">DXF Labels (From Files)</option>
-              </select>
-            </div>
-            <div class="row">
-              <button id="fetchDxfBtn" class="btn btn--sm" type="button">Fetch</button>
-              <button id="loadFilesBtn" class="btn btn--sm" type="button">Load files</button>
-            </div>
-            <div class="mono small" id="layoutStatus">Using synthetic layout.</div>
           </div>
         </details>
       </aside>

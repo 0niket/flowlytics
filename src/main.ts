@@ -8,6 +8,7 @@ function initUi(): void {
   initGlossary();
   initTheme();
   initBuilder();
+  document.getElementById("editLineBtn")?.addEventListener("click", () => initBuilder());
   recomputeAndRender();
 }
 

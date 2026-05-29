@@ -14,20 +14,9 @@ function svgEl(id: string): SVGSVGElement {
 }
 
 export const ui: UiElements = {
-  recipePreset: el("recipePreset"),
-  tankCount: el("tankCount"),
-  wdoTimeMin: el("wdoTimeMin"),
-  loadTimeMin: el("loadTimeMin"),
-  unloadTimeMin: el("unloadTimeMin"),
-  dripTimeSec: el("dripTimeSec"),
   basketCount: el("basketCount"),
   simHours: el("simHours"),
-  dwellPreset: el("dwellPreset"),
-  tankTableBody: el("tankTableBody"),
-  tankOverridesDetails: el("tankOverridesDetails"),
   wagonSpeedMPerMin: el("wagonSpeedMPerMin"),
-  liftLowerSec: el("liftLowerSec"),
-  pickDropSec: el("pickDropSec"),
   wagonCount: el("wagonCount"),
   distanceMode: el<HTMLSelectElement>("distanceMode"),
   autoRun: el("autoRun"),
@@ -59,7 +48,6 @@ export const ui: UiElements = {
   summaryHideBtn: el("summaryHideBtn"),
   configPanel: el("configPanel"),
   recipeSummary: el("recipeSummary"),
-  manualSummary: el("manualSummary"),
   transportSummary: el("transportSummary"),
   simSettingsSummary: el("simSettingsSummary"),
 };
