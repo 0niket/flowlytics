@@ -52,15 +52,16 @@ function renderMaterialSection(container: HTMLElement): void {
   section.className = "config-view__section";
   section.id = "cvMaterialSection";
 
-  const selectedMat = MATERIALS.find((m) => m.type === selectedType);
   const isOther = selectedType === "other";
+  let optionsHtml = "";
+  for (const mat of MATERIALS) {
+    const sel = mat.type === selectedType ? " selected" : "";
+    optionsHtml += `<option value="${mat.type}"${sel}>${mat.label}</option>`;
+  }
 
   section.innerHTML = `
     <div class="config-view__section-title">Article Material</div>
-    <div class="material-dropdown-wrap">
-      <input class="material-search field__control" id="bldrMaterialSearch" type="text" placeholder="Search materials..." autocomplete="off" value="${isOther ? "" : selectedMat?.label ?? ""}" />
-      <div class="material-dropdown" id="bldrMaterialDropdown" hidden></div>
-    </div>
+    <select id="bldrMaterialSelect" class="field__control">${optionsHtml}</select>
     ${isOther ? `
       <div class="field" style="margin-top:8px;">
         <label class="field__label">Describe the material</label>
@@ -399,25 +400,14 @@ function wireListeners(signal: AbortSignal): void {
       const target = e.target as HTMLElement;
       if (!target) return;
 
-      // Material search input — filter and show dropdown
-      if (target.id === "bldrMaterialSearch") {
-        const query = (target as HTMLInputElement).value.toLowerCase().trim();
-        const dropdown = document.getElementById("bldrMaterialDropdown");
-        if (!dropdown) return;
-
-        const filtered = MATERIALS.filter((m) =>
-          m.label.toLowerCase().includes(query)
-        );
-
-        if (filtered.length === 0 || (filtered.length === 1 && filtered[0].label.toLowerCase() === query)) {
-          dropdown.hidden = true;
-          return;
+      // Material select
+      if (target.id === "bldrMaterialSelect") {
+        const type = (target as HTMLSelectElement).value;
+        if (type) {
+          builder.setArticleMaterial(type as ArticleMaterialType);
+          renderAllSections();
+          autoRunIfEnabled();
         }
-
-        dropdown.innerHTML = filtered
-          .map((m) => `<div class="material-dropdown__item" data-material-type="${m.type}">${m.label}</div>`)
-          .join("");
-        dropdown.hidden = false;
         return;
       }
 
@@ -592,19 +582,6 @@ function wireListeners(signal: AbortSignal): void {
     (e) => {
       const target = e.target as HTMLElement;
 
-      // Material dropdown item click
-      if (target.classList.contains("material-dropdown__item")) {
-        const type = target.getAttribute("data-material-type");
-        if (type) {
-          builder.setArticleMaterial(type as ArticleMaterialType);
-          const dropdown = document.getElementById("bldrMaterialDropdown");
-          if (dropdown) dropdown.hidden = true;
-          renderAllSections();
-          autoRunIfEnabled();
-        }
-        return;
-      }
-
       // Station add button — show type picker
       if (target.classList.contains("station-add-btn")) {
         document.querySelectorAll(".station-type-picker").forEach((p) => p.remove());
@@ -677,33 +654,6 @@ function wireListeners(signal: AbortSignal): void {
         picker.remove();
       }
 
-      // Dismiss material dropdown on outside click
-      const matDropdown = document.getElementById("bldrMaterialDropdown");
-      const matSearch = document.getElementById("bldrMaterialSearch");
-      if (matDropdown && !matDropdown.contains(target) && target !== matSearch) {
-        matDropdown.hidden = true;
-      }
-    },
-    { signal }
-  );
-
-  // Material search focus — show dropdown with all options
-  document.addEventListener(
-    "focusin",
-    (e) => {
-      const target = e.target as HTMLElement;
-      if (target.id === "bldrMaterialSearch") {
-        const dropdown = document.getElementById("bldrMaterialDropdown");
-        if (!dropdown) return;
-        const query = (target as HTMLInputElement).value.toLowerCase().trim();
-        const filtered = query
-          ? MATERIALS.filter((m) => m.label.toLowerCase().includes(query))
-          : MATERIALS;
-        dropdown.innerHTML = filtered
-          .map((m) => `<div class="material-dropdown__item" data-material-type="${m.type}">${m.label}</div>`)
-          .join("");
-        dropdown.hidden = filtered.length === 0;
-      }
     },
     { signal }
   );

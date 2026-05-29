@@ -365,15 +365,15 @@ describe("Builder — wagon config sync", () => {
     expect(b.config.transport.wagons).toBeUndefined();
   });
 
-  it("_syncWagonConfigs divides stations across wagons", () => {
+  it("_syncWagonConfigs divides stations with overlap", () => {
     const b = new Builder();
     b.addTank(1);
     b.addTank(2);
     b.setWagonCount(2);
     const wagons = b.config.transport.wagons!;
     expect(wagons.length).toBe(2);
-    expect(wagons[0].fromStationId).toBe("T1");
-    expect(wagons[1].fromStationId).toBeDefined();
+    // Consecutive wagons must overlap: W1.to === W2.from
+    expect(wagons[0].toStationId).toBe(wagons[1].fromStationId);
   });
 
   it("setWagonRange updates a specific wagon's range", () => {
@@ -477,12 +477,39 @@ describe("Builder — validateWagons", () => {
     const b = new Builder();
     b.addTank(1);
     b.addTank(2);
+    b.addTank(3);
     b.setWagonCount(2);
-    // Set both wagons to only cover T1, leaving T2 and T3 uncovered
-    b.setWagonRange(0, "T1", "T1");
-    b.setWagonRange(1, "T1", "T1");
+    // W1 covers T1-T2, W2 starts at T2 but only covers T2 — T3 and T4 uncovered
+    b.setWagonRange(0, "T1", "T2");
+    b.setWagonRange(1, "T2", "T2");
     const errors = b.validateWagons();
     expect(errors.some((e) => e.includes("not covered by any wagon"))).toBe(true);
+  });
+
+  it("detects non-overlapping consecutive wagons", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.addTank(2);
+    b.addTank(3);
+    b.setWagonCount(2);
+    // W1 covers T1-T2, W2 covers T4 — no overlap (gap at T3)
+    b.setWagonRange(0, "T1", "T2");
+    b.setWagonRange(1, "T4", "T4");
+    const errors = b.validateWagons();
+    expect(errors.some((e) => e.includes("must overlap"))).toBe(true);
+  });
+
+  it("accepts overlapping consecutive wagons", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.addTank(2);
+    b.addTank(3);
+    b.setWagonCount(2);
+    // W1 covers T1-T3, W2 covers T3-T4 — overlap at T3
+    b.setWagonRange(0, "T1", "T3");
+    b.setWagonRange(1, "T3", "T4");
+    const errors = b.validateWagons();
+    expect(errors).toEqual([]);
   });
 
   it("detects negative handling times", () => {

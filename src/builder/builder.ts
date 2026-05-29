@@ -267,17 +267,18 @@ export class Builder {
       return;
     }
     const t = this._config.transport;
-    const perWagon = Math.max(1, Math.ceil(processStations.length / count));
+    // Distribute stations across wagons with 1-station overlap between consecutive wagons.
+    // E.g. 8 stations, 2 wagons: W1=[0..4], W2=[4..7] (station 4 is the handoff point).
+    // With 3 wagons: W1=[0..3], W2=[3..5], W3=[5..7].
+    const n = processStations.length;
     const wagons: WagonConfig[] = [];
     for (let i = 0; i < count; i++) {
-      const startIdx = i * perWagon;
-      const endIdx = Math.min(startIdx + perWagon - 1, processStations.length - 1);
-      const from = processStations[Math.min(startIdx, processStations.length - 1)];
-      const to = processStations[Math.min(endIdx, processStations.length - 1)];
+      const startIdx = Math.min(Math.round(i * (n - 1) / count), n - 1);
+      const endIdx = Math.min(Math.round((i + 1) * (n - 1) / count), n - 1);
       wagons.push({
         id: `W${i + 1}`,
-        fromStationId: from.id,
-        toStationId: to.id,
+        fromStationId: processStations[startIdx].id,
+        toStationId: processStations[endIdx].id,
         liftSec: t.liftSec,
         dripSec: t.dripSec,
         lowerSec: t.lowerSec,
@@ -328,6 +329,18 @@ export class Builder {
       }
       if (w.liftSec < 0 || w.dripSec < 0 || w.lowerSec < 0 || w.pickSec < 0 || w.dropSec < 0) {
         errors.push(`${w.id}: handling times must be >= 0`);
+      }
+    }
+
+    // Check overlap: consecutive wagons must share a handoff station
+    // (W[n].toStationId must equal W[n+1].fromStationId)
+    for (let i = 0; i < wagons.length - 1; i++) {
+      const curr = wagons[i];
+      const next = wagons[i + 1];
+      if (curr.toStationId !== next.fromStationId) {
+        errors.push(
+          `${curr.id} and ${next.id} must overlap: ${curr.id} To must equal ${next.id} From`
+        );
       }
     }
 
