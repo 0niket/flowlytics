@@ -26,7 +26,6 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@xstate/fsm": "^2.1.0",
-    "dxf-parser": "^1.1.2"
+    "@xstate/fsm": "^2.1.0"
   }
 }

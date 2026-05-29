@@ -97,6 +97,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
   const dwellTarget = new Map(params.recipeSteps.map((s) => [s.id, s.dwellSec]));
   const dwellMin = new Map<string, number>();
   const dwellMax = new Map<string, number>();
+  const dwellMaxAbs = new Map<string, number>();
   const stepTol = new Map<string, number>();
   for (const step of params.recipeSteps) {
     const t = Math.max(0, step.dwellSec);
@@ -104,6 +105,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     stepTol.set(step.id, tol);
     dwellMin.set(step.id, t * (1 - tol));
     dwellMax.set(step.id, t * (1 + tol));
+    if (step.maxDwellSec != null) dwellMaxAbs.set(step.id, step.maxDwellSec);
   }
 
   const lastZoneIdx = resources.wagons.length - 1;
@@ -465,6 +467,20 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
                 });
                 if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
               }
+            }
+          }
+          // Max-time violation for LOAD/UNLOAD/WDO
+          if (dwellMaxAbs.has(e.from!) && b.insertedAt != null) {
+            const maxAbs = dwellMaxAbs.get(e.from!)!;
+            if (t - b.insertedAt > maxAbs + 0.001) {
+              violations.push({
+                basketId: e.basketId!, tankId: e.from!, type: "max_time",
+                elapsed: t - b.insertedAt, dwellTime: dwellTarget.get(e.from!) ?? 0, tolerancePct: 0,
+                earliestExit: 0,
+                latestExit: b.insertedAt + maxAbs,
+                timestamp: t, cause: deriveViolationCause(b),
+              });
+              if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
             }
           }
           // Handoff detection: next zone picks up from boundary tank

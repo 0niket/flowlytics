@@ -1,5 +1,5 @@
 import { ui, state } from "./state";
-import { defaultRecipe, buildSyntheticLayout, buildLayoutFromDxfLabels } from "../engine/layout";
+import { defaultRecipe, buildSyntheticLayout } from "../engine/layout";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
 import { minutesToSeconds, clamp } from "../utils";
 import type { SimParams, RecipeStep, TankType } from "../types";
@@ -99,13 +99,7 @@ export function rebuildTankTable(tankCount: number, dwellMinDefault: number, tol
 
 export function updateLayout(): void {
   const tankCount = clamp(Number(ui.tankCount.value), 3, 20);
-  if (ui.layoutMode.value === "dxf_labels" && state.dxfLabelsRows) {
-    state.layout = buildLayoutFromDxfLabels(state.dxfLabelsRows, tankCount, state.detectedStations);
-    ui.layoutStatus.textContent = `DXF labels (${state.layout.meta.source}).`;
-  } else {
-    state.layout = buildSyntheticLayout(tankCount);
-    ui.layoutStatus.textContent = "Synthetic layout.";
-  }
+  state.layout = buildSyntheticLayout(tankCount);
   state.layout.meta.distanceMode = state.params?.distanceMode || "manhattan";
 }
 
@@ -786,7 +780,7 @@ export async function setupConfigPanel(): Promise<void> {
     if (ui.autoRun.checked) recomputeAndRender();
   });
 
-  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "dripTimeSec", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "layoutMode", "basketCount"]) {
+  for (const id of ["wdoTimeMin", "loadTimeMin", "unloadTimeMin", "dripTimeSec", "simHours", "wagonSpeedMPerMin", "liftLowerSec", "pickDropSec", "wagonCount", "distanceMode", "basketCount"]) {
     const e = document.getElementById(id);
     if (e) e.addEventListener("input", () => { if (ui.autoRun.checked) recomputeAndRender(); });
   }

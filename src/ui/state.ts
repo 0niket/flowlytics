@@ -14,11 +14,6 @@ function svgEl(id: string): SVGSVGElement {
 }
 
 export const ui: UiElements = {
-  layoutMode: el("layoutMode"),
-  fetchDxfBtn: el("fetchDxfBtn"),
-  loadFilesBtn: el("loadFilesBtn"),
-  filePicker: el("filePicker"),
-  layoutStatus: el("layoutStatus"),
   recipePreset: el("recipePreset"),
   tankCount: el("tankCount"),
   wdoTimeMin: el("wdoTimeMin"),
@@ -71,12 +66,10 @@ export const ui: UiElements = {
 
 export const state: AppState = {
   layout: buildSyntheticLayout(12),
-  dxfLabelsRows: null,
   params: null,
   plan: null,
   sim: null,
   chartsStale: true,
   chartMeta: null,
   activeTab: "stations",
-  detectedStations: null,
 };

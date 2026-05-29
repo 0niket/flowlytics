@@ -11,10 +11,8 @@ export interface LayoutNode {
 }
 
 export interface LayoutMeta {
-  source: "synthetic" | "dxf_labels";
+  source: "synthetic";
   distanceMode: DistanceMode;
-  anchors?: Record<string, { x: number; y: number }>;
-  detectedStations?: number;
 }
 
 export interface Layout {
@@ -22,33 +20,13 @@ export interface Layout {
   meta: LayoutMeta;
 }
 
-export interface DxfLabel {
-  type: string;
-  layer: string;
-  text: string;
-  x: number;
-  y: number;
-  rotation: number | null;
-  height: number | null;
-}
-
-export interface StationLabel {
-  id: string;
-  num: number;
-  x: number;
-  y: number;
-  label: string;
-}
-
-export interface StationValidation {
-  confidence: number;
-  missingStations: string[];
-  ambiguousStations: string[];
-}
-
 // ─── Recipe & Process ──────────────────────────────────────────
 
-export type TankType = "chemical" | "rinse";
+export type TankType = "chemical" | "rinse" | "extra";
+
+export type ArticleMaterialType =
+  | "mild_steel" | "aluminium" | "stainless_steel" | "galvanised_steel"
+  | "cast_iron" | "brass" | "copper" | "zinc_die_cast" | "hss" | "other";
 
 export interface RecipeStep {
   id: string;
@@ -57,6 +35,7 @@ export interface RecipeStep {
   kind: "tank" | "station" | "oven";
   tankType?: TankType;
   tolerancePct?: number;
+  maxDwellSec?: number;
 }
 
 export interface TankConfig {
@@ -88,6 +67,10 @@ export interface SimParams {
   distanceMode: DistanceMode;
   dwellClockOffsetSec: number | null;
   wagonFailureTimeSec?: number;
+  articleMaterialType?: ArticleMaterialType;
+  maxLoadTimeMin?: number;
+  maxUnloadTimeMin?: number;
+  maxWdoTimeMin?: number;
 }
 
 // ─── Simulation Resources ──────────────────────────────────────
@@ -213,7 +196,7 @@ export interface SimEvent {
 
 // ─── Violations ────────────────────────────────────────────────
 
-export type ViolationType = "over_dwell" | "under_dwell";
+export type ViolationType = "over_dwell" | "under_dwell" | "max_time";
 export type ViolationCause = "wagon_unavailable" | "destination_blocked" | "line_design";
 
 export interface Violation {
@@ -385,11 +368,6 @@ export interface GlossaryEntry {
 // ─── UI Elements ───────────────────────────────────────────────
 
 export interface UiElements {
-  layoutMode: HTMLSelectElement;
-  fetchDxfBtn: HTMLButtonElement;
-  loadFilesBtn: HTMLButtonElement;
-  filePicker: HTMLInputElement;
-  layoutStatus: HTMLElement;
   recipePreset: HTMLSelectElement;
   tankCount: HTMLInputElement;
   wdoTimeMin: HTMLInputElement;
@@ -444,12 +422,10 @@ export interface UiElements {
 
 export interface AppState {
   layout: Layout;
-  dxfLabelsRows: DxfLabel[] | null;
   params: SimParams | null;
   plan: SimPlan | null;
   sim: SimulationResult | null;
   chartsStale: boolean;
   chartMeta: Record<string, unknown> | null;
   activeTab: string;
-  detectedStations: StationLabel[] | null;
 }
