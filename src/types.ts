@@ -419,8 +419,6 @@ export interface UiElements {
   kpiWagonUtilSub: HTMLElement;
   kpiOptimalWip: HTMLElement;
   kpiOptimalWipSub: HTMLElement;
-  nowOut: HTMLElement;
-  hoverTip: HTMLElement;
   stationMetricsBody: HTMLElement;
   wagonMetricsBody: HTMLElement;
   loadingKvGrid: HTMLElement;

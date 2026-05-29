@@ -48,8 +48,6 @@ export const ui: UiElements = {
   kpiWagonUtilSub: el("kpiWagonUtilSub"),
   kpiOptimalWip: el("kpiOptimalWip"),
   kpiOptimalWipSub: el("kpiOptimalWipSub"),
-  nowOut: el("nowOut"),
-  hoverTip: el("hoverTip"),
   stationMetricsBody: el("stationMetricsBody"),
   wagonMetricsBody: el("wagonMetricsBody"),
   loadingKvGrid: el("loadingKvGrid"),
