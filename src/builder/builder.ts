@@ -5,17 +5,11 @@ import {
   type StationConfig,
   type TankType,
   type ArticleMaterialType,
+  type WagonConfig,
 } from "./LineConfig";
-
-export const STEP_COUNT = 4;
-export const STATION_STEP = 0;
-export const TRANSPORT_STEP = 1;
-export const SETTINGS_STEP = 2;
-export const REVIEW_STEP = 3;
 
 export class Builder {
   private _config: LineConfig;
-  currentStep: number = 0;
 
   constructor(existing?: LineConfig) {
     this._config = existing ? JSON.parse(JSON.stringify(existing)) : createDefaultLineConfig();
@@ -25,27 +19,28 @@ export class Builder {
     return this._config;
   }
 
-  // ─── Navigation ──────────────────────────────────────────
-
-  canGoNext(): boolean {
-    return this.validate().length === 0;
-  }
-
-  canGoBack(): boolean {
-    return this.currentStep > 0;
-  }
-
-  next(): void {
-    if (this.currentStep >= REVIEW_STEP) return;
-    if (!this.canGoNext()) return;
-    this.currentStep++;
-  }
-
-  back(): void {
-    if (this.currentStep > 0) this.currentStep--;
-  }
-
   // ─── Station Operations ──────────────────────────────────
+
+  addStation(afterIndex: number, kind: "tank" | "wdo", options?: { tankType?: TankType }): void {
+    if (kind === "wdo") {
+      this.addWdo(afterIndex);
+      return;
+    }
+    const tankType = options?.tankType ?? "chemical";
+    const newTank: StationConfig = {
+      id: "",
+      label: "",
+      kind: "tank",
+      tankType,
+      dwellSec: tankType === "extra" ? 0 : minutesToSeconds(2.5),
+      tolerancePct: tankType === "extra" ? undefined : tankType === "rinse" ? 0.5 : 0.1,
+    };
+    const unloadIdx = this._config.stations.findIndex((s) => s.kind === "unloading");
+    const insertIdx = Math.min(afterIndex, unloadIdx);
+    if (insertIdx <= 0) throw new Error("Cannot add tank before LOAD");
+    this._config.stations.splice(insertIdx, 0, newTank);
+    this._reindexTanks();
+  }
 
   addTank(afterIndex: number): void {
     if (afterIndex <= 0) throw new Error("Cannot add tank before LOAD");
@@ -109,28 +104,50 @@ export class Builder {
     station.tolerancePct = Math.max(0, Math.min(0.5, pct));
   }
 
-  setWdoDryTime(drySec: number): void {
-    const wdo = this._config.stations.find((s) => s.kind === "wdo");
+  setWdoDryTime(drySec: number, index?: number): void {
+    let wdo: StationConfig | undefined;
+    if (index !== undefined) {
+      const station = this._config.stations[index];
+      if (station && station.kind === "wdo") wdo = station;
+    } else {
+      wdo = this._config.stations.find((s) => s.kind === "wdo");
+    }
     if (!wdo) throw new Error("No WDO station in config");
     wdo.dwellSec = drySec;
   }
 
-  enableWdo(): void {
-    if (this._config.stations.some((s) => s.kind === "wdo")) return;
+  addWdo(afterIndex: number): void {
     const unloadIdx = this._config.stations.findIndex((s) => s.kind === "unloading");
-    this._config.stations.splice(unloadIdx, 0, {
-      id: "WDO",
+    const insertIdx = Math.min(Math.max(1, afterIndex), unloadIdx);
+    this._config.stations.splice(insertIdx, 0, {
+      id: "",
       label: "WDO",
       kind: "wdo",
       dwellSec: 600,
       maxDwellSec: 900,
     });
+    this._reindexWdos();
+  }
+
+  enableWdo(): void {
+    const unloadIdx = this._config.stations.findIndex((s) => s.kind === "unloading");
+    this.addWdo(unloadIdx);
+  }
+
+  removeWdo(index: number): void {
+    const station = this._config.stations[index];
+    if (!station || station.kind !== "wdo") {
+      throw new Error(`No WDO at index ${index}`);
+    }
+    this._config.stations.splice(index, 1);
+    this._reindexWdos();
   }
 
   disableWdo(): void {
     const wdoIdx = this._config.stations.findIndex((s) => s.kind === "wdo");
     if (wdoIdx === -1) return;
     this._config.stations.splice(wdoIdx, 1);
+    this._reindexWdos();
   }
 
   setLoadStationTime(dwellSec: number): void {
@@ -147,10 +164,33 @@ export class Builder {
     unload.dwellSec = dwellSec;
   }
 
+  // ─── Description Operations ────────────────────────────────
+
+  setChemicalDescription(index: number, desc: string): void {
+    const station = this._config.stations[index];
+    if (!station || station.kind !== "tank") {
+      throw new Error(`No tank at index ${index}`);
+    }
+    station.chemicalDescription = desc;
+  }
+
+  setLoadingDescription(desc: string): void {
+    const load = this._config.stations.find((s) => s.kind === "loading");
+    if (!load) throw new Error("No loading station in config");
+    load.loadingDescription = desc;
+  }
+
+  setUnloadingDescription(desc: string): void {
+    const unload = this._config.stations.find((s) => s.kind === "unloading");
+    if (!unload) throw new Error("No unloading station in config");
+    unload.unloadingDescription = desc;
+  }
+
   // ─── Transport Operations ────────────────────────────────
 
   setWagonCount(n: number): void {
     this._config.transport.wagonCount = Math.max(1, n);
+    this._syncWagonConfigs();
   }
 
   setWagonSpeed(speed: number): void {
@@ -178,6 +218,13 @@ export class Builder {
     this._config.transport.dropSec = Math.max(0, sec);
   }
 
+  setWagonHandlingTime(wagonIndex: number, field: "liftSec" | "dripSec" | "lowerSec" | "pickSec" | "dropSec", value: number): void {
+    if (!this._config.transport.wagons) return;
+    const wagon = this._config.transport.wagons[wagonIndex];
+    if (!wagon) return;
+    wagon[field] = Math.max(0, value);
+  }
+
   // ─── Settings Operations ─────────────────────────────────
 
   setArticleMaterial(type: ArticleMaterialType): void {
@@ -196,27 +243,108 @@ export class Builder {
     this._config.settings.basketCount = Math.max(1, Math.floor(n));
   }
 
+  // ─── Wagon Config ────────────────────────────────────────
+
+  setWagonRange(wagonIndex: number, fromStationId: string, toStationId: string): void {
+    if (!this._config.transport.wagons) return;
+    const wagon = this._config.transport.wagons[wagonIndex];
+    if (!wagon) return;
+    wagon.fromStationId = fromStationId;
+    wagon.toStationId = toStationId;
+  }
+
+  _syncWagonConfigs(): void {
+    const count = this._config.transport.wagonCount;
+    if (count <= 1) {
+      this._config.transport.wagons = undefined;
+      return;
+    }
+    const processStations = this._config.stations.filter(
+      (s) => s.kind === "tank" || s.kind === "wdo"
+    );
+    if (processStations.length === 0) {
+      this._config.transport.wagons = undefined;
+      return;
+    }
+    const t = this._config.transport;
+    const perWagon = Math.max(1, Math.ceil(processStations.length / count));
+    const wagons: WagonConfig[] = [];
+    for (let i = 0; i < count; i++) {
+      const startIdx = i * perWagon;
+      const endIdx = Math.min(startIdx + perWagon - 1, processStations.length - 1);
+      const from = processStations[Math.min(startIdx, processStations.length - 1)];
+      const to = processStations[Math.min(endIdx, processStations.length - 1)];
+      wagons.push({
+        id: `W${i + 1}`,
+        fromStationId: from.id,
+        toStationId: to.id,
+        liftSec: t.liftSec,
+        dripSec: t.dripSec,
+        lowerSec: t.lowerSec,
+        pickSec: t.pickSec,
+        dropSec: t.dropSec,
+      });
+    }
+    this._config.transport.wagons = wagons;
+  }
+
   // ─── Validation ──────────────────────────────────────────
 
   validate(): string[] {
     const errors: string[] = [];
-    if (this.currentStep === STATION_STEP || this.currentStep === REVIEW_STEP) {
-      const tanks = this._config.stations.filter((s) => s.kind === "tank");
-      if (tanks.length < 1) errors.push("At least 1 tank is required");
-      for (const t of tanks) {
-        if (t.tankType !== "extra" && t.dwellSec < 0) {
-          errors.push(`Tank ${t.id} has invalid dwell time`);
-        }
+    if (!this._config.settings.articleMaterialType) {
+      errors.push("Article material is required");
+    }
+    const tanks = this._config.stations.filter((s) => s.kind === "tank");
+    if (tanks.length < 1) errors.push("At least 1 tank is required");
+    for (const t of tanks) {
+      if (t.tankType !== "extra" && t.dwellSec < 0) {
+        errors.push(`Tank ${t.id} has invalid dwell time`);
       }
     }
+    errors.push(...this.validateWagons());
     return errors;
   }
 
-  // ─── Completion ──────────────────────────────────────────
+  validateWagons(): string[] {
+    const errors: string[] = [];
+    const wagons = this._config.transport.wagons;
+    if (!wagons || wagons.length === 0) return errors;
 
-  isComplete(): boolean {
-    if (this.currentStep !== REVIEW_STEP) return false;
-    return this.validate().length === 0;
+    const stationIds = this._config.stations.map((s) => s.id);
+    const processStations = this._config.stations.filter(
+      (s) => s.kind === "tank" || s.kind === "wdo"
+    );
+
+    for (const w of wagons) {
+      const fromIdx = stationIds.indexOf(w.fromStationId);
+      const toIdx = stationIds.indexOf(w.toStationId);
+      if (fromIdx === -1 || toIdx === -1) {
+        errors.push(`${w.id}: invalid station reference`);
+        continue;
+      }
+      if (fromIdx > toIdx) {
+        errors.push(`${w.id}: From station must come before To station`);
+      }
+      if (w.liftSec < 0 || w.dripSec < 0 || w.lowerSec < 0 || w.pickSec < 0 || w.dropSec < 0) {
+        errors.push(`${w.id}: handling times must be >= 0`);
+      }
+    }
+
+    // Check coverage: every process station must be covered by at least one wagon
+    for (const ps of processStations) {
+      const psIdx = stationIds.indexOf(ps.id);
+      const covered = wagons.some((w) => {
+        const fromIdx = stationIds.indexOf(w.fromStationId);
+        const toIdx = stationIds.indexOf(w.toStationId);
+        return fromIdx <= psIdx && psIdx <= toIdx;
+      });
+      if (!covered) {
+        errors.push(`Station ${ps.id} is not covered by any wagon`);
+      }
+    }
+
+    return errors;
   }
 
   // ─── Output ──────────────────────────────────────────────
@@ -232,6 +360,14 @@ export class Builder {
     for (let i = 0; i < tanks.length; i++) {
       tanks[i].id = `T${i + 1}`;
       tanks[i].label = `Tank ${i + 1}`;
+    }
+  }
+
+  private _reindexWdos(): void {
+    const wdos = this._config.stations.filter((s) => s.kind === "wdo");
+    for (let i = 0; i < wdos.length; i++) {
+      wdos[i].id = wdos.length === 1 ? "WDO" : `WDO${i + 1}`;
+      wdos[i].label = wdos.length === 1 ? "WDO" : `WDO ${i + 1}`;
     }
   }
 }

@@ -8,134 +8,20 @@
   </head>
   <body>
     <div class="app">
-      <!-- CONFIG PANEL (collapsible sidebar) -->
+      <!-- CONFIG PANEL (always-visible side panel) -->
       <aside class="config-panel" id="configPanel">
         <div class="config-panel__header">
           <div class="config-panel__title">Configuration</div>
+          <label class="toggle" style="margin:0;">
+            <input id="autoRun" type="checkbox" checked />
+            <span>Auto-run</span>
+          </label>
         </div>
 
-        <!-- Edit line structure -->
-        <button id="editLineBtn" class="btn btn--full" type="button" style="margin-bottom:12px;">
-          Edit line structure
-        </button>
-
-        <!-- Article Material + Station Sequence -->
-        <div class="config-section" style="margin-bottom:12px;">
-          <div class="field">
-            <label class="field__label" for="articleMaterialType">Article Material</label>
-            <input id="articleMaterialType" class="field__control" list="sidebarMatList" value="mild_steel" style="font-size:13px;" />
-            <datalist id="sidebarMatList">
-              <option value="mild_steel">Mild Steel</option>
-              <option value="aluminium">Aluminium</option>
-              <option value="stainless_steel">Stainless Steel</option>
-              <option value="galvanised_steel">Galvanised Steel</option>
-              <option value="cast_iron">Cast Iron</option>
-              <option value="brass">Brass</option>
-              <option value="copper">Copper</option>
-              <option value="zinc_die_cast">Zinc Die Cast</option>
-              <option value="hss">HSS</option>
-              <option value="other">Other</option>
-            </datalist>
-          </div>
-          <div class="field">
-            <div class="field__label">Station Sequence</div>
-            <div id="sidebarLane" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11px;color:var(--muted);">-</div>
-          </div>
+        <!-- Dynamic config sections rendered by initConfigView() -->
+        <div class="config-view" id="configViewRoot">
+          <!-- Rendered dynamically by renderer.ts -->
         </div>
-
-        <!-- Per-Station Parameters -->
-        <details class="config-section config-section--details" open>
-          <summary class="config-section__header">
-            <span class="config-section__title">Station Parameters</span>
-            <span class="config-section__summary mono small" id="recipeSummary">-</span>
-          </summary>
-          <div class="config-section__body" id="stationParamsBody">
-            <!-- Rendered dynamically by renderStationParams() -->
-          </div>
-        </details>
-
-        <!-- Transport -->
-        <details class="config-section config-section--details" open>
-          <summary class="config-section__header">
-            <span class="config-section__title">Transport</span>
-            <span class="config-section__summary mono small" id="transportSummary">1 wagon, 18 m/min</span>
-          </summary>
-          <div class="config-section__body">
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="wagonCount"># Wagons</label>
-                <input id="wagonCount" class="field__control" type="number" min="1" step="1" value="1" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="wagonSpeedMPerMin">Speed (m/min)</label>
-                <input id="wagonSpeedMPerMin" class="field__control" type="number" min="1" step="1" value="18" />
-              </div>
-            </div>
-            <div style="margin-top:8px;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Handling Times (seconds)</div>
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="liftSec">Lift</label>
-                <input id="liftSec" class="field__control" type="number" min="0" step="1" value="10" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="dripSec">Drip</label>
-                <input id="dripSec" class="field__control" type="number" min="0" step="1" value="4" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="lowerSec">Lower</label>
-                <input id="lowerSec" class="field__control" type="number" min="0" step="1" value="6" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="pickSec">Pick</label>
-                <input id="pickSec" class="field__control" type="number" min="0" step="1" value="6" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="dropSec">Drop</label>
-                <input id="dropSec" class="field__control" type="number" min="0" step="1" value="4" />
-              </div>
-            </div>
-            <div class="field" style="margin-top:8px;">
-              <label class="field__label" for="distanceMode">Distance model</label>
-              <select id="distanceMode" class="field__control">
-                <option value="manhattan">Rail (Manhattan)</option>
-                <option value="euclidean">Straight-line (Optimistic)</option>
-              </select>
-            </div>
-          </div>
-        </details>
-
-        <!-- Run Settings -->
-        <details class="config-section config-section--details" open>
-          <summary class="config-section__header">
-            <span class="config-section__title">Run Settings</span>
-            <span class="config-section__summary mono small" id="simSettingsSummary">2.0 bph, 2hr</span>
-          </summary>
-          <div class="config-section__body">
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="targetBph">Target throughput</label>
-                <input id="targetBph" class="field__control" type="number" min="0.1" step="0.1" value="2.0" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="basketCount">Baskets</label>
-                <input id="basketCount" class="field__control" type="number" min="1" max="20" step="1" value="2" />
-              </div>
-            </div>
-            <div class="grid2">
-              <div class="field">
-                <label class="field__label" for="simHours">Duration (hr)</label>
-                <input id="simHours" class="field__control" type="number" min="0.25" step="0.25" value="2" />
-              </div>
-              <div class="field">
-                <label>&nbsp;</label>
-                <label class="toggle" style="margin-top:6px;">
-                  <input id="autoRun" type="checkbox" checked />
-                  <span>Auto-run</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </details>
       </aside>
 
 
@@ -158,7 +44,7 @@
           <div class="kpi-card kpi-card--primary">
             <div class="kpi-card__label">Throughput</div>
             <div class="kpi-card__value mono" id="kpiThroughput">-</div>
-            <div class="kpi-card__sub" id="kpiThroughputSub">target: -</div>
+            <div class="kpi-card__sub" id="kpiThroughputSub">-</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card__label">Avg Lead Time</div>
@@ -293,53 +179,6 @@
         </div>
         <div class="glossary__count" id="glossaryCount"></div>
         <div class="glossary__body" id="glossaryBody"></div>
-      </div>
-    </div>
-
-    <!-- Builder Modal -->
-    <div class="modal-overlay" id="builderModal">
-      <div class="modal">
-        <div class="modal__header">
-          <div class="modal__brand">Flowlytics</div>
-          <div class="modal__subtitle">Line Builder</div>
-          <div class="step-indicator" id="stepIndicator"><!-- JS renders 4 dots --></div>
-        </div>
-
-        <!-- Step 1: Stations -->
-        <div class="modal__body builder-step" id="builderStep1">
-          <div id="stepContent1"><!-- rendered by renderer.ts --></div>
-          <div class="builder-nav">
-            <div></div>
-            <button id="builderNext1" class="btn btn--primary btn--full-sm" disabled>Next &rarr;</button>
-          </div>
-        </div>
-
-        <!-- Step 2: Transport -->
-        <div class="modal__body builder-step" id="builderStep2" hidden>
-          <div id="stepContent2"><!-- rendered by renderer.ts --></div>
-          <div class="builder-nav">
-            <button id="builderBack2" class="btn btn--full-sm">&larr; Back</button>
-            <button id="builderNext2" class="btn btn--primary btn--full-sm">Next &rarr;</button>
-          </div>
-        </div>
-
-        <!-- Step 3: Settings -->
-        <div class="modal__body builder-step" id="builderStep3" hidden>
-          <div id="stepContent3"><!-- rendered by renderer.ts --></div>
-          <div class="builder-nav">
-            <button id="builderBack3" class="btn btn--full-sm">&larr; Back</button>
-            <button id="builderNext3" class="btn btn--primary btn--full-sm">Next &rarr;</button>
-          </div>
-        </div>
-
-        <!-- Step 4: Review -->
-        <div class="modal__body builder-step" id="builderStep4" hidden>
-          <div id="stepContent4"><!-- rendered by renderer.ts --></div>
-          <div class="builder-nav">
-            <button id="builderBack4" class="btn btn--full-sm">&larr; Back</button>
-            <button id="builderFinish" class="btn btn--primary btn--full-sm">Start Simulation</button>
-          </div>
-        </div>
       </div>
     </div>
 

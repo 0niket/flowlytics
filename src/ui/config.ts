@@ -1,9 +1,8 @@
 import { ui, state } from "./state";
 import { buildSyntheticLayout } from "../engine/layout";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
-import { minutesToSeconds, secondsToMinutes, clamp } from "../utils";
+import { clamp, minutesToSeconds } from "../utils";
 import type { SimParams, RecipeStep, TankType } from "../types";
-import type { ArticleMaterialType } from "../builder/LineConfig";
 
 function readRecipeStepsFromSidebar(): RecipeStep[] {
   const steps: RecipeStep[] = [];
@@ -28,39 +27,34 @@ function readRecipeStepsFromSidebar(): RecipeStep[] {
 }
 
 export function readParamsFromUi(): SimParams {
+  // If state.params was already set by the builder/renderer, use it directly
+  if (state.params) return state.params;
+
+  // Fallback: build from sidebar DOM (for initial load before builder renders)
   const recipeSteps = readRecipeStepsFromSidebar();
   const tankCount = recipeSteps.filter((s) => s.kind === "tank").length;
-  const preset = "custom";
   const loadStep = recipeSteps.find((s) => s.id === "LOAD");
   const unloadStep = recipeSteps.find((s) => s.id === "UNLOAD");
   const wdoStep = recipeSteps.find((s) => s.id === "WDO");
-  const matInput = document.getElementById("articleMaterialType") as HTMLInputElement | null;
-  const targetInput = document.getElementById("targetBph") as HTMLInputElement | null;
-
-  const liftSec = Math.max(0, Number((document.getElementById("liftSec") as HTMLInputElement)?.value ?? 10));
-  const dripSec = Math.max(0, Number((document.getElementById("dripSec") as HTMLInputElement)?.value ?? 4));
-  const lowerSec = Math.max(0, Number((document.getElementById("lowerSec") as HTMLInputElement)?.value ?? 6));
-  const pickSec = Math.max(0, Number((document.getElementById("pickSec") as HTMLInputElement)?.value ?? 6));
-  const dropSec = Math.max(0, Number((document.getElementById("dropSec") as HTMLInputElement)?.value ?? 4));
 
   return {
-    preset,
+    preset: "custom",
     tankCount,
-    basketCount: Math.max(1, Math.floor(Number(ui.basketCount.value))),
+    basketCount: 2,
     recipeSteps,
     wdoTimeMin: wdoStep ? wdoStep.dwellSec / 60 : 10,
     loadTimeMin: loadStep ? loadStep.dwellSec / 60 : 20,
     unloadTimeMin: unloadStep ? unloadStep.dwellSec / 60 : 10,
-    dripTimeSec: dripSec,
-    targetBph: targetInput ? Math.max(0, Number(targetInput.value)) : 0,
-    simHours: Math.max(0.25, Number(ui.simHours.value)),
-    wagonSpeedMPerMin: Math.max(1, Number(ui.wagonSpeedMPerMin.value)),
-    liftLowerSec: liftSec + lowerSec,
-    pickDropSec: pickSec + dropSec,
-    wagonCount: Math.max(1, Math.floor(Number(ui.wagonCount.value))),
-    distanceMode: (ui.distanceMode?.value as "manhattan" | "euclidean") || "manhattan",
+    dripTimeSec: 4,
+    targetBph: 0,
+    simHours: 2,
+    wagonSpeedMPerMin: 18,
+    liftLowerSec: 16,
+    pickDropSec: 10,
+    wagonCount: 1,
+    distanceMode: "manhattan",
     dwellClockOffsetSec: null,
-    articleMaterialType: (matInput?.value as ArticleMaterialType) ?? "mild_steel",
+    articleMaterialType: "mild_steel",
   };
 }
 
@@ -71,71 +65,8 @@ export function updateLayout(): void {
 }
 
 export function renderStationParams(): void {
-  const body = document.getElementById("stationParamsBody");
-  if (!body) return;
-  body.innerHTML = "";
-  if (!state.params) return;
-  for (const step of state.params.recipeSteps) {
-    const details = document.createElement("details");
-    details.setAttribute("data-station-id", step.id);
-    const kindAttr = step.kind === "tank" ? "tank" : step.kind === "oven" ? "wdo" : "load_unload";
-    details.setAttribute("data-station-kind", kindAttr);
-    details.open = true;
-
-    const summary = document.createElement("summary");
-    summary.className = "config-section__header config-section__header--nested";
-    const title = document.createElement("span");
-    title.className = "config-section__title";
-    title.textContent = step.id;
-    summary.appendChild(title);
-
-    if (step.kind === "tank" && step.tankType) {
-      const badge = document.createElement("span");
-      badge.className = "mono small";
-      badge.textContent = step.tankType;
-      summary.appendChild(badge);
-    } else if (step.kind === "oven") {
-      const badge = document.createElement("span");
-      badge.className = "mono small";
-      badge.textContent = "WDO";
-      summary.appendChild(badge);
-    }
-
-    details.appendChild(summary);
-
-    const bodyDiv = document.createElement("div");
-    bodyDiv.className = "config-section__body";
-
-    if (step.kind === "tank") {
-      bodyDiv.innerHTML = `
-        <div class="field">
-          <label class="field__label">Type</label>
-          <select class="sp-type field__control">
-            <option value="chemical"${step.tankType === "chemical" ? " selected" : ""}>Chemical</option>
-            <option value="rinse"${step.tankType === "rinse" ? " selected" : ""}>Rinse</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="field__label">Dwell (min)</label>
-          <input class="sp-dwell field__control" type="number" min="0" step="0.5" value="${secondsToMinutes(step.dwellSec)}" />
-        </div>
-        <div class="field">
-          <label class="field__label">Tolerance (%)</label>
-          <input class="sp-tol field__control" type="number" min="0" max="50" step="1" value="${Math.round((step.tolerancePct ?? 0.1) * 100)}" />
-        </div>
-      `;
-    } else {
-      bodyDiv.innerHTML = `
-        <div class="field">
-          <label class="field__label">Dwell (min)</label>
-          <input class="sp-dwell field__control" type="number" min="0" step="0.5" value="${secondsToMinutes(step.dwellSec)}" />
-        </div>
-      `;
-    }
-
-    details.appendChild(bodyDiv);
-    body.appendChild(details);
-  }
+  // Station parameters are now rendered inline by the config view renderer.
+  // This function is kept for compatibility but is a no-op.
 }
 
 export function recomputePlan(): void {
@@ -374,14 +305,13 @@ function updateResults(): void {
   renderStationParams();
   if (!state.sim || !state.params) return;
   const s = state.sim;
-  const p = state.params;
 
   const achieved = Number.isFinite(s.throughputTrimmedBph) ? s.throughputTrimmedBph : Number.isFinite(s.throughputSteadyBph) ? s.throughputSteadyBph : s.throughputBph;
-  const delta = pctDelta(achieved, p.targetBph);
+  const theoMax = s.theoreticalMaxThroughput;
+  const delta = theoMax > 0 ? pctDelta(achieved, theoMax) : null;
   ui.kpiThroughput.textContent = s.throughputStatus === "insufficient_data" ? "N/A" : `${achieved.toFixed(2)}`;
-  ui.kpiThroughput.className = "kpi-card__value mono" + (delta != null ? (delta >= 0 ? " kpi-card__value--ok" : " kpi-card__value--bad") : "");
-  const deltaStr = delta != null ? ` (${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%)` : "";
-  ui.kpiThroughputSub.textContent = `target: ${p.targetBph.toFixed(2)} bph${deltaStr}`;
+  ui.kpiThroughput.className = "kpi-card__value mono" + (delta != null ? (delta >= -10 ? " kpi-card__value--ok" : " kpi-card__value--bad") : "");
+  ui.kpiThroughputSub.textContent = `theoretical max: ${theoMax.toFixed(2)} bph`;
 
   ui.kpiLeadTime.textContent = formatSeconds(s.avgLeadTimeSec);
   const b = state.plan?.buckets;
@@ -407,17 +337,13 @@ function updateResults(): void {
     ui.kpiOptimalWip.textContent = Number.isFinite(optWip) ? optWip.toFixed(1) : "-";
     if (inv.isOverfeeding) {
       ui.kpiOptimalWip.className = "kpi-card__value mono kpi-card__value--warn";
-      ui.kpiOptimalWipSub.textContent = "actual avg " + inv.avgWip.toFixed(1) + " | overfeeding by " + ((p.targetBph - inv.recommendedBph) / inv.recommendedBph * 100).toFixed(0) + "%";
+      const overPct = inv.recommendedBph > 0 ? ((inv.arrivalBph - inv.recommendedBph) / inv.recommendedBph * 100).toFixed(0) : "0";
+      ui.kpiOptimalWipSub.textContent = "actual avg " + inv.avgWip.toFixed(1) + " | overfeeding by " + overPct + "%";
     } else {
       ui.kpiOptimalWip.className = "kpi-card__value mono kpi-card__value--ok";
       ui.kpiOptimalWipSub.textContent = "actual avg " + inv.avgWip.toFixed(1) + " | balanced";
     }
   }
-
-  const matLabel = p.articleMaterialType ?? "mild_steel";
-  ui.recipeSummary.textContent = `${p.tankCount} tanks, ${matLabel.replace("_", " ")}`;
-  ui.transportSummary.textContent = `${p.wagonCount} wagon${p.wagonCount > 1 ? "s" : ""}, ${p.wagonSpeedMPerMin} m/min`;
-  ui.simSettingsSummary.textContent = `${p.targetBph.toFixed(1)} bph, ${p.simHours}hr`;
 
   renderStationMetrics();
   renderWagonMetrics();
@@ -748,8 +674,8 @@ export function exportSummaryText(): string {
     `Tank tolerances: ${tankTols}`,
     `Load: ${(p.recipeSteps.find((x) => x.id === "LOAD")?.dwellSec ?? 0) / 60}m | Unload: ${(p.recipeSteps.find((x) => x.id === "UNLOAD")?.dwellSec ?? 0) / 60}m | WDO: ${(p.recipeSteps.find((x) => x.id === "WDO")?.dwellSec ?? 0) / 60}m`, "",
     `Wagons: ${p.wagonCount} | Baskets: ${p.basketCount} | Speed: ${p.wagonSpeedMPerMin} m/min`,
-    `Lift: ${(document.getElementById("liftSec") as HTMLInputElement)?.value ?? 10}s | Drip: ${(document.getElementById("dripSec") as HTMLInputElement)?.value ?? 4}s | Lower: ${(document.getElementById("lowerSec") as HTMLInputElement)?.value ?? 6}s | Pick: ${(document.getElementById("pickSec") as HTMLInputElement)?.value ?? 6}s | Drop: ${(document.getElementById("dropSec") as HTMLInputElement)?.value ?? 4}s`, "",
-    `Target: ${p.targetBph.toFixed(1)} bph | Sim: ${p.simHours}hr`,
+    `Lift+Lower: ${p.liftLowerSec}s | Drip: ${p.dripTimeSec}s | Pick+Drop: ${p.pickDropSec}s`, "",
+    `Sim: ${p.simHours}hr`,
     `Achieved: ${s.throughputBph.toFixed(2)} bph`,
     `Lead time: ${formatSeconds(s.avgLeadTimeSec)}`,
     `Violations: ${s.violations.length} | Bottleneck: ${s.bottleneck}`, "",
@@ -799,16 +725,6 @@ export async function setupConfigPanel(): Promise<void> {
   document.querySelectorAll(".metrics-tab").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab") || ""));
   });
-
-  const onChange = () => { if (ui.autoRun.checked) recomputeAndRender(); };
-
-  for (const id of ["simHours", "wagonSpeedMPerMin", "wagonCount", "distanceMode", "basketCount", "liftSec", "dripSec", "lowerSec", "pickSec", "dropSec", "targetBph", "articleMaterialType"]) {
-    const e = document.getElementById(id);
-    if (e) e.addEventListener("input", onChange);
-  }
-
-  // Station params changes (delegated)
-  document.getElementById("stationParamsBody")?.addEventListener("input", onChange);
 
   if (ui.exportSummaryBtn) {
     ui.exportSummaryBtn.addEventListener("click", async () => {

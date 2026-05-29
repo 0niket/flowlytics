@@ -1,594 +1,710 @@
-import { Builder, STEP_COUNT, STATION_STEP, TRANSPORT_STEP, SETTINGS_STEP, REVIEW_STEP } from "./builder";
-import { lineConfigToLayout } from "./LineConfig";
+import { Builder } from "./builder";
+import { lineConfigToLayout, lineConfigToSimParams } from "./LineConfig";
 import type { ArticleMaterialType, TankType } from "./LineConfig";
 import { MATERIALS } from "../materials/data";
-import { saveDraft, loadDraft, clearDraft } from "./persistence";
+import { clearDraft } from "./persistence";
 import { recomputeAndRender } from "../ui/config";
 import { state } from "../ui/state";
 import { minutesToSeconds, secondsToMinutes } from "../utils";
-
-
-const STEP_LABELS = ["Stations", "Transport", "Settings", "Review"];
+import { showToast } from "../ui/toast";
 
 let builder: Builder;
 let abortController: AbortController | null = null;
+let customMaterialName = "";
 
-export function initBuilder(): void {
-  // Clean up previous listeners if re-initializing
+export function initConfigView(): void {
   if (abortController) abortController.abort();
   abortController = new AbortController();
 
-  const draft = loadDraft();
-  builder = draft ? new Builder(draft.config) : new Builder();
-  if (draft) builder.currentStep = draft.currentStep;
-
-  showModal();
-  renderStepIndicator();
-  renderCurrentStep();
-  wireNavButtons();
-  wireListeners(abortController.signal);
-}
-
-function showModal(): void {
-  const modal = document.getElementById("builderModal");
-  if (modal) modal.removeAttribute("hidden");
-}
-
-function hideModal(): void {
   clearDraft();
-  const modal = document.getElementById("builderModal");
-  if (modal) modal.setAttribute("hidden", "");
+  builder = new Builder();
+
+  renderAllSections();
+  wireListeners(abortController.signal);
+
+  // Apply initial config and run
+  applyConfigAndRun();
 }
 
-function el<T extends HTMLElement>(id: string): T {
-  const e = document.getElementById(id);
-  if (!e) throw new Error(`Missing element: ${id}`);
-  return e as unknown as T;
+function getRoot(): HTMLElement | null {
+  return document.getElementById("configViewRoot");
 }
 
-function renderStepIndicator(): void {
-  const container = document.getElementById("stepIndicator");
-  if (!container) return;
-  container.innerHTML = "";
-  container.className = "wizard-steps";
-  for (let i = 0; i < STEP_COUNT; i++) {
-    const step = document.createElement("div");
-    step.className = "wizard-step" + (i === builder.currentStep ? " wizard-step--active" : i < builder.currentStep ? " wizard-step--done" : "");
-    const num = document.createElement("span");
-    num.className = "wizard-step__num";
-    num.textContent = String(i + 1);
-    step.appendChild(num);
-    const label = document.createElement("span");
-    label.className = "wizard-step__label";
-    label.textContent = STEP_LABELS[i];
-    step.appendChild(label);
-    container.appendChild(step);
-    if (i < STEP_COUNT - 1) {
-      const conn = document.createElement("div");
-      conn.className = "wizard-step__connector";
-      container.appendChild(conn);
-    }
-  }
+// ─── Render All Sections ────────────────────────────────────
+
+function renderAllSections(): void {
+  const root = getRoot();
+  if (!root) return;
+  root.innerHTML = "";
+
+  renderMaterialSection(root);
+  renderStationSection(root);
+  renderTransportSection(root);
+  renderSimSettingsSection(root);
+  renderRunButton(root);
 }
 
-function renderCurrentStep(): void {
-  for (let i = 0; i < STEP_COUNT; i++) {
-    const el = document.getElementById(`builderStep${i + 1}`);
-    if (el) el.hidden = i !== builder.currentStep;
-  }
-  const content = document.getElementById(`stepContent${builder.currentStep + 1}`);
-  if (!content) return;
-  content.innerHTML = "";
+// ─── Material Section ───────────────────────────────────────
 
-  switch (builder.currentStep) {
-    case STATION_STEP:
-      renderStationStep(content);
-      break;
-    case TRANSPORT_STEP:
-      renderTransportStep(content);
-      break;
-    case SETTINGS_STEP:
-      renderSettingsStep(content);
-      break;
-    case REVIEW_STEP:
-      renderReviewStep(content);
-      break;
-  }
-  updateNavButtons();
+function renderMaterialSection(container: HTMLElement): void {
+  const selectedType = builder.config.settings.articleMaterialType;
+  const section = document.createElement("div");
+  section.className = "config-view__section";
+  section.id = "cvMaterialSection";
+
+  const selectedMat = MATERIALS.find((m) => m.type === selectedType);
+  const isOther = selectedType === "other";
+
+  section.innerHTML = `
+    <div class="config-view__section-title">Article Material</div>
+    <div class="material-dropdown-wrap">
+      <input class="material-search field__control" id="bldrMaterialSearch" type="text" placeholder="Search materials..." autocomplete="off" value="${isOther ? "" : selectedMat?.label ?? ""}" />
+      <div class="material-dropdown" id="bldrMaterialDropdown" hidden></div>
+    </div>
+    ${isOther ? `
+      <div class="field" style="margin-top:8px;">
+        <label class="field__label">Describe the material</label>
+        <input class="field__control" id="bldrMaterialOtherText" type="text" placeholder="Enter material name..." value="${customMaterialName}" />
+      </div>
+    ` : ""}
+  `;
+  container.appendChild(section);
 }
 
-function updateNavButtons(): void {
-  const nextBtn = document.getElementById(`builderNext${builder.currentStep + 1}`);
-  if (nextBtn) {
-    (nextBtn as HTMLButtonElement).disabled = !builder.canGoNext();
-  }
-}
-
-// ─── Step 1: Stations ────────────────────────────────────────
+// ─── Station Section ────────────────────────────────────────
 
 function stationTypeOptions(selected?: TankType): string {
-  const types: { value: string; label: string }[] = [
+  const types = [
     { value: "chemical", label: "Chemical" },
     { value: "rinse", label: "Rinse" },
     { value: "extra", label: "Extra" },
   ];
-  return types.map((t) => `<option value="${t.value}"${t.value === selected ? " selected" : ""}>${t.label}</option>`).join("");
+  return types
+    .map((t) => `<option value="${t.value}"${t.value === selected ? " selected" : ""}>${t.label}</option>`)
+    .join("");
 }
 
-function renderStationStep(container: HTMLElement): void {
+function renderStationSection(container: HTMLElement): void {
   const stations = builder.config.stations;
+  const section = document.createElement("div");
+  section.className = "config-view__section";
+  section.id = "cvStationSection";
+  section.innerHTML = `<div class="config-view__section-title">Station Sequence</div>`;
 
-  // Article material
-  const matOptions = MATERIALS.map((m) => `<option value="${m.type}"${m.type === builder.config.settings.articleMaterialType ? " selected" : ""}>${m.label}</option>`).join("");
-  container.innerHTML = `
-    <div class="wizard-page__intro">
-      <div class="wizard-page__title">Station Sequence</div>
-      <div class="wizard-page__desc">Configure the type and parameters for each station in the line.</div>
-    </div>
-    <div class="wizard-field">
-      <label class="wizard-field__label">Article Material</label>
-      <input id="bldrMaterial" class="field__control wizard-field__input" list="bldrMaterialList" value="${builder.config.settings.articleMaterialType}" style="width:100%;font-size:13px" />
-      <datalist id="bldrMaterialList">${matOptions}</datalist>
-    </div>
-    <div class="lane-builder" id="laneBuilder"></div>
-  `;
-
-  // Build the lane
-  const lane = el("laneBuilder");
-  lane.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px;";
+  const lane = document.createElement("div");
+  lane.className = "station-lane";
+  lane.id = "cvStationLane";
 
   for (let i = 0; i < stations.length; i++) {
     const s = stations[i];
     if (s.kind === "tank") {
       const card = document.createElement("div");
-      card.style.cssText = "border:1px solid var(--border2);border-radius:8px;padding:10px;background:rgba(10,14,22,0.5);min-width:140px;";
+      const typeClass = s.tankType === "chemical" ? "station-card--chemical"
+        : s.tankType === "rinse" ? "station-card--rinse"
+        : "station-card--extra";
+      card.className = `station-card ${typeClass}`;
       const isExtra = s.tankType === "extra";
+      const titleColor = s.tankType === "chemical" ? "var(--tank-chemical)"
+        : s.tankType === "rinse" ? "var(--tank-rinse)"
+        : "var(--tank-extra)";
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <strong style="font-size:12px;">${s.id}</strong>
-          <button class="btn-remove-tank" data-index="${i}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 4px;" title="Remove tank">&times;</button>
+        <div class="station-card__header">
+          <span class="station-card__title" style="color:${titleColor};">${s.id}</span>
+          <button class="station-card__remove btn-remove-tank" data-index="${i}" title="Remove tank">&times;</button>
         </div>
-        <select class="bldr-type" data-index="${i}" style="width:100%;margin-bottom:4px;font-size:11px;padding:3px 4px;">
-          ${stationTypeOptions(s.tankType)}
-        </select>
-        <div style="display:flex;gap:4px;align-items:center;" ${isExtra ? 'hidden' : ''}>
-          <input class="bldr-dwell" data-index="${i}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" style="width:60px;font-size:12px;padding:3px 4px;" />
-          <span style="font-size:11px;color:var(--muted);">min</span>
+        <div class="field" style="margin-bottom:8px;">
+          <label class="field__label">Type</label>
+          <select class="bldr-type station-card__select" data-index="${i}">
+            ${stationTypeOptions(s.tankType)}
+          </select>
         </div>
-        <div class="bldr-tol-row" style="display:flex;gap:4px;align-items:center;margin-top:4px;" ${isExtra ? 'hidden' : ''}>
-          <span style="font-size:11px;color:var(--muted);">&plusmn;</span>
-          <input class="bldr-tol" data-index="${i}" type="number" min="0" max="50" step="1" value="${((s.tolerancePct ?? 0.1) * 100).toFixed(0)}" style="width:50px;font-size:12px;padding:3px 4px;" />
-          <span style="font-size:11px;color:var(--muted);">%</span>
+        <div class="grid2" ${isExtra ? "hidden" : ""} style="margin-bottom:8px;">
+          <div class="field" style="margin:0;">
+            <label class="field__label">Dwell time</label>
+            <div class="station-card__field">
+              <input class="bldr-dwell station-card__input" data-index="${i}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" />
+              <span class="station-card__unit">min</span>
+            </div>
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Tolerance</label>
+            <div class="station-card__field">
+              <span class="station-card__unit">&plusmn;</span>
+              <input class="bldr-tol station-card__input" data-index="${i}" type="number" min="0" max="50" step="1" value="${((s.tolerancePct ?? 0.1) * 100).toFixed(0)}" />
+              <span class="station-card__unit">%</span>
+            </div>
+          </div>
         </div>
+        ${s.tankType === "chemical" ? `
+          <textarea class="bldr-chem-desc station-card__textarea" data-index="${i}" placeholder="Chemical composition..." rows="2">${s.chemicalDescription ?? ""}</textarea>
+        ` : ""}
+        ${isExtra ? '<div class="station-card__subtitle" style="margin-top:4px;">Reserved for future use</div>' : ""}
       `;
       lane.appendChild(card);
     } else if (s.kind === "wdo") {
       const card = document.createElement("div");
-      card.style.cssText = "border:1px solid var(--border2);border-radius:8px;padding:10px;background:rgba(112,240,184,0.08);min-width:140px;";
+      card.className = "station-card station-card--wdo";
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <strong style="font-size:12px;color:var(--accent2);">WDO</strong>
-          <button id="bldrRemoveWdo" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 4px;" title="Remove WDO">&times;</button>
+        <div class="station-card__header">
+          <span class="station-card__title" style="color:var(--accent2);">${s.id}</span>
+          <button class="station-card__remove btn-remove-wdo" data-index="${i}" title="Remove WDO">&times;</button>
         </div>
-        <div style="font-size:11px;color:var(--muted);">Drying Oven</div>
-        <div style="display:flex;gap:4px;align-items:center;margin-top:4px;">
-          <input id="bldrWdoDryTime" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" style="width:60px;font-size:12px;padding:3px 4px;" />
-          <span style="font-size:11px;color:var(--muted);">drying min</span>
+        <div class="station-card__subtitle">Drying Oven</div>
+        <div class="field" style="margin:0;">
+          <label class="field__label">Dry time</label>
+          <div class="station-card__field">
+            <input class="bldr-wdo-time station-card__input" data-index="${i}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" />
+            <span class="station-card__unit">min</span>
+          </div>
         </div>
       `;
       lane.appendChild(card);
-    } else {
-      // LOAD or UNLOAD — fixed endpoints
-      const isLoad = s.kind === "loading";
+    } else if (s.kind === "loading") {
       const card = document.createElement("div");
-      card.style.cssText = `border:1px solid var(--border2);border-radius:8px;padding:10px;background:rgba(74,163,255,0.08);min-width:120px;`;
+      card.className = "station-card station-card--loading";
       card.innerHTML = `
-        <strong style="font-size:12px;color:var(--accent);">${s.id}</strong>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${isLoad ? "Loading" : "Unloading"}</div>
-        <div style="display:flex;gap:4px;align-items:center;">
-          <input class="bldr-station-time" data-kind="${s.kind}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" style="width:60px;font-size:12px;padding:3px 4px;" />
-          <span style="font-size:11px;color:var(--muted);">min</span>
+        <div class="station-card__header">
+          <span class="station-card__title" style="color:var(--accent);">LOAD</span>
         </div>
+        <div class="station-card__subtitle">Hanger Loading</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label class="field__label">Loading time</label>
+          <div class="station-card__field">
+            <input class="bldr-station-time station-card__input" data-kind="loading" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" />
+            <span class="station-card__unit">min</span>
+          </div>
+        </div>
+        <textarea class="bldr-load-desc station-card__textarea" placeholder="Describe the loading process..." rows="2">${s.loadingDescription ?? ""}</textarea>
+      `;
+      lane.appendChild(card);
+    } else if (s.kind === "unloading") {
+      const card = document.createElement("div");
+      card.className = "station-card station-card--unloading";
+      card.innerHTML = `
+        <div class="station-card__header">
+          <span class="station-card__title" style="color:var(--accent);">UNLOAD</span>
+        </div>
+        <div class="station-card__subtitle">Hanger Unloading</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label class="field__label">Unloading time</label>
+          <div class="station-card__field">
+            <input class="bldr-station-time station-card__input" data-kind="unloading" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" />
+            <span class="station-card__unit">min</span>
+          </div>
+        </div>
+        <textarea class="bldr-unload-desc station-card__textarea" placeholder="Describe the unloading process..." rows="2">${s.unloadingDescription ?? ""}</textarea>
       `;
       lane.appendChild(card);
     }
 
-    // Add button between stations (after LOAD, before UNLOAD)
-    if (i < stations.length - 1 && s.kind !== "wdo" && stations[i + 1].kind !== "wdo") {
+    // Add button between stations
+    if (i < stations.length - 1 && s.kind !== "unloading") {
+      const wrapper = document.createElement("div");
+      wrapper.className = "station-add-wrapper";
       const addBtn = document.createElement("button");
-      addBtn.className = "btn-add-tank";
+      addBtn.className = "station-add-btn";
       addBtn.setAttribute("data-after", String(i));
       addBtn.textContent = "+";
-      addBtn.style.cssText = "width:28px;height:28px;border-radius:50%;border:1.5px dashed var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;";
-      lane.appendChild(addBtn);
+      wrapper.appendChild(addBtn);
+      lane.appendChild(wrapper);
     }
   }
 
-  // Load/unload time fields
-  const load = builder.config.stations.find((s) => s.kind === "loading");
-  const unload = builder.config.stations.find((s) => s.kind === "unloading");
-  const bottomRow = document.createElement("div");
-  bottomRow.style.cssText = "display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;";
-  bottomRow.innerHTML = `
-    <div class="wizard-field" style="margin-bottom:0;">
-      <label class="wizard-field__label">Load time (min)</label>
-      <input id="bldrLoadTime" class="field__control wizard-field__input" type="number" min="0" step="0.5" value="${secondsToMinutes(load?.dwellSec ?? 0)}" style="width:100px;" />
-    </div>
-    <div class="wizard-field" style="margin-bottom:0;">
-      <label class="wizard-field__label">Unload time (min)</label>
-      <input id="bldrUnloadTime" class="field__control wizard-field__input" type="number" min="0" step="0.5" value="${secondsToMinutes(unload?.dwellSec ?? 0)}" style="width:100px;" />
-    </div>
-  `;
-  container.appendChild(bottomRow);
+  section.appendChild(lane);
+  container.appendChild(section);
 }
 
-// ─── Step 2: Transport ────────────────────────────────────────
+// ─── Transport Section ──────────────────────────────────────
 
-function renderTransportStep(container: HTMLElement): void {
+function renderTransportSection(container: HTMLElement): void {
   const t = builder.config.transport;
-  container.innerHTML = `
-    <div class="wizard-page__intro">
-      <div class="wizard-page__title">Transport Configuration</div>
-      <div class="wizard-page__desc">Set the wagon parameters and motion timings.</div>
-    </div>
-    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label"># Wagons</label>
-        <input id="bldrWagonCount" class="field__control wizard-field__input" type="number" min="1" step="1" value="${t.wagonCount}" style="width:80px;" />
+  const section = document.createElement("div");
+  section.className = "config-view__section";
+  section.id = "cvTransportSection";
+
+  section.innerHTML = `
+    <div class="config-view__section-title">Transport &amp; Wagons</div>
+    <div class="grid2" style="margin-bottom:8px;">
+      <div class="field">
+        <label class="field__label"># Wagons</label>
+        <input id="bldrWagonCount" class="field__control" type="number" min="1" step="1" value="${t.wagonCount}" />
       </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Speed (m/min)</label>
-        <input id="bldrWagonSpeed" class="field__control wizard-field__input" type="number" min="1" step="1" value="${t.wagonSpeedMPerMin}" style="width:80px;" />
-      </div>
-    </div>
-    <div style="margin-top:16px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px;">Handling Times (seconds)</div>
-    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Lift</label>
-        <input id="bldrLift" class="field__control" type="number" min="0" step="1" value="${t.liftSec}" style="width:70px;" />
-      </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Drip</label>
-        <input id="bldrDrip" class="field__control" type="number" min="0" step="1" value="${t.dripSec}" style="width:70px;" />
-      </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Lower</label>
-        <input id="bldrLower" class="field__control" type="number" min="0" step="1" value="${t.lowerSec}" style="width:70px;" />
-      </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Pick</label>
-        <input id="bldrPick" class="field__control" type="number" min="0" step="1" value="${t.pickSec}" style="width:70px;" />
-      </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Drop</label>
-        <input id="bldrDrop" class="field__control" type="number" min="0" step="1" value="${t.dropSec}" style="width:70px;" />
+      <div class="field">
+        <label class="field__label">Speed (m/min)</label>
+        <input id="bldrWagonSpeed" class="field__control" type="number" min="1" step="1" value="${t.wagonSpeedMPerMin}" />
       </div>
     </div>
+    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Global Handling Times (seconds)</div>
+    <div class="grid2" style="margin-bottom:8px;">
+      <div class="field">
+        <label class="field__label">Lift</label>
+        <input id="bldrLift" class="field__control" type="number" min="0" step="1" value="${t.liftSec}" />
+      </div>
+      <div class="field">
+        <label class="field__label">Drip</label>
+        <input id="bldrDrip" class="field__control" type="number" min="0" step="1" value="${t.dripSec}" />
+      </div>
+      <div class="field">
+        <label class="field__label">Lower</label>
+        <input id="bldrLower" class="field__control" type="number" min="0" step="1" value="${t.lowerSec}" />
+      </div>
+      <div class="field">
+        <label class="field__label">Pick</label>
+        <input id="bldrPick" class="field__control" type="number" min="0" step="1" value="${t.pickSec}" />
+      </div>
+      <div class="field">
+        <label class="field__label">Drop</label>
+        <input id="bldrDrop" class="field__control" type="number" min="0" step="1" value="${t.dropSec}" />
+      </div>
+    </div>
+    <div id="cvWagonCards"></div>
+  `;
+
+  container.appendChild(section);
+  renderWagonCards();
+}
+
+function renderWagonCards(): void {
+  const section = document.getElementById("cvWagonCards");
+  if (!section) return;
+
+  const t = builder.config.transport;
+  if (t.wagonCount <= 1) {
+    section.innerHTML = "";
+    return;
+  }
+
+  const wagons = t.wagons ?? [];
+  const processStations = builder.config.stations.filter(
+    (s) => s.kind === "tank" || s.kind === "wdo"
+  );
+
+  let cardsHtml = "";
+  for (let i = 0; i < wagons.length; i++) {
+    const w = wagons[i];
+    const fromOptions = processStations
+      .map((s) => `<option value="${s.id}"${s.id === w.fromStationId ? " selected" : ""}>${s.id}</option>`)
+      .join("");
+    const toOptions = processStations
+      .map((s) => `<option value="${s.id}"${s.id === w.toStationId ? " selected" : ""}>${s.id}</option>`)
+      .join("");
+
+    cardsHtml += `
+      <div class="wagon-config-card">
+        <div class="wagon-config-card__title">${w.id}</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">From</div>
+            <select class="bldr-wagon-from field__control" data-wagon-index="${i}" style="font-size:11px;">${fromOptions}</select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">To</div>
+            <select class="bldr-wagon-to field__control" data-wagon-index="${i}" style="font-size:11px;">${toOptions}</select>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Handling (sec)</div>
+        <div class="wagon-handling-grid">
+          <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Lift</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="liftSec" type="number" min="0" step="1" value="${w.liftSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Drip</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="dripSec" type="number" min="0" step="1" value="${w.dripSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Lower</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="lowerSec" type="number" min="0" step="1" value="${w.lowerSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Pick</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="pickSec" type="number" min="0" step="1" value="${w.pickSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Drop</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="dropSec" type="number" min="0" step="1" value="${w.dropSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  section.innerHTML = `
+    <div style="font-size:11px;font-weight:600;margin-bottom:4px;">Per-Wagon Station Ranges</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Define which stations each wagon covers and its handling times.</div>
+    <div class="wagon-config-grid">${cardsHtml}</div>
   `;
 }
 
-// ─── Step 3: Settings ─────────────────────────────────────────
+// ─── Sim Settings Section ───────────────────────────────────
 
-function renderSettingsStep(container: HTMLElement): void {
+function renderSimSettingsSection(container: HTMLElement): void {
   const s = builder.config.settings;
-  const matOptions = MATERIALS.map((m) => `<option value="${m.type}"${m.type === s.articleMaterialType ? " selected" : ""}>${m.label}</option>`).join("");
-  container.innerHTML = `
-    <div class="wizard-page__intro">
-      <div class="wizard-page__title">Run Settings</div>
-      <div class="wizard-page__desc">Configure the simulation targets and parameters.</div>
-    </div>
-    <div class="wizard-field">
-      <label class="wizard-field__label">Article Material</label>
-      <select id="bldrSettingsMaterial" class="field__control" style="width:100%;">${matOptions}</select>
-    </div>
-    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Target throughput</label>
-        <input id="bldrTargetBph" class="field__control wizard-field__input" type="number" min="0.1" step="0.1" value="${s.targetBph}" style="width:100px;" />
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">baskets / hour</div>
-      </div>
-      <div class="wizard-field" style="margin-bottom:0;">
-        <label class="wizard-field__label">Baskets</label>
-        <input id="bldrBasketCount" class="field__control" type="number" min="1" max="20" step="1" value="${s.basketCount}" style="width:70px;" />
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">in-flight baskets</div>
-      </div>
-    </div>
-    <div class="wizard-field" style="margin-top:12px;">
-      <label class="wizard-field__label">Simulation duration</label>
-      <input id="bldrSimHours" class="field__control wizard-field__input" type="number" min="0.25" step="0.25" value="${s.simHours}" style="width:100px;" />
-      <span style="font-size:12px;color:var(--muted);margin-left:8px;">hours</span>
+  const section = document.createElement("div");
+  section.className = "config-view__section";
+  section.id = "cvSimSettingsSection";
+
+  section.innerHTML = `
+    <div class="config-view__section-title">Simulation Settings</div>
+    <div class="field">
+      <label class="field__label">Duration (hr)</label>
+      <input id="bldrSimHours" class="field__control" type="number" min="0.25" step="0.25" value="${s.simHours}" style="max-width:160px;" />
     </div>
   `;
+  container.appendChild(section);
 }
 
-// ─── Step 4: Review ───────────────────────────────────────────
+// ─── Run Button ─────────────────────────────────────────────
 
-function renderReviewStep(container: HTMLElement): void {
-  const cfg = builder.toLineConfig();
-  const tanks = cfg.stations.filter((s) => s.kind === "tank");
-  const hasWdo = cfg.stations.some((s) => s.kind === "wdo");
-  const load = cfg.stations.find((s) => s.kind === "loading");
-  const unload = cfg.stations.find((s) => s.kind === "unloading");
-  const matLabel = MATERIALS.find((m) => m.type === cfg.settings.articleMaterialType)?.label ?? cfg.settings.articleMaterialType;
-
-  container.innerHTML = `
-    <div class="wizard-page__intro">
-      <div class="wizard-page__title">Review & Run</div>
-      <div class="wizard-page__desc">Verify the configuration before running the simulation.</div>
-    </div>
-
-    <div style="border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Station Sequence</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px;">
-        <span style="padding:3px 8px;border-radius:4px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">LOAD</span>
-        ${tanks.map((t) => `<span style="padding:3px 8px;border-radius:4px;background:rgba(255,191,105,0.15);color:var(--warn);font-weight:600;">${t.id}</span>`).join('<span style="color:var(--muted);font-size:10px;">→</span>')}
-        ${hasWdo ? '<span style="color:var(--muted);font-size:10px;">→</span><span style="padding:3px 8px;border-radius:4px;background:rgba(112,240,184,0.15);color:var(--accent2);font-weight:600;">WDO</span>' : ''}
-        <span style="color:var(--muted);font-size:10px;">→</span>
-        <span style="padding:3px 8px;border-radius:4px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">UNLOAD</span>
-      </div>
-      <div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);">
-        <span>Material: <strong>${matLabel}</strong></span>
-        <span>Load: <strong>${secondsToMinutes(load?.dwellSec ?? 0)} min</strong></span>
-        <span>Unload: <strong>${secondsToMinutes(unload?.dwellSec ?? 0)} min</strong></span>
-        <span>Tanks: <strong>${tanks.length}</strong></span>
-      </div>
-    </div>
-
-    <div style="border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Transport</div>
-      <div style="font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;">
-        <span>Wagons: <strong>${cfg.transport.wagonCount}</strong></span>
-        <span>Speed: <strong>${cfg.transport.wagonSpeedMPerMin} m/min</strong></span>
-        <span>Lift/Drip/Lower: <strong>${cfg.transport.liftSec}/${cfg.transport.dripSec}/${cfg.transport.lowerSec}s</strong></span>
-        <span>Pick/Drop: <strong>${cfg.transport.pickSec}/${cfg.transport.dropSec}s</strong></span>
-      </div>
-    </div>
-
-    <div style="border:1px solid var(--border2);border-radius:8px;padding:12px;">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Run Settings</div>
-      <div style="font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;">
-        <span>Target: <strong>${cfg.settings.targetBph} bph</strong></span>
-        <span>Baskets: <strong>${cfg.settings.basketCount}</strong></span>
-        <span>Duration: <strong>${cfg.settings.simHours} hr</strong></span>
-      </div>
-    </div>
-  `;
+function renderRunButton(container: HTMLElement): void {
+  const btn = document.createElement("button");
+  btn.className = "config-view__run-btn";
+  btn.id = "cvRunBtn";
+  btn.textContent = "Run Simulation";
+  container.appendChild(btn);
 }
 
-// ─── Navigation ───────────────────────────────────────────────
+// ─── Apply Config & Run ─────────────────────────────────────
 
-function wireNavButtons(): void {
-  for (let i = 0; i < STEP_COUNT; i++) {
-    const nextBtn = document.getElementById(`builderNext${i + 1}`);
-    if (nextBtn) {
-      nextBtn.removeEventListener("click", handleNext);
-      nextBtn.addEventListener("click", handleNext);
-    }
-    const backBtn = document.getElementById(`builderBack${i + 1}`);
-    if (backBtn) {
-      backBtn.removeEventListener("click", handleBack);
-      backBtn.addEventListener("click", handleBack);
-    }
+function applyConfigAndRun(): void {
+  const errors = builder.validate();
+  if (errors.length > 0) {
+    for (const err of errors) showToast(err, "error");
+    return;
   }
-  const finishBtn = document.getElementById("builderFinish");
-  if (finishBtn) {
-    finishBtn.removeEventListener("click", handleFinish);
-    finishBtn.addEventListener("click", handleFinish);
-  }
-}
 
-function handleNext(): void {
-  builder.next();
-  renderStepIndicator();
-  renderCurrentStep();
-  saveDraft(builder.toLineConfig(), builder.currentStep);
-}
-
-function handleBack(): void {
-  builder.back();
-  renderStepIndicator();
-  renderCurrentStep();
-}
-
-function handleFinish(): void {
-  if (!builder.isComplete()) return;
-  applyToSidebar();
-  hideModal();
-  // Clean up event listeners when modal hides
-  if (abortController) abortController.abort();
-}
-
-function applyToSidebar(): void {
   const cfg = builder.toLineConfig();
   const layout = lineConfigToLayout(cfg);
+  const simParams = lineConfigToSimParams(cfg);
 
-  const setVal = (id: string, val: string | number) => {
-    const e = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
-    if (e) e.value = String(val);
-  };
-
-  setVal("articleMaterialType", cfg.settings.articleMaterialType);
-  setVal("wagonCount", cfg.transport.wagonCount);
-  setVal("wagonSpeedMPerMin", cfg.transport.wagonSpeedMPerMin);
-  setVal("liftSec", cfg.transport.liftSec);
-  setVal("dripSec", cfg.transport.dripSec);
-  setVal("lowerSec", cfg.transport.lowerSec);
-  setVal("pickSec", cfg.transport.pickSec);
-  setVal("dropSec", cfg.transport.dropSec);
-  setVal("distanceMode", cfg.transport.distanceMode);
-  setVal("targetBph", cfg.settings.targetBph);
-  setVal("basketCount", cfg.settings.basketCount);
-  setVal("simHours", cfg.settings.simHours);
-
-  // Render station sequence lane
-  const lane = document.getElementById("sidebarLane");
-  if (lane) {
-    lane.innerHTML = "";
-    const tanks = cfg.stations.filter((s) => s.kind === "tank");
-    const hasWdo = cfg.stations.some((s) => s.kind === "wdo");
-    const parts: string[] = [];
-    parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">LOAD</span>');
-    for (const t of tanks) {
-      parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(255,191,105,0.15);color:var(--warn);font-weight:600;">' + t.id + '</span>');
-    }
-    if (hasWdo) {
-      parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(112,240,184,0.15);color:var(--accent2);font-weight:600;">WDO</span>');
-    }
-    parts.push('<span style="padding:2px 6px;border-radius:3px;background:rgba(74,163,255,0.15);color:var(--accent);font-weight:600;">UNLOAD</span>');
-    lane.innerHTML = parts.join('<span style="color:var(--muted);font-size:10px;margin:0 1px;">→</span>');
-  }
-
-  // State and run
+  state.lineConfig = cfg;
   state.layout = layout;
+  state.params = simParams;
   recomputeAndRender();
 }
 
-// ─── Live event handling ──────────────────────────────────────
+function autoRunIfEnabled(): void {
+  const autoRun = document.getElementById("autoRun") as HTMLInputElement | null;
+  if (autoRun?.checked) {
+    applyConfigAndRun();
+  }
+}
+
+// ─── Live Event Handling ────────────────────────────────────
 
 function wireListeners(signal: AbortSignal): void {
-  document.addEventListener("input", (e) => {
-    const target = e.target as HTMLElement;
-    if (!target) return;
+  document.addEventListener(
+    "input",
+    (e) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
 
-    // Station step: type change
-    if (target.classList.contains("bldr-type")) {
-      const index = Number(target.getAttribute("data-index"));
-      const value = (target as HTMLSelectElement).value as TankType;
-      builder.setTankType(index, value);
-      renderCurrentStep();
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
+      // Material search input — filter and show dropdown
+      if (target.id === "bldrMaterialSearch") {
+        const query = (target as HTMLInputElement).value.toLowerCase().trim();
+        const dropdown = document.getElementById("bldrMaterialDropdown");
+        if (!dropdown) return;
 
-    // Station step: dwell change
-    if (target.classList.contains("bldr-dwell")) {
-      const index = Number(target.getAttribute("data-index"));
-      const val = Number((target as HTMLInputElement).value);
-      if (!isNaN(val)) {
-        builder.setDwell(index, minutesToSeconds(val));
-        saveDraft(builder.toLineConfig(), builder.currentStep);
+        const filtered = MATERIALS.filter((m) =>
+          m.label.toLowerCase().includes(query)
+        );
+
+        if (filtered.length === 0 || (filtered.length === 1 && filtered[0].label.toLowerCase() === query)) {
+          dropdown.hidden = true;
+          return;
+        }
+
+        dropdown.innerHTML = filtered
+          .map((m) => `<div class="material-dropdown__item" data-material-type="${m.type}">${m.label}</div>`)
+          .join("");
+        dropdown.hidden = false;
+        return;
       }
-      return;
-    }
 
-    // Station step: tolerance change
-    if (target.classList.contains("bldr-tol")) {
-      const index = Number(target.getAttribute("data-index"));
-      const val = Number((target as HTMLInputElement).value);
-      if (!isNaN(val)) {
-        builder.setTolerance(index, val / 100);
-        saveDraft(builder.toLineConfig(), builder.currentStep);
+      // Material "Other" custom text
+      if (target.id === "bldrMaterialOtherText") {
+        customMaterialName = (target as HTMLInputElement).value;
+        return;
       }
-      return;
-    }
 
-    // Station step: load/unload time
-    if (target.id === "bldrLoadTime") {
-      const val = Number((target as HTMLInputElement).value);
-      if (!isNaN(val)) {
-        builder.setLoadStationTime(minutesToSeconds(val));
-        saveDraft(builder.toLineConfig(), builder.currentStep);
+      // Station step: type change
+      if (target.classList.contains("bldr-type")) {
+        const index = Number(target.getAttribute("data-index"));
+        const value = (target as HTMLSelectElement).value as TankType;
+        builder.setTankType(index, value);
+        renderAllSections();
+        autoRunIfEnabled();
+        return;
       }
-      return;
-    }
-    if (target.id === "bldrUnloadTime") {
-      const val = Number((target as HTMLInputElement).value);
-      if (!isNaN(val)) {
-        builder.setUnloadStationTime(minutesToSeconds(val));
-        saveDraft(builder.toLineConfig(), builder.currentStep);
+
+      // Station step: dwell change
+      if (target.classList.contains("bldr-dwell")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val)) {
+          builder.setDwell(index, minutesToSeconds(val));
+          autoRunIfEnabled();
+        }
+        return;
       }
-      return;
-    }
 
-    // Station step: WDO drying time
-    if (target.id === "bldrWdoDryTime") {
-      builder.setWdoDryTime(minutesToSeconds(Number((target as HTMLInputElement).value) || 10));
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-
-    // Station step: article material
-    if (target.id === "bldrMaterial") {
-      const val = (target as HTMLInputElement).value;
-      builder.setArticleMaterial(val as ArticleMaterialType);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-
-    // Transport step
-    if (target.id === "bldrWagonCount") {
-      builder.setWagonCount(Number((target as HTMLInputElement).value) || 1);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-    if (target.id === "bldrWagonSpeed") {
-      try { builder.setWagonSpeed(Number((target as HTMLInputElement).value) || 1); } catch { /* clamp silently */ }
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-    if (target.id === "bldrLift") { builder.setLiftTime(Number((target as HTMLInputElement).value) || 0); saveDraft(builder.toLineConfig(), builder.currentStep); return; }
-    if (target.id === "bldrDrip") { builder.setDripTime(Number((target as HTMLInputElement).value) || 0); saveDraft(builder.toLineConfig(), builder.currentStep); return; }
-    if (target.id === "bldrLower") { builder.setLowerTime(Number((target as HTMLInputElement).value) || 0); saveDraft(builder.toLineConfig(), builder.currentStep); return; }
-    if (target.id === "bldrPick") { builder.setPickTime(Number((target as HTMLInputElement).value) || 0); saveDraft(builder.toLineConfig(), builder.currentStep); return; }
-    if (target.id === "bldrDrop") { builder.setDropTime(Number((target as HTMLInputElement).value) || 0); saveDraft(builder.toLineConfig(), builder.currentStep); return; }
-
-    // Settings step
-    if (target.id === "bldrSettingsMaterial") {
-      builder.setArticleMaterial((target as HTMLSelectElement).value as ArticleMaterialType);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-    if (target.id === "bldrTargetBph") {
-      builder.setTargetBph(Number((target as HTMLInputElement).value) || 0);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-    if (target.id === "bldrBasketCount") {
-      builder.setBasketCount(Number((target as HTMLInputElement).value) || 1);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-    if (target.id === "bldrSimHours") {
-      builder.setSimHours(Number((target as HTMLInputElement).value) || 0.25);
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-
-    updateNavButtons();
-  }, { signal });
-
-  // Add tank button (delegated)
-  document.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains("btn-add-tank")) {
-      const afterIndex = Number(target.getAttribute("data-after"));
-      try {
-        builder.addTank(afterIndex + 1);
-        renderCurrentStep();
-        saveDraft(builder.toLineConfig(), builder.currentStep);
-      } catch {
-        // silently ignore invalid add
+      // Station step: tolerance change
+      if (target.classList.contains("bldr-tol")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val)) {
+          builder.setTolerance(index, val / 100);
+          autoRunIfEnabled();
+        }
+        return;
       }
-      return;
-    }
 
-    if (target.classList.contains("btn-remove-tank")) {
-      const index = Number(target.getAttribute("data-index"));
-      try {
-        builder.removeTank(index);
-        renderCurrentStep();
-        saveDraft(builder.toLineConfig(), builder.currentStep);
-      } catch {
-        // silently ignore invalid remove
+      // Chemical description
+      if (target.classList.contains("bldr-chem-desc")) {
+        const index = Number(target.getAttribute("data-index"));
+        builder.setChemicalDescription(index, (target as HTMLTextAreaElement).value);
+        return;
       }
-      return;
-    }
 
-    if (target.id === "bldrRemoveWdo") {
-      builder.disableWdo();
-      renderCurrentStep();
-      saveDraft(builder.toLineConfig(), builder.currentStep);
-      return;
-    }
-  }, { signal });
+      // Loading description
+      if (target.classList.contains("bldr-load-desc")) {
+        builder.setLoadingDescription((target as HTMLTextAreaElement).value);
+        return;
+      }
+
+      // Unloading description
+      if (target.classList.contains("bldr-unload-desc")) {
+        builder.setUnloadingDescription((target as HTMLTextAreaElement).value);
+        return;
+      }
+
+      // Load/unload time
+      if (target.classList.contains("bldr-station-time")) {
+        const kind = target.getAttribute("data-kind");
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val)) {
+          if (kind === "loading") {
+            builder.setLoadStationTime(minutesToSeconds(val));
+          } else if (kind === "unloading") {
+            builder.setUnloadStationTime(minutesToSeconds(val));
+          }
+          autoRunIfEnabled();
+        }
+        return;
+      }
+
+      // WDO drying time
+      if (target.classList.contains("bldr-wdo-time")) {
+        const index = Number(target.getAttribute("data-index"));
+        builder.setWdoDryTime(
+          minutesToSeconds(Number((target as HTMLInputElement).value) || 10),
+          index
+        );
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Transport: wagon count
+      if (target.id === "bldrWagonCount") {
+        builder.setWagonCount(Number((target as HTMLInputElement).value) || 1);
+        renderWagonCards();
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrWagonSpeed") {
+        try {
+          builder.setWagonSpeed(Number((target as HTMLInputElement).value) || 1);
+        } catch { /* clamp silently */ }
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrLift") {
+        builder.setLiftTime(Number((target as HTMLInputElement).value) || 0);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrDrip") {
+        builder.setDripTime(Number((target as HTMLInputElement).value) || 0);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrLower") {
+        builder.setLowerTime(Number((target as HTMLInputElement).value) || 0);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrPick") {
+        builder.setPickTime(Number((target as HTMLInputElement).value) || 0);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrDrop") {
+        builder.setDropTime(Number((target as HTMLInputElement).value) || 0);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Wagon range selects
+      if (target.classList.contains("bldr-wagon-from")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const toSelect = document.querySelector(
+          `.bldr-wagon-to[data-wagon-index="${idx}"]`
+        ) as HTMLSelectElement | null;
+        const toVal = toSelect?.value ?? "";
+        builder.setWagonRange(idx, (target as HTMLSelectElement).value, toVal);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-wagon-to")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const fromSelect = document.querySelector(
+          `.bldr-wagon-from[data-wagon-index="${idx}"]`
+        ) as HTMLSelectElement | null;
+        const fromVal = fromSelect?.value ?? "";
+        builder.setWagonRange(idx, fromVal, (target as HTMLSelectElement).value);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-wagon handling times
+      if (target.classList.contains("bldr-wagon-handling")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const field = target.getAttribute("data-handling-field") as "liftSec" | "dripSec" | "lowerSec" | "pickSec" | "dropSec";
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setWagonHandlingTime(idx, field, val);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Sim settings
+      if (target.id === "bldrSimHours") {
+        builder.setSimHours(Number((target as HTMLInputElement).value) || 0.25);
+        autoRunIfEnabled();
+        return;
+      }
+    },
+    { signal }
+  );
+
+  // Click handlers (delegated)
+  document.addEventListener(
+    "click",
+    (e) => {
+      const target = e.target as HTMLElement;
+
+      // Material dropdown item click
+      if (target.classList.contains("material-dropdown__item")) {
+        const type = target.getAttribute("data-material-type");
+        if (type) {
+          builder.setArticleMaterial(type as ArticleMaterialType);
+          const dropdown = document.getElementById("bldrMaterialDropdown");
+          if (dropdown) dropdown.hidden = true;
+          renderAllSections();
+          autoRunIfEnabled();
+        }
+        return;
+      }
+
+      // Station add button — show type picker
+      if (target.classList.contains("station-add-btn")) {
+        document.querySelectorAll(".station-type-picker").forEach((p) => p.remove());
+        const afterIndex = Number(target.getAttribute("data-after"));
+        const wrapper = target.closest(".station-add-wrapper") ?? target.parentElement;
+        if (wrapper) {
+          const picker = document.createElement("div");
+          picker.className = "station-type-picker";
+          picker.innerHTML = `
+            <button class="station-type-option" data-add-kind="tank" data-add-tank-type="chemical" data-add-after="${afterIndex}">Chemical Tank</button>
+            <button class="station-type-option" data-add-kind="tank" data-add-tank-type="rinse" data-add-after="${afterIndex}">Rinse Tank</button>
+            <button class="station-type-option" data-add-kind="tank" data-add-tank-type="extra" data-add-after="${afterIndex}">Extra Tank</button>
+            <button class="station-type-option" data-add-kind="wdo" data-add-after="${afterIndex}">Drying Oven (WDO)</button>
+          `;
+          wrapper.appendChild(picker);
+        }
+        return;
+      }
+
+      // Station type picker option click
+      if (target.classList.contains("station-type-option")) {
+        const kind = target.getAttribute("data-add-kind") as "tank" | "wdo";
+        const afterIndex = Number(target.getAttribute("data-add-after"));
+        const tankType = target.getAttribute("data-add-tank-type") as TankType | null;
+        try {
+          builder.addStation(afterIndex + 1, kind, tankType ? { tankType } : undefined);
+          renderAllSections();
+          autoRunIfEnabled();
+        } catch {
+          // silently ignore
+        }
+        return;
+      }
+
+      // Remove tank
+      if (target.classList.contains("btn-remove-tank")) {
+        const index = Number(target.getAttribute("data-index"));
+        try {
+          builder.removeTank(index);
+          renderAllSections();
+          autoRunIfEnabled();
+        } catch (err) {
+          if (err instanceof Error) showToast(err.message, "warning");
+        }
+        return;
+      }
+
+      // Remove WDO
+      if (target.classList.contains("btn-remove-wdo")) {
+        const index = Number(target.getAttribute("data-index"));
+        try {
+          builder.removeWdo(index);
+          renderAllSections();
+          autoRunIfEnabled();
+        } catch {
+          // silently ignore
+        }
+        return;
+      }
+
+      // Run simulation button
+      if (target.id === "cvRunBtn") {
+        applyConfigAndRun();
+        return;
+      }
+
+      // Dismiss station type picker on outside click
+      const picker = document.querySelector(".station-type-picker");
+      if (picker && !picker.contains(target) && !target.classList.contains("station-add-btn")) {
+        picker.remove();
+      }
+
+      // Dismiss material dropdown on outside click
+      const matDropdown = document.getElementById("bldrMaterialDropdown");
+      const matSearch = document.getElementById("bldrMaterialSearch");
+      if (matDropdown && !matDropdown.contains(target) && target !== matSearch) {
+        matDropdown.hidden = true;
+      }
+    },
+    { signal }
+  );
+
+  // Material search focus — show dropdown with all options
+  document.addEventListener(
+    "focusin",
+    (e) => {
+      const target = e.target as HTMLElement;
+      if (target.id === "bldrMaterialSearch") {
+        const dropdown = document.getElementById("bldrMaterialDropdown");
+        if (!dropdown) return;
+        const query = (target as HTMLInputElement).value.toLowerCase().trim();
+        const filtered = query
+          ? MATERIALS.filter((m) => m.label.toLowerCase().includes(query))
+          : MATERIALS;
+        dropdown.innerHTML = filtered
+          .map((m) => `<div class="material-dropdown__item" data-material-type="${m.type}">${m.label}</div>`)
+          .join("");
+        dropdown.hidden = filtered.length === 0;
+      }
+    },
+    { signal }
+  );
 }

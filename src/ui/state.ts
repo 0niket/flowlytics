@@ -14,11 +14,6 @@ function svgEl(id: string): SVGSVGElement {
 }
 
 export const ui: UiElements = {
-  basketCount: el("basketCount"),
-  simHours: el("simHours"),
-  wagonSpeedMPerMin: el("wagonSpeedMPerMin"),
-  wagonCount: el("wagonCount"),
-  distanceMode: el<HTMLSelectElement>("distanceMode"),
   autoRun: el("autoRun"),
   kpiThroughput: el("kpiThroughput"),
   kpiThroughputSub: el("kpiThroughputSub"),
@@ -47,9 +42,6 @@ export const ui: UiElements = {
   summarySelectBtn: el("summarySelectBtn"),
   summaryHideBtn: el("summaryHideBtn"),
   configPanel: el("configPanel"),
-  recipeSummary: el("recipeSummary"),
-  transportSummary: el("transportSummary"),
-  simSettingsSummary: el("simSettingsSummary"),
 };
 
 export const state: AppState = {
@@ -60,4 +52,5 @@ export const state: AppState = {
   chartsStale: true,
   chartMeta: null,
   activeTab: "stations",
+  lineConfig: null,
 };

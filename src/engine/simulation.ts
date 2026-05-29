@@ -3,6 +3,24 @@ import { clamp, distanceMm, mPerMinToMmPerSec, minutesToSeconds } from "../utils
 import { heapPush, heapPop, heapPeek } from "./heap";
 import { transitionBasketWithLog } from "./basketStateMachine";
 
+function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec: number; pickDropSec: number; dripSec: number } {
+  if (params.perWagonHandling) {
+    const wh = params.perWagonHandling.find((h) => h.wagonId === wagonId);
+    if (wh) {
+      return {
+        liftLowerSec: wh.liftSec + wh.lowerSec,
+        pickDropSec: wh.pickSec + wh.dropSec,
+        dripSec: wh.dripSec,
+      };
+    }
+  }
+  return {
+    liftLowerSec: params.liftLowerSec,
+    pickDropSec: params.pickDropSec,
+    dripSec: params.dripTimeSec || 0,
+  };
+}
+
 // ─── Zone computation ─────────────────────────────────────────
 
 export function computeZones(tankCount: number, wagonCount: number): WagonZone[] {
@@ -338,8 +356,9 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
 
       const emptyTravel = travelSecLocal(wagon.pos, c.src);
       const loadedTravel = travelSecLocal(c.src, c.dest === "DONE" ? "UNLOAD" : c.dest);
-      const handling = params.pickDropSec + params.liftLowerSec;
-      const drip = params.dripTimeSec || 0;
+      const wagonHandling = getHandlingForWagon(params, wagon.id);
+      const handling = wagonHandling.pickDropSec + wagonHandling.liftLowerSec;
+      const drip = wagonHandling.dripSec;
       const start = now;
       const tPickupDone = now + emptyTravel + handling;
       const tDepartSrc = tPickupDone + drip;
@@ -521,7 +540,10 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
           if (boundaryTanks.has(e.to!)) {
             lastBoundaryDrop.set(e.basketId!, t);
           }
-          const offset = params.dwellClockOffsetSec == null ? (params.pickDropSec + params.liftLowerSec) : params.dwellClockOffsetSec;
+          const wagonH = e.wagonId ? getHandlingForWagon(params, e.wagonId) : null;
+          const offset = params.dwellClockOffsetSec == null
+            ? (wagonH ? wagonH.pickDropSec + wagonH.liftLowerSec : params.pickDropSec + params.liftLowerSec)
+            : params.dwellClockOffsetSec;
           b.insertedAt = t - Math.max(0, offset);
           if (e.to === "UNLOAD") {
             resources.unload.queue.push(e.basketId!);

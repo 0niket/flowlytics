@@ -71,6 +71,15 @@ export interface SimParams {
   maxLoadTimeMin?: number;
   maxUnloadTimeMin?: number;
   maxWdoTimeMin?: number;
+  customZones?: { fromStationId: string; toStationId: string }[];
+  perWagonHandling?: {
+    wagonId: string;
+    liftSec: number;
+    dripSec: number;
+    lowerSec: number;
+    pickSec: number;
+    dropSec: number;
+  }[];
 }
 
 // ─── Simulation Resources ──────────────────────────────────────
@@ -368,11 +377,6 @@ export interface GlossaryEntry {
 // ─── UI Elements ───────────────────────────────────────────────
 
 export interface UiElements {
-  basketCount: HTMLInputElement;
-  simHours: HTMLInputElement;
-  wagonSpeedMPerMin: HTMLInputElement;
-  wagonCount: HTMLInputElement;
-  distanceMode: HTMLSelectElement;
   autoRun: HTMLInputElement;
   kpiThroughput: HTMLElement;
   kpiThroughputSub: HTMLElement;
@@ -401,9 +405,6 @@ export interface UiElements {
   summarySelectBtn: HTMLButtonElement;
   summaryHideBtn: HTMLButtonElement;
   configPanel: HTMLElement;
-  recipeSummary: HTMLElement;
-  transportSummary: HTMLElement;
-  simSettingsSummary: HTMLElement;
 }
 
 // ─── App State ─────────────────────────────────────────────────
@@ -416,4 +417,5 @@ export interface AppState {
   chartsStale: boolean;
   chartMeta: Record<string, unknown> | null;
   activeTab: string;
+  lineConfig: import("./builder/LineConfig").LineConfig | null;
 }

@@ -19,6 +19,20 @@ export interface StationConfig {
   dwellSec: number;
   tolerancePct?: number;
   maxDwellSec?: number;
+  chemicalDescription?: string;
+  loadingDescription?: string;
+  unloadingDescription?: string;
+}
+
+export interface WagonConfig {
+  id: string;
+  fromStationId: string;
+  toStationId: string;
+  liftSec: number;
+  dripSec: number;
+  lowerSec: number;
+  pickSec: number;
+  dropSec: number;
 }
 
 export interface TransportConfig {
@@ -33,6 +47,7 @@ export interface TransportConfig {
   maxWeightKg?: number;
   articleWeightKg?: number;
   maxArticlesPerBasket?: number;
+  wagons?: WagonConfig[];
 }
 
 export interface RunSettings {
@@ -98,6 +113,31 @@ function stationKindFromRecipeStep(step: RecipeStep): StationConfig["kind"] {
   return step.id === "UNLOAD" ? "unloading" : "loading";
 }
 
+// ─── Basket Count Heuristic ──────────────────────────────────
+
+export function computeOptimalBasketCount(config: LineConfig): number {
+  const tanks = config.stations.filter((s) => s.kind === "tank" && s.tankType !== "extra");
+  const activeTankCount = tanks.length;
+  if (activeTankCount === 0) return 1;
+
+  const totalDwellSec = tanks.reduce((sum, t) => sum + t.dwellSec, 0);
+  const handlingPerTank = config.transport.liftSec + config.transport.dripSec +
+    config.transport.lowerSec + config.transport.pickSec + config.transport.dropSec;
+  const totalCycleSec = totalDwellSec + activeTankCount * handlingPerTank;
+  const loadStation = config.stations.find((s) => s.kind === "loading");
+  const unloadStation = config.stations.find((s) => s.kind === "unloading");
+  const serviceSec = (loadStation?.dwellSec ?? 0) + (unloadStation?.dwellSec ?? 0);
+
+  // Little's Law approximation: baskets = throughput * cycle_time
+  // throughput ≈ 1 / max(service_time, cycle_time / wagon_count)
+  const effectiveCycle = Math.max(serviceSec, totalCycleSec / Math.max(1, config.transport.wagonCount));
+  const throughput = effectiveCycle > 0 ? 1 / effectiveCycle : 0;
+  const optimalWip = throughput * totalCycleSec;
+
+  // Add buffer of 1, clamp between 1 and tank count + 2
+  return Math.max(1, Math.min(activeTankCount + 2, Math.ceil(optimalWip) + 1));
+}
+
 // ─── Converters ───────────────────────────────────────────────
 
 export function lineConfigToSimParams(config: LineConfig): SimParams {
@@ -113,10 +153,28 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
   const loadStation = config.stations.find((s) => s.kind === "loading");
   const unloadStation = config.stations.find((s) => s.kind === "unloading");
 
+  // Build custom wagon zones and per-wagon handling from config
+  let customZones: { fromStationId: string; toStationId: string }[] | undefined;
+  let perWagonHandling: SimParams["perWagonHandling"];
+  if (config.transport.wagons && config.transport.wagons.length > 0) {
+    customZones = config.transport.wagons.map((w) => ({
+      fromStationId: w.fromStationId,
+      toStationId: w.toStationId,
+    }));
+    perWagonHandling = config.transport.wagons.map((w) => ({
+      wagonId: w.id,
+      liftSec: w.liftSec,
+      dripSec: w.dripSec,
+      lowerSec: w.lowerSec,
+      pickSec: w.pickSec,
+      dropSec: w.dropSec,
+    }));
+  }
+
   return {
     preset: "custom",
     tankCount: tankIds.length,
-    basketCount: config.settings.basketCount,
+    basketCount: computeOptimalBasketCount(config),
     recipeSteps,
     wdoTimeMin: wdoStation ? wdoStation.dwellSec / 60 : 10,
     loadTimeMin: loadStation ? loadStation.dwellSec / 60 : 20,
@@ -130,6 +188,8 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
     wagonCount: config.transport.wagonCount,
     distanceMode: config.transport.distanceMode,
     dwellClockOffsetSec: null,
+    customZones,
+    perWagonHandling,
   };
 }
 
@@ -139,7 +199,7 @@ export function lineConfigToLayout(config: LineConfig): Layout {
   const tankSpacing = 1400;
   const tankStartX = leftX + 2400;
   const tanks = config.stations.filter((s) => s.kind === "tank");
-  const hasWdo = config.stations.some((s) => s.kind === "wdo");
+  const wdos = config.stations.filter((s) => s.kind === "wdo");
 
   const nodes: LayoutNode[] = [];
 
@@ -155,21 +215,23 @@ export function lineConfigToLayout(config: LineConfig): Layout {
     });
   }
 
-  if (hasWdo) {
+  for (let i = 0; i < wdos.length; i++) {
     nodes.push({
-      id: "WDO",
-      label: "DRY-OFF OVEN",
+      id: wdos[i].id,
+      label: wdos.length === 1 ? "DRY-OFF OVEN" : `DRY-OFF OVEN ${i + 1}`,
       type: "oven",
-      x: tankStartX + tanks.length * tankSpacing + 2000,
+      x: tankStartX + tanks.length * tankSpacing + 2000 + i * tankSpacing,
       y: baseY - 1400,
     });
   }
+
+  const afterProcessX = tankStartX + tanks.length * tankSpacing + (wdos.length > 0 ? 2000 + wdos.length * tankSpacing : 0);
 
   nodes.push({
     id: "UNLOAD",
     label: "HANGER UNLOADING",
     type: "station",
-    x: tankStartX + tanks.length * tankSpacing + 4200,
+    x: afterProcessX + 2200,
     y: baseY,
   });
 
@@ -177,7 +239,7 @@ export function lineConfigToLayout(config: LineConfig): Layout {
     id: "PCO",
     label: "PCO",
     type: "marker",
-    x: tankStartX + tanks.length * tankSpacing + 6200,
+    x: afterProcessX + 4200,
     y: baseY - 1400,
   });
 

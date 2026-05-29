@@ -3,11 +3,6 @@ import { Builder } from "./builder";
 import { createDefaultLineConfig } from "./LineConfig";
 
 describe("Builder", () => {
-  it("starts at step 0 (STATIONS)", () => {
-    const b = new Builder();
-    expect(b.currentStep).toBe(0);
-  });
-
   it("starts with default LineConfig", () => {
     const b = new Builder();
     expect(b.config.stations.length).toBe(3);
@@ -138,12 +133,14 @@ describe("Builder — station operations", () => {
     expect(b.config.stations.some((s) => s.kind === "wdo")).toBe(false);
   });
 
-  it("enableWdo is idempotent", () => {
+  it("enableWdo allows adding multiple WDOs", () => {
     const b = new Builder();
     b.enableWdo();
     b.enableWdo();
-    const wdoCount = b.config.stations.filter((s) => s.kind === "wdo").length;
-    expect(wdoCount).toBe(1);
+    const wdos = b.config.stations.filter((s) => s.kind === "wdo");
+    expect(wdos.length).toBe(2);
+    expect(wdos[0].id).toBe("WDO1");
+    expect(wdos[1].id).toBe("WDO2");
   });
 
   it("setLoadStationTime updates loading dwell", () => {
@@ -168,6 +165,89 @@ describe("Builder — station operations", () => {
   it("setUnloadStationTime throws on negative", () => {
     const b = new Builder();
     expect(() => b.setUnloadStationTime(-5)).toThrow("Unload time cannot be negative");
+  });
+});
+
+describe("Builder — addStation", () => {
+  it("addStation with kind=tank adds a chemical tank", () => {
+    const b = new Builder();
+    b.addStation(1, "tank");
+    expect(b.config.stations.length).toBe(4);
+    const tanks = b.config.stations.filter((s) => s.kind === "tank");
+    expect(tanks.length).toBe(2);
+  });
+
+  it("addStation with kind=tank and tankType option", () => {
+    const b = new Builder();
+    b.addStation(1, "tank", { tankType: "rinse" });
+    const newTank = b.config.stations[1];
+    expect(newTank.tankType).toBe("rinse");
+    expect(newTank.tolerancePct).toBe(0.5);
+  });
+
+  it("addStation with kind=wdo adds WDO at given position", () => {
+    const b = new Builder();
+    b.addStation(2, "wdo");
+    expect(b.config.stations.some((s) => s.kind === "wdo")).toBe(true);
+  });
+
+  it("addWdo inserts WDO at specified index", () => {
+    const b = new Builder();
+    b.addTank(1); // now: LOAD T1 T2 UNLOAD
+    b.addWdo(2); // now: LOAD T1 WDO T2 UNLOAD
+    const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
+    expect(wdoIdx).toBe(2);
+    expect(b.config.stations[3].kind).toBe("tank");
+  });
+
+  it("addWdo allows multiple WDOs", () => {
+    const b = new Builder();
+    b.addWdo(2);
+    b.addWdo(2);
+    const wdos = b.config.stations.filter((s) => s.kind === "wdo");
+    expect(wdos.length).toBe(2);
+    expect(wdos[0].id).toBe("WDO1");
+    expect(wdos[1].id).toBe("WDO2");
+  });
+
+  it("removeWdo removes WDO at given index", () => {
+    const b = new Builder();
+    b.enableWdo();
+    const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
+    b.removeWdo(wdoIdx);
+    expect(b.config.stations.some((s) => s.kind === "wdo")).toBe(false);
+  });
+
+  it("removeWdo throws when index is not a WDO", () => {
+    const b = new Builder();
+    expect(() => b.removeWdo(0)).toThrow("No WDO at index 0");
+  });
+});
+
+describe("Builder — description operations", () => {
+  it("setChemicalDescription sets description on a tank", () => {
+    const b = new Builder();
+    b.setChemicalDescription(1, "Alkaline cleaner 50g/L");
+    expect(b.config.stations[1].chemicalDescription).toBe("Alkaline cleaner 50g/L");
+  });
+
+  it("setChemicalDescription throws when index is not a tank", () => {
+    const b = new Builder();
+    expect(() => b.setChemicalDescription(0, "test")).toThrow("No tank at index 0");
+  });
+
+  it("setLoadingDescription sets description on loading station", () => {
+    const b = new Builder();
+    b.setLoadingDescription("Manual hanger loading, 2 operators");
+    const load = b.config.stations.find((s) => s.kind === "loading")!;
+    expect(load.loadingDescription).toBe("Manual hanger loading, 2 operators");
+  });
+
+  it("setUnloadingDescription sets description on unloading station", () => {
+    const b = new Builder();
+    b.setUnloadingDescription("Automated unloading with conveyor");
+    const unload = b.config.stations.find((s) => s.kind === "unloading")!;
+    expect(unload.unloadingDescription).toBe("Automated unloading with conveyor");
   });
 });
 
@@ -220,6 +300,98 @@ describe("Builder — transport operations", () => {
   });
 });
 
+describe("Builder — per-wagon handling times", () => {
+  it("setWagonHandlingTime updates a specific wagon field", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    b.setWagonHandlingTime(0, "liftSec", 15);
+    expect(b.config.transport.wagons![0].liftSec).toBe(15);
+  });
+
+  it("setWagonHandlingTime clamps negative values to 0", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    b.setWagonHandlingTime(0, "dripSec", -5);
+    expect(b.config.transport.wagons![0].dripSec).toBe(0);
+  });
+
+  it("setWagonHandlingTime is safe when wagons is undefined", () => {
+    const b = new Builder();
+    // wagons is undefined for 1 wagon
+    b.setWagonHandlingTime(0, "liftSec", 10);
+    expect(b.config.transport.wagons).toBeUndefined();
+  });
+
+  it("setWagonHandlingTime is safe for out-of-range index", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    b.setWagonHandlingTime(5, "liftSec", 10);
+    // should not throw
+    expect(b.config.transport.wagons!.length).toBe(2);
+  });
+
+  it("wagon configs are initialized from global transport defaults", () => {
+    const b = new Builder();
+    b.setLiftTime(12);
+    b.setDripTime(5);
+    b.setLowerTime(8);
+    b.setPickTime(7);
+    b.setDropTime(3);
+    b.setWagonCount(2);
+    const w = b.config.transport.wagons![0];
+    expect(w.liftSec).toBe(12);
+    expect(w.dripSec).toBe(5);
+    expect(w.lowerSec).toBe(8);
+    expect(w.pickSec).toBe(7);
+    expect(w.dropSec).toBe(3);
+  });
+});
+
+describe("Builder — wagon config sync", () => {
+  it("setWagonCount > 1 creates wagon configs", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    expect(b.config.transport.wagons).toBeDefined();
+    expect(b.config.transport.wagons!.length).toBe(2);
+    expect(b.config.transport.wagons![0].id).toBe("W1");
+    expect(b.config.transport.wagons![1].id).toBe("W2");
+  });
+
+  it("setWagonCount = 1 clears wagon configs", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    expect(b.config.transport.wagons).toBeDefined();
+    b.setWagonCount(1);
+    expect(b.config.transport.wagons).toBeUndefined();
+  });
+
+  it("_syncWagonConfigs divides stations across wagons", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.addTank(2);
+    b.setWagonCount(2);
+    const wagons = b.config.transport.wagons!;
+    expect(wagons.length).toBe(2);
+    expect(wagons[0].fromStationId).toBe("T1");
+    expect(wagons[1].fromStationId).toBeDefined();
+  });
+
+  it("setWagonRange updates a specific wagon's range", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.setWagonCount(2);
+    b.setWagonRange(0, "T1", "T2");
+    expect(b.config.transport.wagons![0].fromStationId).toBe("T1");
+    expect(b.config.transport.wagons![0].toStationId).toBe("T2");
+  });
+
+  it("setWagonRange is safe when wagons is undefined", () => {
+    const b = new Builder();
+    b.setWagonRange(0, "T1", "T1");
+    expect(b.config.transport.wagons).toBeUndefined();
+  });
+});
+
 describe("Builder — settings operations", () => {
   it("setArticleMaterial updates material type", () => {
     const b = new Builder();
@@ -246,57 +418,6 @@ describe("Builder — settings operations", () => {
   });
 });
 
-describe("Builder — step navigation", () => {
-  it("canGoNext returns true when valid", () => {
-    const b = new Builder();
-    expect(b.canGoNext()).toBe(true);
-  });
-
-  it("canGoNext returns false when no tanks", () => {
-    const config = createDefaultLineConfig();
-    config.stations.splice(1, 1);
-    const b = new Builder(config);
-    expect(b.canGoNext()).toBe(false);
-  });
-
-  it("next advances step, back returns", () => {
-    const b = new Builder();
-    b.next();
-    expect(b.currentStep).toBe(1);
-    b.back();
-    expect(b.currentStep).toBe(0);
-  });
-
-  it("next does nothing if canGoNext is false", () => {
-    const config = createDefaultLineConfig();
-    config.stations.splice(1, 1);
-    const b = new Builder(config);
-    b.next();
-    expect(b.currentStep).toBe(0);
-  });
-
-  it("back does nothing at step 0", () => {
-    const b = new Builder();
-    b.back();
-    expect(b.currentStep).toBe(0);
-  });
-
-  it("next advances through all 4 steps", () => {
-    const b = new Builder();
-    expect(b.currentStep).toBe(0);
-    b.next(); expect(b.currentStep).toBe(1);
-    b.next(); expect(b.currentStep).toBe(2);
-    b.next(); expect(b.currentStep).toBe(3);
-  });
-
-  it("next does nothing at REVIEW_STEP", () => {
-    const b = new Builder();
-    b.next(); b.next(); b.next();
-    b.next();
-    expect(b.currentStep).toBe(3);
-  });
-});
-
 describe("Builder — validation", () => {
   it("validate returns empty when config is valid", () => {
     const b = new Builder();
@@ -310,33 +431,75 @@ describe("Builder — validation", () => {
     expect(b.validate()).toContain("At least 1 tank is required");
   });
 
-  it("validate skips station checks outside STATION or REVIEW step", () => {
+  it("validate returns error when material is missing", () => {
     const config = createDefaultLineConfig();
-    config.stations.splice(1, 1);
+    config.settings.articleMaterialType = "" as never;
     const b = new Builder(config);
-    b.currentStep = 1; // TRANSPORT step — should skip station validation
-    expect(b.validate()).toEqual([]);
+    expect(b.validate()).toContain("Article material is required");
+  });
+
+  it("validate includes wagon validation errors", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.setWagonCount(2);
+    // Set reversed range on wagon 0
+    b.setWagonRange(0, "T2", "T1");
+    const errors = b.validate();
+    expect(errors.some((e) => e.includes("From station must come before To station"))).toBe(true);
   });
 });
 
-describe("Builder — isComplete", () => {
-  it("isComplete returns false before reaching REVIEW", () => {
+describe("Builder — validateWagons", () => {
+  it("returns empty for valid wagon zones", () => {
     const b = new Builder();
-    expect(b.isComplete()).toBe(false);
+    b.addTank(1);
+    b.addTank(2);
+    b.setWagonCount(2);
+    // Default sync should produce valid zones
+    expect(b.validateWagons()).toEqual([]);
   });
 
-  it("isComplete returns true at REVIEW step when valid", () => {
+  it("returns empty when no wagons defined", () => {
     const b = new Builder();
-    b.next(); b.next(); b.next();
-    expect(b.isComplete()).toBe(true);
+    expect(b.validateWagons()).toEqual([]);
   });
 
-  it("isComplete returns false at REVIEW with validation errors", () => {
-    const config = createDefaultLineConfig();
-    config.stations.splice(1, 1);
-    const b = new Builder(config);
-    b.next(); b.next(); b.next();
-    expect(b.isComplete()).toBe(false);
+  it("detects reversed from/to", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.setWagonCount(2);
+    b.setWagonRange(0, "T2", "T1");
+    const errors = b.validateWagons();
+    expect(errors.some((e) => e.includes("From station must come before To station"))).toBe(true);
+  });
+
+  it("detects uncovered process stations", () => {
+    const b = new Builder();
+    b.addTank(1);
+    b.addTank(2);
+    b.setWagonCount(2);
+    // Set both wagons to only cover T1, leaving T2 and T3 uncovered
+    b.setWagonRange(0, "T1", "T1");
+    b.setWagonRange(1, "T1", "T1");
+    const errors = b.validateWagons();
+    expect(errors.some((e) => e.includes("not covered by any wagon"))).toBe(true);
+  });
+
+  it("detects negative handling times", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    // Force a negative value directly
+    b.config.transport.wagons![0].liftSec = -1;
+    const errors = b.validateWagons();
+    expect(errors.some((e) => e.includes("handling times must be >= 0"))).toBe(true);
+  });
+
+  it("detects invalid station references", () => {
+    const b = new Builder();
+    b.setWagonCount(2);
+    b.config.transport.wagons![0].fromStationId = "NONEXISTENT";
+    const errors = b.validateWagons();
+    expect(errors.some((e) => e.includes("invalid station reference"))).toBe(true);
   });
 });
 

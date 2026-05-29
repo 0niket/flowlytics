@@ -109,7 +109,8 @@ describe("lineConfigToSimParams", () => {
     const params = lineConfigToSimParams(config);
     expect(params.targetBph).toBe(3.5);
     expect(params.simHours).toBe(4);
-    expect(params.basketCount).toBe(3);
+    // basketCount is now auto-computed via computeOptimalBasketCount, not from settings
+    expect(params.basketCount).toBeGreaterThanOrEqual(1);
   });
 
   it("produces preset 'custom' for all configs", () => {
