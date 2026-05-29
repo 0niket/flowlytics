@@ -11,8 +11,13 @@ import { minutesToSeconds, secondsToMinutes } from "../utils";
 const STEP_LABELS = ["Stations", "Transport", "Settings", "Review"];
 
 let builder: Builder;
+let abortController: AbortController | null = null;
 
 export function initBuilder(): void {
+  // Clean up previous listeners if re-initializing
+  if (abortController) abortController.abort();
+  abortController = new AbortController();
+
   const draft = loadDraft();
   builder = draft ? new Builder(draft.config) : new Builder();
   if (draft) builder.currentStep = draft.currentStep;
@@ -21,7 +26,7 @@ export function initBuilder(): void {
   renderStepIndicator();
   renderCurrentStep();
   wireNavButtons();
-  wireListeners();
+  wireListeners(abortController.signal);
 }
 
 function showModal(): void {
@@ -167,8 +172,8 @@ function renderStationStep(container: HTMLElement): void {
         </div>
         <div style="font-size:11px;color:var(--muted);">Drying Oven</div>
         <div style="display:flex;gap:4px;align-items:center;margin-top:4px;">
-          <input id="bldrWdoDwell" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" style="width:60px;font-size:12px;padding:3px 4px;" />
-          <span style="font-size:11px;color:var(--muted);">min</span>
+          <input id="bldrWdoDryTime" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" style="width:60px;font-size:12px;padding:3px 4px;" />
+          <span style="font-size:11px;color:var(--muted);">drying min</span>
         </div>
       `;
       lane.appendChild(card);
@@ -389,6 +394,8 @@ function handleFinish(): void {
   if (!builder.isComplete()) return;
   applyToSidebar();
   hideModal();
+  // Clean up event listeners when modal hides
+  if (abortController) abortController.abort();
 }
 
 function applyToSidebar(): void {
@@ -442,7 +449,7 @@ function applyToSidebar(): void {
 
 // ─── Live event handling ──────────────────────────────────────
 
-function wireListeners(): void {
+function wireListeners(signal: AbortSignal): void {
   document.addEventListener("input", (e) => {
     const target = e.target as HTMLElement;
     if (!target) return;
@@ -468,13 +475,12 @@ function wireListeners(): void {
       return;
     }
 
-    // Station step: tolerance change — handled inline on the config
+    // Station step: tolerance change
     if (target.classList.contains("bldr-tol")) {
       const index = Number(target.getAttribute("data-index"));
       const val = Number((target as HTMLInputElement).value);
-      const tank = builder.config.stations[index];
-      if (tank && !isNaN(val)) {
-        tank.tolerancePct = val / 100;
+      if (!isNaN(val)) {
+        builder.setTolerance(index, val / 100);
         saveDraft(builder.toLineConfig(), builder.currentStep);
       }
       return;
@@ -498,13 +504,10 @@ function wireListeners(): void {
       return;
     }
 
-    // Station step: WDO dwell
-    if (target.id === "bldrWdoDwell") {
-      const wdo = builder.config.stations.find((s) => s.kind === "wdo");
-      if (wdo) {
-        wdo.dwellSec = minutesToSeconds(Number((target as HTMLInputElement).value) || 10);
-        saveDraft(builder.toLineConfig(), builder.currentStep);
-      }
+    // Station step: WDO drying time
+    if (target.id === "bldrWdoDryTime") {
+      builder.setWdoDryTime(minutesToSeconds(Number((target as HTMLInputElement).value) || 10));
+      saveDraft(builder.toLineConfig(), builder.currentStep);
       return;
     }
 
@@ -556,7 +559,7 @@ function wireListeners(): void {
     }
 
     updateNavButtons();
-  });
+  }, { signal });
 
   // Add tank button (delegated)
   document.addEventListener("click", (e) => {
@@ -591,5 +594,5 @@ function wireListeners(): void {
       saveDraft(builder.toLineConfig(), builder.currentStep);
       return;
     }
-  });
+  }, { signal });
 }

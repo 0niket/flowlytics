@@ -101,6 +101,20 @@ export class Builder {
     station.dwellSec = dwellSec;
   }
 
+  setTolerance(index: number, pct: number): void {
+    const station = this._config.stations[index];
+    if (!station || station.kind !== "tank") {
+      throw new Error(`No tank at index ${index}`);
+    }
+    station.tolerancePct = Math.max(0, Math.min(0.5, pct));
+  }
+
+  setWdoDryTime(drySec: number): void {
+    const wdo = this._config.stations.find((s) => s.kind === "wdo");
+    if (!wdo) throw new Error("No WDO station in config");
+    wdo.dwellSec = drySec;
+  }
+
   enableWdo(): void {
     if (this._config.stations.some((s) => s.kind === "wdo")) return;
     const unloadIdx = this._config.stations.findIndex((s) => s.kind === "unloading");
