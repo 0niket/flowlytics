@@ -38,6 +38,7 @@ function renderAllSections(): void {
   root.innerHTML = "";
 
   renderMaterialSection(root);
+  renderBasketCapacitySection(root);
   renderStationSection(root);
   renderTransportSection(root);
   renderSimSettingsSection(root);
@@ -310,6 +311,69 @@ function renderWagonCards(): void {
   container.innerHTML = `<div class="wagon-config-grid">${cardsHtml}</div>`;
 }
 
+// ─── Basket Capacity Section ────────────────────────────────
+
+function renderBasketCapacitySection(container: HTMLElement): void {
+  const t = builder.config.transport;
+  const section = document.createElement("div");
+  section.className = "config-view__section";
+  section.id = "cvBasketCapacitySection";
+
+  const maxWeight = t.maxWeightKg;
+  const articleWeight = t.articleWeightKg;
+  const maxArticles = t.maxArticlesPerBasket;
+
+  const derivedDisplay = maxArticles != null ? String(maxArticles) : "—";
+
+  const summaryContent = (maxWeight != null && articleWeight != null && maxArticles != null)
+    ? `Payload: ${maxArticles} × ${articleWeight} kg = ${(articleWeight * maxArticles).toFixed(1)} kg / ${maxWeight} kg`
+    : "";
+  const summaryHtml = `<div id="cvBasketPayloadSummary" style="margin-top:8px;font-size:11px;color:var(--muted);">${summaryContent}</div>`;
+
+  section.innerHTML = `
+    <div class="config-view__section-title">Basket Capacity</div>
+    <div class="grid3">
+      <div class="field" style="margin:0;">
+        <label class="field__label">Max weight (kg)</label>
+        <input id="bldrMaxWeightKg" class="field__control" type="number" min="0" step="0.1" value="${maxWeight ?? ""}" placeholder="—" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label class="field__label">Article weight (kg)</label>
+        <input id="bldrArticleWeightKg" class="field__control" type="number" min="0" step="0.01" value="${articleWeight ?? ""}" placeholder="—" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label class="field__label">Max articles</label>
+        <div class="field__control field__control--readonly" style="background:transparent;border-color:var(--border);opacity:0.7;">${derivedDisplay}</div>
+      </div>
+    </div>
+    ${summaryHtml}
+  `;
+  container.appendChild(section);
+}
+
+function updateBasketPayloadSummary(): void {
+  const t = builder.config.transport;
+  const summaryEl = document.getElementById("cvBasketPayloadSummary");
+  const maxWeight = t.maxWeightKg;
+  const articleWeight = t.articleWeightKg;
+  const maxArticles = t.maxArticlesPerBasket;
+
+  // Update the derived "Max articles" display
+  const section = document.getElementById("cvBasketCapacitySection");
+  const readonlyEl = section?.querySelector(".field__control--readonly");
+  if (readonlyEl) {
+    readonlyEl.textContent = maxArticles != null ? String(maxArticles) : "—";
+  }
+
+  if (!summaryEl) return;
+  if (maxWeight != null && articleWeight != null && maxArticles != null) {
+    const payload = articleWeight * maxArticles;
+    summaryEl.textContent = `Payload: ${maxArticles} × ${articleWeight} kg = ${payload.toFixed(1)} kg / ${maxWeight} kg`;
+  } else {
+    summaryEl.textContent = "";
+  }
+}
+
 // ─── Sim Settings Section ───────────────────────────────────
 
 function renderSimSettingsSection(container: HTMLElement): void {
@@ -515,6 +579,29 @@ function wireListeners(signal: AbortSignal): void {
         return;
       }
 
+      // Basket capacity
+      if (target.id === "bldrMaxWeightKg") {
+        const val = (target as HTMLInputElement).value;
+        if (val === "") {
+          builder.config.transport.maxWeightKg = undefined;
+        } else {
+          builder.setMaxWeightKg(Number(val) || 0);
+        }
+        updateBasketPayloadSummary();
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.id === "bldrArticleWeightKg") {
+        const val = (target as HTMLInputElement).value;
+        if (val === "") {
+          builder.config.transport.articleWeightKg = undefined;
+        } else {
+          builder.setArticleWeightKg(Number(val) || 0);
+        }
+        updateBasketPayloadSummary();
+        autoRunIfEnabled();
+        return;
+      }
       // Sim settings
       if (target.id === "bldrSimHours") {
         builder.setSimHours(Number((target as HTMLInputElement).value) || 0.25);

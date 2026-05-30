@@ -409,11 +409,6 @@ describe("Builder — settings operations", () => {
     expect(b.config.settings.simHours).toBe(4);
   });
 
-  it("setBasketCount updates count", () => {
-    const b = new Builder();
-    b.setBasketCount(3);
-    expect(b.config.settings.basketCount).toBe(3);
-  });
 });
 
 describe("Builder — validation", () => {
@@ -565,15 +560,56 @@ describe("Builder — clamping and edge cases", () => {
     expect(b.config.settings.simHours).toBe(0.25);
   });
 
-  it("setBasketCount clamps to 1 minimum", () => {
+
+  it("setMaxWeightKg stores value and clamps min 0", () => {
     const b = new Builder();
-    b.setBasketCount(0);
-    expect(b.config.settings.basketCount).toBe(1);
+    b.setMaxWeightKg(50);
+    expect(b.config.transport.maxWeightKg).toBe(50);
+    b.setMaxWeightKg(-5);
+    expect(b.config.transport.maxWeightKg).toBe(0);
   });
 
-  it("setBasketCount floors to integer", () => {
+  it("setArticleWeightKg stores value and clamps min 0", () => {
     const b = new Builder();
-    b.setBasketCount(2.7);
-    expect(b.config.settings.basketCount).toBe(2);
+    b.setArticleWeightKg(2.5);
+    expect(b.config.transport.articleWeightKg).toBe(2.5);
+    b.setArticleWeightKg(-1);
+    expect(b.config.transport.articleWeightKg).toBe(0);
+  });
+
+  it("maxArticlesPerBasket is derived from maxWeightKg / articleWeightKg", () => {
+    const b = new Builder();
+    b.setMaxWeightKg(50);
+    b.setArticleWeightKg(2);
+    expect(b.config.transport.maxArticlesPerBasket).toBe(25); // floor(50/2)
+  });
+
+  it("maxArticlesPerBasket floors to integer", () => {
+    const b = new Builder();
+    b.setMaxWeightKg(50);
+    b.setArticleWeightKg(3);
+    expect(b.config.transport.maxArticlesPerBasket).toBe(16); // floor(50/3) = 16
+  });
+
+  it("maxArticlesPerBasket is undefined when articleWeightKg is 0", () => {
+    const b = new Builder();
+    b.setMaxWeightKg(50);
+    b.setArticleWeightKg(0);
+    expect(b.config.transport.maxArticlesPerBasket).toBeUndefined();
+  });
+
+  it("maxArticlesPerBasket is undefined when only one weight field is set", () => {
+    const b = new Builder();
+    b.setMaxWeightKg(50);
+    expect(b.config.transport.maxArticlesPerBasket).toBeUndefined();
+  });
+
+  it("maxArticlesPerBasket updates when maxWeightKg changes", () => {
+    const b = new Builder();
+    b.setArticleWeightKg(2);
+    b.setMaxWeightKg(50);
+    expect(b.config.transport.maxArticlesPerBasket).toBe(25);
+    b.setMaxWeightKg(30);
+    expect(b.config.transport.maxArticlesPerBasket).toBe(15);
   });
 });

@@ -42,6 +42,7 @@ export const ui: UiElements = {
   summarySelectBtn: el("summarySelectBtn"),
   summaryHideBtn: el("summaryHideBtn"),
   configPanel: el("configPanel"),
+  constraintsBody: el("constraintsBody"),
 };
 
 export const state: AppState = {

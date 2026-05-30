@@ -1,6 +1,7 @@
 import { ui, state } from "./state";
 import { buildSyntheticLayout } from "../engine/layout";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
+import { analyzeConstraints } from "../engine/constraints";
 import { clamp, minutesToSeconds } from "../utils";
 import type { SimParams, RecipeStep, TankType } from "../types";
 
@@ -311,7 +312,17 @@ function updateResults(): void {
   const delta = theoMax > 0 ? pctDelta(achieved, theoMax) : null;
   ui.kpiThroughput.textContent = s.throughputStatus === "insufficient_data" ? "N/A" : `${achieved.toFixed(2)}`;
   ui.kpiThroughput.className = "kpi-card__value mono" + (delta != null ? (delta >= -10 ? " kpi-card__value--ok" : " kpi-card__value--bad") : "");
-  ui.kpiThroughputSub.textContent = `theoretical max: ${theoMax.toFixed(2)} bph`;
+  let throughputSubText = `theoretical max: ${theoMax.toFixed(2)} bph`;
+  const transport = state.lineConfig?.transport;
+  if (transport?.maxArticlesPerBasket != null) {
+    const articlesPerHour = achieved * transport.maxArticlesPerBasket;
+    throughputSubText += ` | ${Math.round(articlesPerHour)} art/hr`;
+    if (transport.articleWeightKg != null) {
+      const kgPerHour = articlesPerHour * transport.articleWeightKg;
+      throughputSubText += ` | ${Math.round(kgPerHour)} kg/hr`;
+    }
+  }
+  ui.kpiThroughputSub.textContent = throughputSubText;
 
   ui.kpiLeadTime.textContent = formatSeconds(s.avgLeadTimeSec);
   const b = state.plan?.buckets;
@@ -348,6 +359,7 @@ function updateResults(): void {
   renderStationMetrics();
   renderWagonMetrics();
   renderLoadingMetrics();
+  renderConstraintsTab();
   renderDebugTab();
   state.chartsStale = true;
 }
@@ -429,7 +441,6 @@ function renderLoadingMetrics(): void {
   ui.loadingKvGrid.innerHTML = "";
   const kvs: { label: string; value: string }[] = [
     { label: "Avg Queue Wait", value: formatTimeShort(ld.avgQueueWaitSec) },
-    { label: "Max Queue Depth", value: String(ld.maxQueueDepth) },
     { label: "Loading Util", value: formatPct01(ld.processingUtil01) },
     { label: "Baskets Loaded", value: String(ld.totalBasketsLoaded) },
     { label: "Load Time", value: `${p.loadTimeMin} min` },
@@ -586,6 +597,84 @@ function renderDebugTab(): void {
       table.appendChild(tbody);
       vd.appendChild(table);
     }
+  }
+}
+
+function renderConstraintsTab(): void {
+  ui.constraintsBody.textContent = "";
+  if (!state.sim || !state.lineConfig) return;
+  const constraints = analyzeConstraints(state.lineConfig, state.sim);
+  for (const c of constraints) {
+    const card = document.createElement("div");
+    card.className = `constraint-card constraint-card--${c.status}`;
+
+    const header = document.createElement("div");
+    header.className = "constraint-card__header";
+    const statusLabel = c.status === "ok" ? "OK" : c.status === "warning" ? "WARN" : "FAIL";
+    header.innerHTML = `<span class="constraint-card__id">${escapeHtml(c.componentId)}</span><span class="constraint-card__label">${escapeHtml(c.label)}</span><span class="badge badge--${c.status === "ok" ? "ok" : c.status === "warning" ? "neutral" : "bad"}">${statusLabel}</span>`;
+    card.appendChild(header);
+
+    const rule = document.createElement("div");
+    rule.className = "constraint-card__rule";
+    rule.textContent = c.rule;
+    card.appendChild(rule);
+
+    if (c.violations.length > 0) {
+      const list = document.createElement("div");
+      list.className = "constraint-card__violations";
+      for (const v of c.violations) {
+        const item = document.createElement("div");
+        item.className = "constraint-violation";
+        item.innerHTML = `<div class="constraint-violation__desc">${escapeHtml(v.description)}</div><div class="constraint-violation__cause">${escapeHtml(v.cause)}</div>`;
+        list.appendChild(item);
+      }
+      if (c.totalViolationCount > c.violations.length) {
+        const more = document.createElement("div");
+        more.className = "constraint-card__more";
+        more.textContent = `and ${c.totalViolationCount - c.violations.length} more`;
+        list.appendChild(more);
+      }
+      card.appendChild(list);
+    }
+
+    if (c.queueAnalysis) {
+      const qa = c.queueAnalysis;
+      const analysis = document.createElement("div");
+      analysis.className = "constraint-card__queue-analysis";
+
+      const formulaDiv = document.createElement("div");
+      formulaDiv.className = "queue-analysis__formula";
+      formulaDiv.textContent = qa.formula;
+      analysis.appendChild(formulaDiv);
+
+      const explDiv = document.createElement("div");
+      explDiv.className = "queue-analysis__explanation";
+      explDiv.style.color = qa.isBottleneck ? "var(--danger)" : "var(--accent2)";
+      explDiv.textContent = qa.explanation;
+      analysis.appendChild(explDiv);
+
+      if (qa.timeline.length > 0) {
+        const scrollWrap = document.createElement("div");
+        scrollWrap.className = "queue-analysis__scroll";
+        const table = document.createElement("table");
+        table.className = "queue-analysis__timeline";
+        const thead = document.createElement("thead");
+        thead.innerHTML = "<tr>" + qa.timeline.map((p) => `<th>${p.timeMin}m</th>`).join("") + "</tr>";
+        table.appendChild(thead);
+        const tbody = document.createElement("tbody");
+        tbody.innerHTML = "<tr>" + qa.timeline.map((p) => {
+          const isHigh = p.depth > 2;
+          return `<td style="color:${isHigh ? "var(--danger)" : "inherit"};font-weight:${isHigh ? "700" : "400"}">${p.depth}</td>`;
+        }).join("") + "</tr>";
+        table.appendChild(tbody);
+        scrollWrap.appendChild(table);
+        analysis.appendChild(scrollWrap);
+      }
+
+      card.appendChild(analysis);
+    }
+
+    ui.constraintsBody.appendChild(card);
   }
 }
 

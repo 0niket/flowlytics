@@ -283,6 +283,7 @@ code { font-family: var(--mono); font-size: 12px; }
 .field__control:focus { border-color: rgba(74,163,255,0.55); box-shadow: 0 0 0 2px rgba(74,163,255,0.12); }
 .field__control--xs { width: 60px; padding: 4px 6px; font-size: 11px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .row { display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
 
 .btn {
@@ -452,6 +453,67 @@ code { font-family: var(--mono); font-size: 12px; }
 .inventory-insight strong { color: var(--accent2); }
 .inventory-insight--warn { border-left-color: var(--warn); }
 .inventory-insight--warn strong { color: var(--warn); }
+
+/* ===== CONSTRAINTS ===== */
+#constraintsBody { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+.constraint-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 10px 12px;
+  border-left: 3px solid var(--muted);
+}
+.constraint-card--ok { border-left-color: var(--accent2); }
+.constraint-card--warning { border-left-color: var(--warn); }
+.constraint-card--violated { border-left-color: var(--danger); }
+.constraint-card__header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+}
+.constraint-card__id {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+}
+.constraint-card__label {
+  font-size: 12px; color: var(--muted); flex: 1;
+}
+.constraint-card__rule {
+  font-size: 11px; color: var(--muted); margin-bottom: 6px;
+  font-family: var(--mono);
+}
+.constraint-card__violations { display: flex; flex-direction: column; gap: 4px; }
+.constraint-violation {
+  padding: 6px 8px; border-radius: 6px;
+  background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.15);
+  font-size: 11px;
+}
+.constraint-card--warning .constraint-violation {
+  background: rgba(255,191,105,0.06); border-color: rgba(255,191,105,0.15);
+}
+.constraint-violation__desc { color: var(--text); margin-bottom: 2px; }
+.constraint-violation__cause { color: var(--muted); font-size: 10px; }
+.constraint-card__more {
+  font-size: 10px; color: var(--muted); font-style: italic; padding-top: 2px;
+}
+
+.constraint-card__queue-analysis { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.queue-analysis__formula { font-size: 11px; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; color: var(--muted); }
+.queue-analysis__explanation { font-size: 11px; line-height: 1.4; }
+.queue-analysis__scroll { overflow-x: auto; max-width: 100%; }
+.queue-analysis__timeline {
+  width: 100%; border-collapse: collapse; font-size: 10px;
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+.queue-analysis__timeline th {
+  font-weight: 400; color: var(--muted); padding: 2px 6px; text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.queue-analysis__timeline td { padding: 3px 6px; text-align: center; }
+
+/* Light theme overrides */
+html.light .constraint-card { background: #fff; }
+html.light .constraint-violation {
+  background: rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.15);
+}
+html.light .constraint-card--warning .constraint-violation {
+  background: rgba(194,120,14,0.04); border-color: rgba(194,120,14,0.15);
+}
 
 /* ===== CHARTS ===== */
 .charts-stack { display: flex; flex-direction: column; gap: 8px; }

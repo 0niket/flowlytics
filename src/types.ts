@@ -406,6 +406,7 @@ export interface UiElements {
   summarySelectBtn: HTMLButtonElement;
   summaryHideBtn: HTMLButtonElement;
   configPanel: HTMLElement;
+  constraintsBody: HTMLElement;
 }
 
 // ─── App State ─────────────────────────────────────────────────

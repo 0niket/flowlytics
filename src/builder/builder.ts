@@ -235,6 +235,27 @@ export class Builder {
     wagon.speedMPerMin = Math.max(1, value);
   }
 
+  // ─── Basket Capacity Operations ─────────────────────────
+
+  setMaxWeightKg(kg: number): void {
+    this._config.transport.maxWeightKg = Math.max(0, kg);
+    this._deriveMaxArticles();
+  }
+
+  setArticleWeightKg(kg: number): void {
+    this._config.transport.articleWeightKg = Math.max(0, kg);
+    this._deriveMaxArticles();
+  }
+
+  private _deriveMaxArticles(): void {
+    const { maxWeightKg, articleWeightKg } = this._config.transport;
+    if (maxWeightKg != null && articleWeightKg != null && articleWeightKg > 0) {
+      this._config.transport.maxArticlesPerBasket = Math.floor(maxWeightKg / articleWeightKg);
+    } else {
+      this._config.transport.maxArticlesPerBasket = undefined;
+    }
+  }
+
   // ─── Settings Operations ─────────────────────────────────
 
   setArticleMaterial(type: ArticleMaterialType): void {
@@ -247,10 +268,6 @@ export class Builder {
 
   setSimHours(hours: number): void {
     this._config.settings.simHours = Math.max(0.25, hours);
-  }
-
-  setBasketCount(n: number): void {
-    this._config.settings.basketCount = Math.max(1, Math.floor(n));
   }
 
   // ─── Wagon Config ────────────────────────────────────────

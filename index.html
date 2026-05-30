@@ -79,6 +79,7 @@
             <button class="metrics-tab metrics-tab--active" role="tab" data-tab="stations" aria-selected="true">Stations</button>
             <button class="metrics-tab" role="tab" data-tab="wagons" aria-selected="false">Wagons</button>
             <button class="metrics-tab" role="tab" data-tab="loading" aria-selected="false">Loading</button>
+            <button class="metrics-tab" role="tab" data-tab="constraints" aria-selected="false">Constraints</button>
             <button class="metrics-tab" role="tab" data-tab="charts" aria-selected="false">Charts</button>
           </div>
 
@@ -121,6 +122,11 @@
                 <svg id="loadingQueueSvg" width="600" height="120" role="img" aria-label="Loading station activity"></svg>
               </div>
             </div>
+          </div>
+
+          <!-- Constraints Tab -->
+          <div class="metrics-content" id="tabConstraints" data-tab-content="constraints" hidden>
+            <div id="constraintsBody"></div>
           </div>
 
           <!-- Charts Tab -->

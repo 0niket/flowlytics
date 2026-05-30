@@ -135,6 +135,18 @@ export const GLOSSARY_DATA: GlossaryEntry[] = [
     effect: "Manhattan distances are typically 20-40% longer than Euclidean for the same layout, resulting in longer travel times and lower throughput estimates.",
     example: "Two tanks diagonally offset by 5m horizontal and 3m vertical: Euclidean = 5.8m, Manhattan = 8m. At 18 m/min, that's 19s vs 27s travel time — an 8-second difference per transfer." },
 
+  { section: "Loading & Queue", term: "Queue Depth (Loading)", tags: "queue depth loading waiting baskets staging arrival bottleneck",
+    def: "The number of baskets waiting at the loading station at a given moment. The loading station processes one basket at a time — if baskets arrive faster than loading can handle them, a queue builds.",
+    cause: "Queue depth depends on two rates: (1) Arrival rate — how fast baskets return from unloading or are requested by the target BPH. This is bounded by the system's slowest component (wagon capacity, tank dwell). (2) Service rate = 60 / loadTimeMin (baskets/hr). If arrival rate > service rate, the queue grows linearly at (arrival rate − service rate) baskets/hr. Formula: Q_load(t) = max(0, (arrivalRate − serviceRate) × t_hours). If the system is slow (wagon bottleneck), fewer baskets return, so arrival rate < service rate and queue stays at 0.",
+    effect: "A growing loading queue means loading is the bottleneck — the operator cannot keep up with demand. This caps system throughput at the loading service rate regardless of how fast wagons or tanks operate. Reducing load time (offline prep, faster fixtures) or adding a parallel loading station resolves it.",
+    example: "Load time = 20 min → service rate = 3 bph. Target = 4 bph. Queue grows at 1 basket/hr. After 2 hours, ~2 baskets queued. Reducing load time to 15 min raises service rate to 4 bph, eliminating the queue." },
+
+  { section: "Loading & Queue", term: "Queue Depth (Unloading)", tags: "queue depth unloading waiting baskets backlog bottleneck",
+    def: "The number of baskets waiting at the unloading station at a given moment. Baskets arrive at unloading after completing all chemical processing and WDO drying.",
+    cause: "Queue depth depends on: (1) Arrival rate — the achieved throughput of the system (how fast baskets complete the line). This is determined by the slowest upstream component. (2) Service rate = 60 / unloadTimeMin (baskets/hr). If arrival rate > service rate, the queue grows linearly at (arrival rate − service rate) baskets/hr. Formula: Q_unload(t) = max(0, (achievedThroughput − serviceRate) × t_hours). If the system processes slowly (long dwell, slow wagon), fewer baskets reach unloading, so queue stays at 0.",
+    effect: "A growing unloading queue means unloading is the bottleneck — finished baskets back up waiting for the operator. This wastes completed inventory and can block the wagon from delivering more baskets (destination blocked). Reducing unload time or adding a parallel unloading station resolves it.",
+    example: "Unload time = 10 min → service rate = 6 bph. Achieved throughput = 4 bph → no queue. But if unload time = 20 min → service rate = 3 bph, and throughput = 4 bph, queue grows at 1 basket/hr." },
+
   { section: "Loading & Queue", term: "Avg Queue Wait", tags: "loading queue waiting time delay arrival",
     def: "Average time a basket waits in the loading queue before an operator begins loading it. Measured from basket arrival to the start of the loading operation.",
     cause: "Baskets arrive at the target rate (baskets/hr), but loading processes one basket at a time. If a basket arrives while another is being loaded, it queues. The wait grows when arrival rate approaches or exceeds loading capacity.",
