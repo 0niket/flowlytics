@@ -23,8 +23,8 @@ if not ODA_BIN or not Path(ODA_BIN).exists():
             ODA_BIN = candidate
             break
 
-# Serve from the repo root so /web/..., /assets/... all resolve naturally
-ROOT_DIR = Path(__file__).resolve().parent.parent
+# Serve from the Vite build output directory
+ROOT_DIR = Path(__file__).resolve().parent.parent / "dist"
 
 
 def convert_dwg_to_dxf(dwg_bytes, filename):
@@ -127,11 +127,6 @@ class FlowlyticsHandler(SimpleHTTPRequestHandler):
             self._err(500, f"Unexpected error: {e}")
 
     def do_GET(self):
-        if self.path == "/" or self.path == "":
-            self.send_response(302)
-            self.send_header("Location", "/web/index.html")
-            self.end_headers()
-            return
         super().do_GET()
 
     def _err(self, code, message):

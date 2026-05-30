@@ -1,3 +1,10 @@
+FROM node:20-slim AS build
+WORKDIR /build
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
 FROM python:3.11-slim
 
 # ODA File Converter requires these runtime libraries
@@ -13,7 +20,7 @@ COPY deploy/ODAFileConverter_*.deb /tmp/oda.deb
 RUN dpkg -i /tmp/oda.deb || apt-get install -f -y && rm /tmp/oda.deb
 
 WORKDIR /app
-COPY web/ /app/web/
+COPY --from=build /build/dist/ /app/dist/
 COPY assets/cad/oda_out/ /app/assets/cad/oda_out/
 COPY deploy/server.py /app/deploy/server.py
 
