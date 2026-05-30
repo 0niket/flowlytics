@@ -5,7 +5,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ["dist/", "web/app.js", "*.json"],
+    ignores: ["dist/", "*.json"],
   },
   {
     rules: {

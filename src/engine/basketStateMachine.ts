@@ -31,14 +31,6 @@ export const basketMachine = createMachine(
   },
 );
 
-export function transitionBasket(
-  current: BasketState,
-  event: BasketEvent["type"],
-): BasketState {
-  const s = basketMachine.transition(current, event);
-  return s.value as BasketState;
-}
-
 export function transitionBasketWithLog(
   basket: { currentState: BasketState; stateHistory?: BasketStateTransition[] },
   event: BasketEvent["type"],

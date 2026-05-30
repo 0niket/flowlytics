@@ -1,11 +1,11 @@
 import type { LineConfig } from "../builder/LineConfig";
-import type { SimulationResult, Violation, ViolationCause } from "../types";
+import type { SimulationResult } from "../types";
 
 // ─── Types ───────────────────────────────────────────────────
 
 export interface ComponentConstraint {
   componentId: string;
-  componentType: "tank" | "wdo" | "loading" | "unloading" | "wagon" | "basket";
+  componentType: "loading" | "unloading";
   label: string;
   rule: string;
   status: "ok" | "warning" | "violated";
@@ -32,49 +32,6 @@ export interface ConstraintViolationDetail {
   limit: number;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────
-
-const MAX_VIOLATIONS_PER_COMPONENT = 5;
-
-function formatTimeShort(seconds: number): string {
-  if (!Number.isFinite(seconds)) return "-";
-  const s = Math.max(0, seconds);
-  if (s < 60) return `${s.toFixed(0)}s`;
-  const mm = Math.floor(s / 60);
-  const ss = Math.round(s % 60);
-  return `${mm}m${String(ss).padStart(2, "0")}s`;
-}
-
-function causeToHumanString(cause: ViolationCause): string {
-  switch (cause) {
-    case "wagon_unavailable": return "Wagon was unavailable for pickup";
-    case "destination_blocked": return "Next station was occupied by another basket";
-    case "line_design": return "Line configuration limitation";
-  }
-}
-
-function formatDwellRule(dwellSec: number, tolerancePct: number): string {
-  const min = Math.round(dwellSec * (1 - tolerancePct));
-  const max = Math.round(dwellSec * (1 + tolerancePct));
-  const pct = Math.round(tolerancePct * 100);
-  return `Dwell: ${formatTimeShort(dwellSec)} \u00b1 ${pct}% (${formatTimeShort(min)} \u2013 ${formatTimeShort(max)})`;
-}
-
-function buildViolationDetail(v: Violation): ConstraintViolationDetail {
-  const limit = v.type === "under_dwell" ? v.earliestExit : v.latestExit;
-  const overshoot = Math.abs(v.elapsed - limit);
-  const direction = v.type === "under_dwell" ? "under" : "over";
-  const description = `Basket ${v.basketId} stayed ${v.elapsed}s (${v.type === "under_dwell" ? "min" : "max"} ${limit}s) \u2014 ${overshoot}s ${direction} limit`;
-  return {
-    description,
-    cause: causeToHumanString(v.cause),
-    basketId: v.basketId,
-    timestamp: v.timestamp,
-    elapsed: v.elapsed,
-    limit,
-  };
-}
-
 // ─── Main Function ───────────────────────────────────────────
 
 export function analyzeConstraints(
@@ -83,100 +40,27 @@ export function analyzeConstraints(
 ): ComponentConstraint[] {
   const entries: ComponentConstraint[] = [];
 
-  // Group violations by component (tank/WDO id)
-  const violationsByComponent = new Map<string, Violation[]>();
-  for (const v of result.violations) {
-    const list = violationsByComponent.get(v.tankId) ?? [];
-    list.push(v);
-    violationsByComponent.set(v.tankId, list);
-  }
+  // Compute service rates for loading/unloading to cross-reference
+  const loadStation = config.stations.find((s) => s.kind === "loading");
+  const unloadStation = config.stations.find((s) => s.kind === "unloading");
+  const loadServiceRate = loadStation && loadStation.dwellSec > 0 ? 3600 / loadStation.dwellSec : Infinity;
+  const unloadServiceRate = unloadStation && unloadStation.dwellSec > 0 ? 3600 / unloadStation.dwellSec : Infinity;
 
-  // Process each station
+  // Process only loading and unloading stations
   for (const station of config.stations) {
-    if (station.kind === "tank") {
-      entries.push(analyzeTank(station, violationsByComponent.get(station.id) ?? []));
-    } else if (station.kind === "wdo") {
-      entries.push(analyzeWdo(station, violationsByComponent.get(station.id) ?? []));
-    } else if (station.kind === "loading") {
-      entries.push(analyzeLoading(station, result));
+    if (station.kind === "loading") {
+      entries.push(analyzeLoading(station, result, unloadServiceRate));
     } else if (station.kind === "unloading") {
-      entries.push(analyzeUnloading(station, result));
+      entries.push(analyzeUnloading(station, result, loadServiceRate));
     }
   }
-
-  // Process wagons
-  const wagonConfigs = config.transport.wagons ?? [];
-  for (const wc of wagonConfigs) {
-    const wUtil = result.util.wagons.find((w) => w.id === wc.id);
-    entries.push(analyzeWagon(wc.id, wUtil, result));
-  }
-
-  // Process basket capacity
-  entries.push(analyzeBasket(config));
 
   return entries;
 }
 
 // ─── Component Analyzers ─────────────────────────────────────
 
-function analyzeTank(
-  station: LineConfig["stations"][number],
-  violations: Violation[],
-): ComponentConstraint {
-  const isExtra = station.tankType === "extra";
-
-  if (isExtra) {
-    return {
-      componentId: station.id,
-      componentType: "tank",
-      label: station.label,
-      rule: "Passthrough (no dwell constraint)",
-      status: "ok",
-      violations: [],
-      totalViolationCount: 0,
-    };
-  }
-
-  const tolerancePct = station.tolerancePct ?? 0.1;
-  const rule = formatDwellRule(station.dwellSec, tolerancePct);
-  const details = violations.map(buildViolationDetail);
-  const capped = details.slice(0, MAX_VIOLATIONS_PER_COMPONENT);
-
-  return {
-    componentId: station.id,
-    componentType: "tank",
-    label: station.label,
-    rule,
-    status: violations.length > 0 ? "violated" : "ok",
-    violations: capped,
-    totalViolationCount: violations.length,
-  };
-}
-
-function analyzeWdo(
-  station: LineConfig["stations"][number],
-  violations: Violation[],
-): ComponentConstraint {
-  const maxDwell = station.maxDwellSec ?? 0;
-  const rule = maxDwell > 0
-    ? `Dry: min ${formatTimeShort(station.dwellSec)}, max ${formatTimeShort(maxDwell)}`
-    : `Dry: min ${formatTimeShort(station.dwellSec)}`;
-
-  const details = violations.map(buildViolationDetail);
-  const capped = details.slice(0, MAX_VIOLATIONS_PER_COMPONENT);
-
-  return {
-    componentId: station.id,
-    componentType: "wdo",
-    label: station.label,
-    rule,
-    status: violations.length > 0 ? "violated" : "ok",
-    violations: capped,
-    totalViolationCount: violations.length,
-  };
-}
-
-function sampleQueueTimeline(
+export function sampleQueueTimeline(
   snapshots: SimulationResult["snapshots"],
   locKey: string,
   intervalSec: number,
@@ -199,20 +83,24 @@ function sampleQueueTimeline(
 function analyzeLoading(
   station: LineConfig["stations"][number],
   result: SimulationResult,
+  upstreamCapacityBph: number,
 ): ComponentConstraint {
   const loadTimeSec = station.dwellSec;
   const loadTimeMin = loadTimeSec / 60;
   const serviceRateBph = loadTimeMin > 0 ? 60 / loadTimeMin : Infinity;
 
-  // Arrival rate at loading = achieved throughput (how fast baskets cycle through the system and return)
-  // If system is slow (long dwell, slow wagon), fewer baskets return, so arrival rate is low.
-  // If system is fast, baskets return quickly and may overwhelm loading.
-  const achieved = Number.isFinite(result.throughputTrimmedBph) ? result.throughputTrimmedBph
-    : Number.isFinite(result.throughputSteadyBph) ? result.throughputSteadyBph
-    : result.throughputBph;
-  const arrivalRateBph = achieved;
+  // Arrival rate at loading = how fast baskets could arrive
+  // Bounded by: unloading service rate (baskets can't return faster than unloading releases them)
+  // and the theoretical max throughput (system capacity ceiling)
+  const theoMax = result.theoreticalMaxThroughput;
+  const arrivalRateBph = Math.min(
+    Number.isFinite(upstreamCapacityBph) ? upstreamCapacityBph : Infinity,
+    Number.isFinite(theoMax) && theoMax > 0 ? theoMax : Infinity,
+  );
 
   const isBottleneck = Number.isFinite(serviceRateBph) && arrivalRateBph > serviceRateBph;
+  const utilPct = Number.isFinite(serviceRateBph) && serviceRateBph > 0 ? (arrivalRateBph / serviceRateBph) * 100 : 0;
+  const isUnderutilized = !isBottleneck && Number.isFinite(serviceRateBph) && serviceRateBph > 0 && utilPct < 50;
 
   const timeline = sampleQueueTimeline(result.snapshots, "LOADQ", 300, result.simEnd);
 
@@ -222,22 +110,35 @@ function analyzeLoading(
     formula = "Service rate: instant (0 min load time)";
     explanation = "No loading time configured — baskets pass through immediately.";
   } else {
-    formula = `Service rate = 60 / ${loadTimeMin.toFixed(1)} min = ${serviceRateBph.toFixed(1)} bph | Arrival rate = ${arrivalRateBph.toFixed(1)} bph`;
+    formula = `Service rate = 60 / ${loadTimeMin.toFixed(1)} min = ${serviceRateBph.toFixed(1)} bph | Arrival rate = ${arrivalRateBph.toFixed(1)} bph | Utilization = ${utilPct.toFixed(0)}%`;
     if (isBottleneck) {
       const buildupRate = arrivalRateBph - serviceRateBph;
       explanation = `Baskets arrive at ${arrivalRateBph.toFixed(1)} bph but loading can only process ${serviceRateBph.toFixed(1)} bph. Queue grows by ~${buildupRate.toFixed(1)} baskets/hr. Loading is the bottleneck — reduce load time or add a parallel loading station.`;
+    } else if (isUnderutilized) {
+      explanation = `Loading station is at ${utilPct.toFixed(0)}% utilization — underutilized. Service capacity is ${serviceRateBph.toFixed(1)} bph but only ${arrivalRateBph.toFixed(1)} bph arriving. The system upstream is the constraint, not loading.`;
     } else {
-      explanation = `Loading can handle ${serviceRateBph.toFixed(1)} bph, arrival rate is ${arrivalRateBph.toFixed(1)} bph. Loading station is keeping up.`;
+      explanation = `Loading station is at ${utilPct.toFixed(0)}% utilization — performing well. Service capacity of ${serviceRateBph.toFixed(1)} bph is matched to arrival rate of ${arrivalRateBph.toFixed(1)} bph.`;
     }
   }
 
-  const status: "ok" | "warning" | "violated" = isBottleneck ? "violated" : "ok";
+  let status: "ok" | "warning" | "violated";
+  let rule: string;
+  if (isBottleneck) {
+    status = "violated";
+    rule = "Loading is the bottleneck";
+  } else if (isUnderutilized) {
+    status = "warning";
+    rule = "Loading station is underutilized";
+  } else {
+    status = "ok";
+    rule = "Loading station is performing well";
+  }
 
   return {
     componentId: station.id,
     componentType: "loading",
     label: station.label,
-    rule: isBottleneck ? "Loading is the bottleneck" : "Loading station is keeping up",
+    rule,
     status,
     violations: [],
     totalViolationCount: 0,
@@ -255,18 +156,24 @@ function analyzeLoading(
 function analyzeUnloading(
   station: LineConfig["stations"][number],
   result: SimulationResult,
+  upstreamCapacityBph: number,
 ): ComponentConstraint {
   const unloadTimeSec = station.dwellSec;
   const unloadTimeMin = unloadTimeSec / 60;
   const serviceRateBph = unloadTimeMin > 0 ? 60 / unloadTimeMin : Infinity;
 
-  // Arrival rate at unloading = achieved throughput (how fast baskets actually complete the line)
-  const achieved = Number.isFinite(result.throughputTrimmedBph) ? result.throughputTrimmedBph
-    : Number.isFinite(result.throughputSteadyBph) ? result.throughputSteadyBph
-    : result.throughputBph;
-  const arrivalRateBph = achieved;
+  // Arrival rate at unloading = how fast the upstream system can push baskets through
+  // Bounded by: loading service rate (baskets can't enter faster than loading feeds them)
+  // and the theoretical max throughput (system capacity ceiling)
+  const theoMax = result.theoreticalMaxThroughput;
+  const arrivalRateBph = Math.min(
+    Number.isFinite(upstreamCapacityBph) ? upstreamCapacityBph : Infinity,
+    Number.isFinite(theoMax) && theoMax > 0 ? theoMax : Infinity,
+  );
 
   const isBottleneck = Number.isFinite(serviceRateBph) && arrivalRateBph > serviceRateBph;
+  const utilPct = Number.isFinite(serviceRateBph) && serviceRateBph > 0 ? (arrivalRateBph / serviceRateBph) * 100 : 0;
+  const isUnderutilized = !isBottleneck && Number.isFinite(serviceRateBph) && serviceRateBph > 0 && utilPct < 50;
 
   const timeline = sampleQueueTimeline(result.snapshots, "UNLOADQ", 300, result.simEnd);
 
@@ -276,22 +183,35 @@ function analyzeUnloading(
     formula = "Service rate: instant (0 min unload time)";
     explanation = "No unloading time configured — baskets pass through immediately.";
   } else {
-    formula = `Service rate = 60 / ${unloadTimeMin.toFixed(1)} min = ${serviceRateBph.toFixed(1)} bph | Arrival rate = ${arrivalRateBph.toFixed(1)} bph`;
+    formula = `Service rate = 60 / ${unloadTimeMin.toFixed(1)} min = ${serviceRateBph.toFixed(1)} bph | Arrival rate = ${arrivalRateBph.toFixed(1)} bph | Utilization = ${utilPct.toFixed(0)}%`;
     if (isBottleneck) {
       const buildupRate = arrivalRateBph - serviceRateBph;
       explanation = `Baskets arrive at ${arrivalRateBph.toFixed(1)} bph but unloading can only process ${serviceRateBph.toFixed(1)} bph. Queue grows by ~${buildupRate.toFixed(1)} baskets/hr. Unloading is the bottleneck — reduce unload time or add a parallel unloading station.`;
+    } else if (isUnderutilized) {
+      explanation = `Unloading station is at ${utilPct.toFixed(0)}% utilization — underutilized. Service capacity is ${serviceRateBph.toFixed(1)} bph but only ${arrivalRateBph.toFixed(1)} bph arriving. The system upstream is the constraint, not unloading.`;
     } else {
-      explanation = `Unloading can handle ${serviceRateBph.toFixed(1)} bph, baskets arrive at ${arrivalRateBph.toFixed(1)} bph. Unloading station is keeping up.`;
+      explanation = `Unloading station is at ${utilPct.toFixed(0)}% utilization — performing well. Service capacity of ${serviceRateBph.toFixed(1)} bph is matched to arrival rate of ${arrivalRateBph.toFixed(1)} bph.`;
     }
   }
 
-  const status: "ok" | "warning" | "violated" = isBottleneck ? "violated" : "ok";
+  let status: "ok" | "warning" | "violated";
+  let rule: string;
+  if (isBottleneck) {
+    status = "violated";
+    rule = "Unloading is the bottleneck";
+  } else if (isUnderutilized) {
+    status = "warning";
+    rule = "Unloading station is underutilized";
+  } else {
+    status = "ok";
+    rule = "Unloading station is performing well";
+  }
 
   return {
     componentId: station.id,
     componentType: "unloading",
     label: station.label,
-    rule: isBottleneck ? "Unloading is the bottleneck" : "Unloading station is keeping up",
+    rule,
     status,
     violations: [],
     totalViolationCount: 0,
@@ -303,108 +223,5 @@ function analyzeUnloading(
       explanation,
       timeline,
     },
-  };
-}
-
-function analyzeWagon(
-  wagonId: string,
-  wUtil: SimulationResult["util"]["wagons"][number] | undefined,
-  result: SimulationResult,
-): ComponentConstraint {
-  const util01 = wUtil?.util01 ?? 0;
-  const totalSec = result.simEnd;
-  const idleSec = wUtil?.idleSec ?? totalSec;
-  const idlePct = totalSec > 0 ? idleSec / totalSec : 0;
-  const isOverloaded = util01 > 0.9;
-  const isUnderutilized = idlePct > 0.5;
-
-  const violations: ConstraintViolationDetail[] = [];
-  let status: "ok" | "warning" = "ok";
-
-  if (isOverloaded) {
-    status = "warning";
-    violations.push({
-      description: `Utilization at ${Math.round(util01 * 100)}% — wagon is a bottleneck`,
-      cause: "Wagon is overloaded with transport tasks",
-      basketId: "-",
-      timestamp: 0,
-      elapsed: util01,
-      limit: 0.9,
-    });
-  } else if (isUnderutilized) {
-    status = "warning";
-    violations.push({
-      description: `Idle ${Math.round(idlePct * 100)}% of simulation time — wagon may be unnecessary`,
-      cause: "Wagon has insufficient work assigned",
-      basketId: "-",
-      timestamp: 0,
-      elapsed: idlePct,
-      limit: 0.5,
-    });
-  }
-
-  return {
-    componentId: wagonId,
-    componentType: "wagon",
-    label: `Wagon ${wagonId}`,
-    rule: `Utilization: >90% overloaded, idle >50% underutilized`,
-    status,
-    violations,
-    totalViolationCount: violations.length,
-  };
-}
-
-function analyzeBasket(config: LineConfig): ComponentConstraint {
-  const { maxWeightKg, articleWeightKg, maxArticlesPerBasket } = config.transport;
-
-  if (maxWeightKg == null || articleWeightKg == null || maxArticlesPerBasket == null) {
-    return {
-      componentId: "BASKET",
-      componentType: "basket",
-      label: "Basket Capacity",
-      rule: "No capacity constraints configured",
-      status: "ok",
-      violations: [],
-      totalViolationCount: 0,
-    };
-  }
-
-  const payload = articleWeightKg * maxArticlesPerBasket;
-  const rule = `Max ${maxArticlesPerBasket} articles × ${articleWeightKg} kg = ${payload.toFixed(1)} kg (limit ${maxWeightKg} kg)`;
-  const violations: ConstraintViolationDetail[] = [];
-  let status: "ok" | "warning" | "violated" = "ok";
-
-  if (payload > maxWeightKg) {
-    status = "violated";
-    const overshoot = payload - maxWeightKg;
-    violations.push({
-      description: `Payload ${payload.toFixed(1)} kg exceeds basket limit of ${maxWeightKg} kg by ${overshoot.toFixed(1)} kg`,
-      cause: "Reduce articles per basket or article weight",
-      basketId: "-",
-      timestamp: 0,
-      elapsed: payload,
-      limit: maxWeightKg,
-    });
-  } else if (payload > maxWeightKg * 0.8) {
-    status = "warning";
-    const pct = Math.round((payload / maxWeightKg) * 100);
-    violations.push({
-      description: `Payload ${payload.toFixed(1)} kg is at ${pct}% of basket limit (${maxWeightKg} kg)`,
-      cause: "Close to weight limit — consider reducing load",
-      basketId: "-",
-      timestamp: 0,
-      elapsed: payload,
-      limit: maxWeightKg,
-    });
-  }
-
-  return {
-    componentId: "BASKET",
-    componentType: "basket",
-    label: "Basket Capacity",
-    rule,
-    status,
-    violations,
-    totalViolationCount: violations.length,
   };
 }

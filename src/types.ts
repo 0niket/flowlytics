@@ -379,32 +379,6 @@ export interface GlossaryEntry {
 
 export interface UiElements {
   autoRun: HTMLInputElement;
-  kpiThroughput: HTMLElement;
-  kpiThroughputSub: HTMLElement;
-  kpiLeadTime: HTMLElement;
-  kpiLeadTimeSub: HTMLElement;
-  kpiBottleneck: HTMLElement;
-  kpiBottleneckSub: HTMLElement;
-  kpiViolations: HTMLElement;
-  kpiViolationsSub: HTMLElement;
-  kpiWagonUtil: HTMLElement;
-  kpiWagonUtilSub: HTMLElement;
-  kpiOptimalWip: HTMLElement;
-  kpiOptimalWipSub: HTMLElement;
-  stationMetricsBody: HTMLElement;
-  wagonMetricsBody: HTMLElement;
-  loadingKvGrid: HTMLElement;
-  loadingQueueSvg: SVGSVGElement;
-  throughputSvg: SVGSVGElement;
-  wipSvg: SVGSVGElement;
-  ganttSvg: SVGSVGElement;
-  violationSvg: SVGSVGElement;
-  wagonActivitySvg: SVGSVGElement;
-  exportSummaryBtn: HTMLButtonElement | null;
-  summaryInline: HTMLElement;
-  summaryText: HTMLTextAreaElement;
-  summarySelectBtn: HTMLButtonElement;
-  summaryHideBtn: HTMLButtonElement;
   configPanel: HTMLElement;
   constraintsBody: HTMLElement;
 }
@@ -416,8 +390,5 @@ export interface AppState {
   params: SimParams | null;
   plan: SimPlan | null;
   sim: SimulationResult | null;
-  chartsStale: boolean;
-  chartMeta: Record<string, unknown> | null;
-  activeTab: string;
   lineConfig: import("./builder/LineConfig").LineConfig | null;
 }
