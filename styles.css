@@ -625,6 +625,97 @@ html.light .toast {
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
 
+/* ===== FINANCIAL DASHBOARD ===== */
+#financialDashboard { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+#financialDashboard:empty { display: none; }
+
+.financial-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 12px;
+}
+.financial-card--hero {
+  border-left: 3px solid var(--accent2);
+  padding: 14px;
+}
+.financial-card__header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted); font-weight: 600;
+}
+.financial-card__value {
+  font-size: 24px; font-weight: 700; margin: 4px 0;
+  font-family: var(--mono);
+}
+.financial-card__detail {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+}
+.financial-card__ratio {
+  font-size: 11px; color: var(--accent2); font-weight: 500;
+}
+
+.violation-alert {
+  border: 1px solid rgba(255,107,107,0.3); border-left: 3px solid var(--danger);
+  border-radius: var(--radius); padding: 12px;
+  background: rgba(255,107,107,0.08);
+}
+.violation-alert__title {
+  font-size: 13px; font-weight: 700; color: var(--danger);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.violation-alert__desc {
+  font-size: 12px; color: var(--muted); margin-top: 4px;
+}
+.violation-alert__detail {
+  font-size: 11px; color: var(--muted); margin-top: 2px;
+}
+
+.cost-group { padding: 6px 0; }
+.cost-group__header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; font-weight: 600; color: var(--text);
+}
+.cost-group__item {
+  font-size: 11px; color: var(--muted); padding-left: 16px; line-height: 1.7;
+}
+
+.separator {
+  border: none; border-top: 1px solid var(--border); margin: 4px 0;
+}
+
+.unit-metric__label {
+  font-size: 10px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.04em; font-weight: 600;
+}
+.unit-metric__value {
+  font-size: 15px; font-weight: 600; font-family: var(--mono);
+  margin-top: 2px;
+}
+
+/* ===== ECONOMICS SIDEBAR ===== */
+.economics-fieldset {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px; margin-bottom: 6px;
+}
+.economics-fieldset__legend {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); padding: 0 4px;
+}
+.field__hint {
+  font-size: 10px; font-style: italic; color: var(--muted); margin-top: 2px;
+}
+
+/* Light theme overrides */
+html.light .financial-card {
+  background: #fff; border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+html.light .violation-alert {
+  background: rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.15);
+}
+html.light .economics-fieldset {
+  border-color: rgba(0,0,0,0.10);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }
