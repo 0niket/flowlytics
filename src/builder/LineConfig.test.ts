@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createDefaultLineConfig,
+  createDefaultEconomicsConfig,
   lineConfigToSimParams,
   lineConfigToLayout,
   lineConfigFromSimParams,
@@ -57,6 +58,27 @@ describe("createDefaultLineConfig", () => {
     expect(config.settings.targetBph).toBe(2.0);
     expect(config.settings.simHours).toBe(2);
     expect(config.settings.basketCount).toBe(2);
+  });
+
+  it("economics defaults are present", () => {
+    const config = createDefaultLineConfig();
+    expect(config.economics).toBeDefined();
+    expect(config.economics).toEqual(createDefaultEconomicsConfig());
+  });
+});
+
+describe("createDefaultEconomicsConfig", () => {
+  it("returns all zeros except operatingHoursPerYear and basketLifeYears", () => {
+    const econ = createDefaultEconomicsConfig();
+    expect(econ.revenuePerArticle).toBe(0);
+    expect(econ.articlesPerBasket).toBe(0);
+    expect(econ.operatorCostPerHr).toBe(0);
+    expect(econ.energyCostPerHr).toBe(0);
+    expect(econ.maintenanceCostPerHr).toBe(0);
+    expect(econ.waterAndEffluentCostPerHr).toBe(0);
+    expect(econ.basketCostRs).toBe(0);
+    expect(econ.basketLifeYears).toBe(5);
+    expect(econ.operatingHoursPerYear).toBe(4000);
   });
 });
 

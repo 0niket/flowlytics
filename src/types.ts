@@ -375,6 +375,41 @@ export interface GlossaryEntry {
   example: string;
 }
 
+// ─── Economics ────────────────────────────────────────────────
+
+export interface EconomicsResult {
+  revenuePerHr: number;
+  totalCostPerHr: number;
+  profitPerHr: number;
+  profitMarginPct: number;
+
+  costBreakdown: {
+    equipmentPerHr: number;
+    wagonCostPerHr: number;
+    basketCostPerHr: number;
+    chemicalPerHr: number;
+    laborPerHr: number;
+    energyPerHr: number;
+    maintenancePerHr: number;
+    waterEffluentPerHr: number;
+  };
+
+  unitEconomics: {
+    costPerBasket: number;
+    costPerArticle: number;
+    revenuePerBasket: number;
+    profitPerBasket: number;
+  };
+
+  ratios: {
+    chemicalCostPctOfRevenue: number;
+  };
+
+  throughputBph: number;
+  hasViolations: boolean;
+  breakEvenBph: number;
+}
+
 // ─── UI Elements ───────────────────────────────────────────────
 
 export interface UiElements {
@@ -391,4 +426,5 @@ export interface AppState {
   plan: SimPlan | null;
   sim: SimulationResult | null;
   lineConfig: import("./builder/LineConfig").LineConfig | null;
+  economics: EconomicsResult | null;
 }

@@ -19,4 +19,5 @@ export const state: AppState = {
   plan: null,
   sim: null,
   lineConfig: null,
+  economics: null,
 };

@@ -22,6 +22,7 @@ export interface StationConfig {
   chemicalDescription?: string;
   loadingDescription?: string;
   unloadingDescription?: string;
+  tankFixedCostPerHr?: number;        // Rs/hr — all-in tank operating cost
 }
 
 export interface WagonConfig {
@@ -34,6 +35,8 @@ export interface WagonConfig {
   lowerSec: number;
   pickSec: number;
   dropSec: number;
+  costRs?: number;                    // One-time purchase cost
+  lifeYears?: number;                 // Useful life for amortization
 }
 
 export interface TransportConfig {
@@ -58,13 +61,40 @@ export interface RunSettings {
   basketCount: number;
 }
 
+export interface EconomicsConfig {
+  revenuePerArticle: number;
+  articlesPerBasket: number;
+  operatorCostPerHr: number;
+  energyCostPerHr: number;
+  maintenanceCostPerHr: number;
+  waterAndEffluentCostPerHr: number;
+  basketCostRs: number;
+  basketLifeYears: number;
+  operatingHoursPerYear: number;
+}
+
 export interface LineConfig {
   stations: StationConfig[];
   transport: TransportConfig;
   settings: RunSettings;
+  economics: EconomicsConfig;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────
+
+export function createDefaultEconomicsConfig(): EconomicsConfig {
+  return {
+    revenuePerArticle: 0,
+    articlesPerBasket: 0,
+    operatorCostPerHr: 0,
+    energyCostPerHr: 0,
+    maintenanceCostPerHr: 0,
+    waterAndEffluentCostPerHr: 0,
+    basketCostRs: 0,
+    basketLifeYears: 5,
+    operatingHoursPerYear: 4000,
+  };
+}
 
 export function createDefaultLineConfig(): LineConfig {
   return {
@@ -89,6 +119,7 @@ export function createDefaultLineConfig(): LineConfig {
       simHours: 2,
       basketCount: 2,
     },
+    economics: createDefaultEconomicsConfig(),
   };
 }
 
@@ -290,5 +321,6 @@ export function lineConfigFromSimParams(params: SimParams): LineConfig {
       simHours: params.simHours,
       basketCount: params.basketCount,
     },
+    economics: createDefaultEconomicsConfig(),
   };
 }

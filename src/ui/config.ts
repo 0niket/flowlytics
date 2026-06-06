@@ -1,80 +1,21 @@
 import { ui, state } from "./state";
-import { buildSyntheticLayout } from "../engine/layout";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
 import { analyzeConstraints } from "../engine/constraints";
-import { clamp, minutesToSeconds } from "../utils";
-import type { SimParams, RecipeStep, TankType } from "../types";
-
-function readRecipeStepsFromSidebar(): RecipeStep[] {
-  const steps: RecipeStep[] = [];
-  const sections = document.querySelectorAll("#stationParamsBody details[data-station-id]");
-  for (const section of sections) {
-    const id = section.getAttribute("data-station-id") ?? "";
-    const kind = section.getAttribute("data-station-kind") ?? "tank";
-    const dwellInput = section.querySelector<HTMLInputElement>(".sp-dwell");
-    const typeSelect = section.querySelector<HTMLSelectElement>(".sp-type");
-    const tolInput = section.querySelector<HTMLInputElement>(".sp-tol");
-    const dwellSec = dwellInput ? minutesToSeconds(Math.max(0, Number(dwellInput.value))) : 0;
-    const stepKind: "tank" | "station" | "oven" = kind === "tank" ? "tank" : kind === "wdo" ? "oven" : "station";
-    let tankType: TankType | undefined;
-    let tolerancePct: number | undefined;
-    if (kind === "tank") {
-      tankType = (typeSelect?.value as TankType) ?? "chemical";
-      tolerancePct = tolInput ? clamp(Number(tolInput.value), 0, 50) / 100 : 0.1;
-    }
-    steps.push({ id, label: id, dwellSec, kind: stepKind, tankType, tolerancePct });
-  }
-  return steps;
-}
-
-export function readParamsFromUi(): SimParams {
-  // If state.params was already set by the builder/renderer, use it directly
-  if (state.params) return state.params;
-
-  // Fallback: build from sidebar DOM (for initial load before builder renders)
-  const recipeSteps = readRecipeStepsFromSidebar();
-  const tankCount = recipeSteps.filter((s) => s.kind === "tank").length;
-  const loadStep = recipeSteps.find((s) => s.id === "LOAD");
-  const unloadStep = recipeSteps.find((s) => s.id === "UNLOAD");
-  const wdoStep = recipeSteps.find((s) => s.id === "WDO");
-
-  return {
-    preset: "custom",
-    tankCount,
-    basketCount: 2,
-    recipeSteps,
-    wdoTimeMin: wdoStep ? wdoStep.dwellSec / 60 : 10,
-    loadTimeMin: loadStep ? loadStep.dwellSec / 60 : 20,
-    unloadTimeMin: unloadStep ? unloadStep.dwellSec / 60 : 10,
-    dripTimeSec: 4,
-    targetBph: 0,
-    simHours: 2,
-    wagonSpeedMPerMin: 18,
-    liftLowerSec: 16,
-    pickDropSec: 10,
-    wagonCount: 1,
-    distanceMode: "manhattan",
-    dwellClockOffsetSec: null,
-    articleMaterialType: "mild_steel",
-  };
-}
-
-export function updateLayout(): void {
-  if (!state.params) return;
-  state.layout = buildSyntheticLayout(state.params.tankCount);
-  state.layout.meta.distanceMode = state.params.distanceMode || "manhattan";
-}
-
-export function renderStationParams(): void {
-  // Station parameters are now rendered inline by the config view renderer.
-  // This function is kept for compatibility but is a no-op.
-}
+import { lineConfigToSimParams, lineConfigToLayout } from "../builder/LineConfig";
+import { calculateEconomics } from "../engine/economics";
+import { renderFinancialDashboard } from "./dashboard";
 
 export function recomputePlan(): void {
-  state.params = readParamsFromUi();
-  updateLayout();
+  if (!state.lineConfig) return;
+  state.params = lineConfigToSimParams(state.lineConfig);
+  state.layout = lineConfigToLayout(state.lineConfig);
   state.plan = buildSimPlan(state.layout, state.params);
   state.sim = runSimulation(state.layout, state.params);
+
+  // Calculate economics from config + simulation result
+  if (state.sim) {
+    state.economics = calculateEconomics(state.lineConfig, state.sim);
+  }
 }
 
 // ─── Rendering ────────────────────────────────────────────────
@@ -84,9 +25,15 @@ function escapeHtml(s: string): string {
 }
 
 function updateResults(): void {
-  renderStationParams();
   if (!state.sim || !state.params) return;
+  renderFinancialDashboardSection();
   renderConstraintsTab();
+}
+
+function renderFinancialDashboardSection(): void {
+  const container = document.getElementById("financialDashboard");
+  if (!container || !state.economics || !state.lineConfig || !state.sim) return;
+  renderFinancialDashboard(state.economics, state.lineConfig, state.sim.violations, container);
 }
 
 function renderConstraintsTab(): void {
