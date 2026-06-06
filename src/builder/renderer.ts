@@ -169,11 +169,21 @@ function renderStationSection(container: HTMLElement): void {
           <button class="station-card__remove btn-remove-wdo" data-index="${i}" title="Remove WDO">&times;</button>
         </div>
         <div class="station-card__subtitle">Drying Oven</div>
-        <div class="field" style="margin:0;">
-          <label class="field__label">Dry time</label>
-          <div class="station-card__field">
-            <input class="bldr-wdo-time station-card__input" data-index="${i}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dwellSec)}" />
-            <span class="station-card__unit">min</span>
+        <div class="grid2" style="margin-bottom:8px;">
+          <div class="field" style="margin:0;">
+            <label class="field__label">Dry time</label>
+            <div class="station-card__field">
+              <input class="bldr-wdo-time station-card__input" data-index="${i}" type="number" min="0" step="0.5" value="${secondsToMinutes(s.dryTimeSec ?? 600)}" />
+              <span class="station-card__unit">min</span>
+            </div>
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Tolerance</label>
+            <div class="station-card__field">
+              <span class="station-card__unit">&plusmn;</span>
+              <input class="bldr-wdo-tol station-card__input" data-index="${i}" type="number" min="0" max="100" step="1" value="${((s.tolerancePct ?? 0.1) * 100).toFixed(0)}" />
+              <span class="station-card__unit">%</span>
+            </div>
           </div>
         </div>
       `;
@@ -458,6 +468,7 @@ function renderEconomicsSection(container: HTMLElement): void {
   const section = document.createElement("details");
   section.className = "config-section config-section--details";
   section.id = "cvEconomicsSection";
+  section.setAttribute("open", "");
 
   section.innerHTML = `
     <summary class="config-section__header">
@@ -627,6 +638,17 @@ function wireListeners(signal: AbortSignal): void {
           index
         );
         autoRunIfEnabled();
+        return;
+      }
+
+      // WDO tolerance
+      if (target.classList.contains("bldr-wdo-tol")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val)) {
+          builder.setWdoTolerance(index, val / 100);
+          autoRunIfEnabled();
+        }
         return;
       }
 

@@ -116,7 +116,13 @@ export class Builder {
       wdo = this._config.stations.find((s) => s.kind === "wdo");
     }
     if (!wdo) throw new Error("No WDO station in config");
-    wdo.dwellSec = drySec;
+    wdo.dryTimeSec = drySec;
+  }
+
+  setWdoTolerance(index: number, pct: number): void {
+    const station = this._config.stations[index];
+    if (!station || station.kind !== "wdo") throw new Error(`Not a WDO at index ${index}`);
+    station.tolerancePct = Math.max(0, Math.min(1, pct));
   }
 
   addWdo(afterIndex: number): void {
@@ -126,7 +132,9 @@ export class Builder {
       id: "",
       label: "WDO",
       kind: "wdo",
-      dwellSec: 600,
+      dwellSec: 0,
+      dryTimeSec: 600,
+      tolerancePct: 0.1,
       maxDwellSec: 900,
     });
     this._reindexWdos();

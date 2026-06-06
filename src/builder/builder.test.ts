@@ -118,7 +118,8 @@ describe("Builder — station operations", () => {
     b.enableWdo();
     const wdo = b.config.stations.find((s) => s.kind === "wdo");
     expect(wdo).toBeDefined();
-    expect(wdo!.dwellSec).toBe(600);
+    expect(wdo!.dryTimeSec).toBe(600);
+    expect(wdo!.dwellSec).toBe(0);
     expect(wdo!.maxDwellSec).toBe(900);
     const unloadIdx = b.config.stations.findIndex((s) => s.kind === "unloading");
     const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
@@ -529,7 +530,7 @@ describe("Builder — pre-fill from existing", () => {
     custom.settings.articleMaterialType = "stainless_steel";
     custom.transport.wagonCount = 3;
     custom.stations.push({
-      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 600, maxDwellSec: 900,
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 0, dryTimeSec: 600, maxDwellSec: 900,
     });
     const b = new Builder(custom);
     expect(b.config.settings.articleMaterialType).toBe("stainless_steel");

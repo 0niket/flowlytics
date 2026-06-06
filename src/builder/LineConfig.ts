@@ -17,6 +17,7 @@ export interface StationConfig {
   kind: StationKind;
   tankType?: TankType;
   dwellSec: number;
+  dryTimeSec?: number;
   tolerancePct?: number;
   maxDwellSec?: number;
   chemicalDescription?: string;
@@ -120,7 +121,7 @@ export function createDefaultLineConfig(): LineConfig {
 // ─── Mapping Helpers ─────────────────────────────────────────
 
 function toRecipeStep(st: StationConfig): RecipeStep {
-  const base = { id: st.id, label: st.label, dwellSec: st.dwellSec };
+  const base = { id: st.id, label: st.label, dwellSec: st.kind === "wdo" ? 0 : st.dwellSec };
   if (st.kind === "tank") {
     // "extra" tankType doesn't exist on the legacy RecipeStep type yet,
     // so it maps to undefined — treated as a no-parameter placeholder.
@@ -128,7 +129,7 @@ function toRecipeStep(st: StationConfig): RecipeStep {
     return { ...base, kind: "tank" as const, tankType, tolerancePct: st.tolerancePct };
   }
   if (st.kind === "wdo") {
-    return { ...base, kind: "oven" as const };
+    return { ...base, kind: "oven" as const, dryTimeSec: st.dryTimeSec, tolerancePct: st.tolerancePct };
   }
   return { ...base, kind: "station" as const };
 }
@@ -203,7 +204,7 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
     tankCount: tankIds.length,
     basketCount: computeOptimalBasketCount(config),
     recipeSteps,
-    wdoTimeMin: wdoStation ? wdoStation.dwellSec / 60 : 10,
+    wdoTimeMin: wdoStation ? (wdoStation.dryTimeSec ?? wdoStation.dwellSec) / 60 : 10,
     loadTimeMin: loadStation ? loadStation.dwellSec / 60 : 20,
     unloadTimeMin: unloadStation ? unloadStation.dwellSec / 60 : 10,
     dripTimeSec: config.transport.dripSec,
@@ -286,6 +287,10 @@ export function lineConfigFromSimParams(params: SimParams): LineConfig {
     };
     if (kind === "tank") {
       station.tankType = step.tankType || "chemical";
+      station.tolerancePct = step.tolerancePct;
+    }
+    if (kind === "wdo") {
+      station.dryTimeSec = step.dryTimeSec ?? step.dwellSec;
       station.tolerancePct = step.tolerancePct;
     }
     stations.push(station);

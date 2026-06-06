@@ -115,18 +115,34 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     return distanceMm(a, b, layout.meta?.distanceMode || "manhattan") / Math.max(1e-6, speed);
   }
 
-  const dwellTarget = new Map(params.recipeSteps.map((s) => [s.id, s.dwellSec]));
+  const dwellTarget = new Map(params.recipeSteps.map((s) => [s.id, s.kind === "oven" ? (s.dryTimeSec ?? s.dwellSec) : s.dwellSec]));
   const dwellMin = new Map<string, number>();
   const dwellMax = new Map<string, number>();
   const dwellMaxAbs = new Map<string, number>();
   const stepTol = new Map<string, number>();
   for (const step of params.recipeSteps) {
+    if (step.kind !== "tank") continue;
     const t = Math.max(0, step.dwellSec);
     const tol = clamp(step.tolerancePct ?? 0.1, 0, 0.5);
     stepTol.set(step.id, tol);
     dwellMin.set(step.id, t * (1 - tol));
     dwellMax.set(step.id, t * (1 + tol));
     if (step.maxDwellSec != null) dwellMaxAbs.set(step.id, step.maxDwellSec);
+  }
+
+  // Drying-time enforcement maps (WDO only)
+  const dryTarget = new Map<string, number>();
+  const dryMin = new Map<string, number>();
+  const dryMax = new Map<string, number>();
+  const dryTol = new Map<string, number>();
+  for (const step of params.recipeSteps) {
+    if (step.kind !== "oven") continue;
+    const t = Math.max(0, step.dryTimeSec ?? step.dwellSec);
+    const tol = clamp(step.tolerancePct ?? 0.1, 0, 0.5);
+    dryTarget.set(step.id, t);
+    dryTol.set(step.id, tol);
+    dryMin.set(step.id, t * (1 - tol));
+    dryMax.set(step.id, t * (1 + tol));
   }
 
   const lastZoneIdx = resources.wagons.length - 1;
@@ -491,7 +507,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
               }
             }
           }
-          // Max-time violation for LOAD/UNLOAD/WDO
+          // Max-time violation for tanks with maxDwellSec
           if (dwellMaxAbs.has(e.from!) && b.insertedAt != null) {
             const maxAbs = dwellMaxAbs.get(e.from!)!;
             if (t - b.insertedAt > maxAbs + 0.001) {
@@ -503,6 +519,35 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
                 timestamp: t, cause: deriveViolationCause(b),
               });
               if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
+            }
+          }
+          // Drying-time violation for WDO
+          const dryT = dryTarget.get(e.from!);
+          const dryMx = dryMax.get(e.from!);
+          if (dryT != null && dryT > 0 && b.insertedAt != null && dryMx != null) {
+            const dryMn = dryMin.get(e.from!);
+            const over = t - (b.insertedAt + dryMx);
+            if (over > 0.001) {
+              violations.push({
+                basketId: e.basketId!, tankId: e.from!, type: "over_dwell",
+                elapsed: t - b.insertedAt, dwellTime: dryT, tolerancePct: dryTol.get(e.from!)!,
+                earliestExit: b.insertedAt + (dryT * (1 - (dryTol.get(e.from!) ?? 0.1))),
+                latestExit: b.insertedAt + dryMx,
+                timestamp: t, cause: deriveViolationCause(b),
+              });
+              if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
+            } else if (dryMn != null) {
+              const under = (b.insertedAt + dryMn) - t;
+              if (under > 0.001) {
+                violations.push({
+                  basketId: e.basketId!, tankId: e.from!, type: "under_dwell",
+                  elapsed: t - b.insertedAt, dwellTime: dryT, tolerancePct: dryTol.get(e.from!)!,
+                  earliestExit: b.insertedAt + dryMn,
+                  latestExit: b.insertedAt + dryMx,
+                  timestamp: t, cause: deriveViolationCause(b),
+                });
+                if (stationOccupancy[e.from!]) stationOccupancy[e.from!].violationCount++;
+              }
             }
           }
           // Handoff detection: next zone picks up from boundary tank
@@ -559,7 +604,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
           } else {
             addOccupant(e.to!, e.basketId!);
             if (stationOccupancy[e.to!]) stationOccupancy[e.to!].entries.push({ start: t, end: null });
-            const reqMin = dwellMin.get(e.to!) ?? 0;
+            const reqMin = dwellMin.get(e.to!) ?? dryMin.get(e.to!) ?? 0;
             b.readyAt = Math.max(t, (b.insertedAt ?? t) + reqMin);
             b.lastBlockReason = undefined;
             transitionBasketWithLog(b, "DROP_AT_TANK", t, `dropped_at_${e.to}`);

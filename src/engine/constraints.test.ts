@@ -41,7 +41,7 @@ function multiStationConfig(): LineConfig {
     { id: "LOAD", label: "Loading", kind: "loading", dwellSec: 0 },
     { id: "T1", label: "Tank 1", kind: "tank", tankType: "chemical", dwellSec: 150, tolerancePct: 0.1 },
     { id: "T2", label: "Tank 2", kind: "tank", tankType: "rinse", dwellSec: 60, tolerancePct: 0.5 },
-    { id: "WDO", label: "Dry-Off Oven", kind: "wdo", dwellSec: 120, maxDwellSec: 300 },
+    { id: "WDO", label: "Dry-Off Oven", kind: "wdo", dwellSec: 0, dryTimeSec: 120, maxDwellSec: 300 },
     { id: "UNLOAD", label: "Unloading", kind: "unloading", dwellSec: 0 },
   ];
   cfg.transport.wagonCount = 1;

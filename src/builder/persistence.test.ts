@@ -63,7 +63,7 @@ describe("persistence", () => {
   it("round-trips all station config fields", () => {
     const config = createDefaultLineConfig();
     config.stations.push({
-      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 600, maxDwellSec: 900,
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 0, dryTimeSec: 600, maxDwellSec: 900,
     });
     saveDraft(config);
     const draft = loadDraft()!;
@@ -110,7 +110,7 @@ describe("persistence", () => {
     saveDraft(config);
     const raw = globalThis.localStorage.getItem("flowlytics_builder_draft")!;
     const parsed = JSON.parse(raw);
-    expect(parsed.version).toBe(5);
+    expect(parsed.version).toBe(6);
   });
 
   it("migrates v4 draft — removes centralized cost fields", () => {
@@ -142,7 +142,7 @@ describe("persistence", () => {
 
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(5);
+    expect(draft!.version).toBe(6);
 
     // Removed fields should be gone
     const econ = draft!.config.economics as unknown as Record<string, unknown>;
@@ -176,7 +176,7 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v1Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(5);
+    expect(draft!.version).toBe(6);
     expect(draft!.config).toBeDefined();
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
@@ -188,19 +188,34 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(5);
+    expect(draft!.version).toBe(6);
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("does not migrate v5 drafts", () => {
+  it("does not migrate v6 drafts", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(5);
+    expect(draft!.version).toBe(6);
   });
 
-  it("v5 draft preserves existing economics values", () => {
+  it("migrates v5 draft — WDO dwellSec to dryTimeSec", () => {
+    const config = createDefaultLineConfig();
+    config.stations.push({
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 600, maxDwellSec: 900,
+    });
+    const v5Draft = { config, version: 5 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v5Draft));
+    const draft = loadDraft();
+    expect(draft).not.toBeNull();
+    expect(draft!.version).toBe(6);
+    const wdo = draft!.config.stations.find((s) => s.kind === "wdo")!;
+    expect(wdo.dryTimeSec).toBe(600);
+    expect(wdo.dwellSec).toBe(0);
+  });
+
+  it("v6 draft preserves existing economics values", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 75;
     config.economics.energyCostPerHr = 280;
@@ -210,7 +225,7 @@ describe("persistence", () => {
     expect(draft!.config.economics.energyCostPerHr).toBe(280);
   });
 
-  it("v5 draft preserves distributed cost fields", () => {
+  it("v6 draft preserves distributed cost fields", () => {
     const config = createDefaultLineConfig();
     config.stations[1].tankCapacityLitres = 500;
     config.stations[1].chemicalCostPerLitre = 25;

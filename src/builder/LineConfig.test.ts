@@ -283,7 +283,8 @@ function lineConfigWithWdo(): LineConfig {
     id: "WDO",
     label: "WDO",
     kind: "wdo",
-    dwellSec: 600,
+    dwellSec: 0,
+    dryTimeSec: 600,
     maxDwellSec: 900,
   });
   return config;

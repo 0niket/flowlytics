@@ -32,10 +32,11 @@ describe("defaultRecipe", () => {
     for (const t of tanks) expect(t.tankType).toBe("chemical");
   });
 
-  it("sets WDO dwell to 10 min", () => {
+  it("sets WDO dryTimeSec to 10 min", () => {
     const steps = defaultRecipe(6, "ms");
     const wdo = steps.find((s) => s.id === "WDO");
-    expect(wdo!.dwellSec).toBe(600);
+    expect(wdo!.dryTimeSec).toBe(600);
+    expect(wdo!.dwellSec).toBe(0);
   });
 
   it("sets LOAD and UNLOAD dwell to 0", () => {

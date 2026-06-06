@@ -36,6 +36,7 @@ export interface RecipeStep {
   tankType?: TankType;
   tolerancePct?: number;
   maxDwellSec?: number;
+  dryTimeSec?: number;
 }
 
 export interface TankConfig {

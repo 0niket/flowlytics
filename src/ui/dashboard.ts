@@ -28,22 +28,103 @@ export function renderFinancialDashboard(
   const articlesPerBasket = config.transport.maxArticlesPerBasket ?? 0;
   const hasRevenue = config.economics.revenuePerArticle > 0 && articlesPerBasket > 0;
 
-  // If violations, show alert
-  if (economics.hasViolations && hasRevenue) {
+  // If violations, show compact warning banner + expandable violation cards
+  if (economics.hasViolations && violations.length > 0) {
     const uniqueCount = countUniqueViolatedBaskets(violations);
+
+    // Compact one-line warning banner
     const alert = document.createElement("div");
     alert.className = "violation-alert";
-    alert.innerHTML = `
-      <div class="violation-alert__title">CONFIGURATION HAS VIOLATIONS</div>
-      <div class="violation-alert__desc">Fix timing before economics are meaningful.</div>
-      <div class="violation-alert__detail">${uniqueCount} basket${uniqueCount !== 1 ? "s" : ""} violated across ${violations.length} event${violations.length !== 1 ? "s" : ""}.</div>
-    `;
+    alert.innerHTML = `<span>⚠ ${uniqueCount} basket${uniqueCount !== 1 ? "s" : ""} violated across ${violations.length} event${violations.length !== 1 ? "s" : ""} — economics below may not reflect actual performance</span>`;
     container.appendChild(alert);
-    return;
+
+    // Group violations by tankId
+    const byTank = new Map<string, Violation[]>();
+    for (const v of violations) {
+      const group = byTank.get(v.tankId) ?? [];
+      group.push(v);
+      byTank.set(v.tankId, group);
+    }
+
+    const typeLabel = (t: string): string => {
+      if (t === "over_dwell") return "over-dwell";
+      if (t === "under_dwell") return "under-dwell";
+      if (t === "max_time") return "max-time";
+      return t;
+    };
+
+    const causeExplanation = (stationName: string, cause: string): string => {
+      if (cause === "wagon_unavailable")
+        return `Wagon couldn\u2019t reach ${stationName} in time to pick up the basket before dwell tolerance expired.`;
+      if (cause === "destination_blocked")
+        return `The next station after ${stationName} was occupied, so the basket couldn\u2019t be moved out in time.`;
+      if (cause === "line_design")
+        return `The line configuration makes it impossible to meet dwell targets at ${stationName}.`;
+      return "";
+    };
+
+    for (const [tankId, tankViolations] of byTank) {
+      // Determine dominant type and cause
+      const typeCounts = new Map<string, number>();
+      const causeCounts = new Map<string, number>();
+      for (const v of tankViolations) {
+        typeCounts.set(v.type, (typeCounts.get(v.type) ?? 0) + 1);
+        causeCounts.set(v.cause, (causeCounts.get(v.cause) ?? 0) + 1);
+      }
+      const dominantType = [...typeCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const dominantCause = [...causeCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+
+      const count = tankViolations.length;
+      const summary = `${escapeHtml(tankId)} — ${count} ${typeLabel(dominantType)} violation${count !== 1 ? "s" : ""}`;
+
+      let rowsHtml = "";
+      for (const v of tankViolations) {
+        rowsHtml += `<tr>
+          <td>${escapeHtml(v.tankId)}</td>
+          <td>${escapeHtml(v.basketId)}</td>
+          <td>${v.elapsed.toFixed(0)}s</td>
+          <td>${v.dwellTime}s ±${(v.tolerancePct * 100).toFixed(0)}%</td>
+          <td>${typeLabel(v.type)}</td>
+        </tr>`;
+      }
+
+      const card = document.createElement("details");
+      card.className = "violation-card";
+      card.innerHTML = `
+        <summary>${summary}</summary>
+        <div class="violation-card__body">
+          <div class="violation-card__cause">${causeExplanation(escapeHtml(tankId), dominantCause)}</div>
+          <table class="violation-card__table">
+            <thead><tr><th>Station</th><th>Basket</th><th>Elapsed</th><th>Target</th><th>Type</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+      container.appendChild(card);
+    }
   }
 
-  // No revenue configured — don't show financial dashboard
-  if (!hasRevenue) return;
+  // Show actionable error when economics prerequisites are missing
+  if (!hasRevenue) {
+    const missing: string[] = [];
+    if (!(config.economics.revenuePerArticle > 0)) missing.push("Revenue per article");
+    if (!(articlesPerBasket > 0)) missing.push("Max articles per basket");
+    if (missing.length > 0) {
+      const notice = document.createElement("div");
+      notice.className = "financial-card financial-card--notice";
+      notice.innerHTML = `
+        <div class="financial-card__header"><span>ECONOMICS</span></div>
+        <div class="financial-card__detail" style="margin-top:8px;">
+          Configure the following to enable the financial dashboard:
+        </div>
+        <ul class="financial-card__missing-list">
+          ${missing.map((m) => `<li>${m}</li>`).join("")}
+        </ul>
+      `;
+      container.appendChild(notice);
+    }
+    return;
+  }
 
   // ─── Profit/Hr Hero Card ────────────────────────────────
   const profitable = economics.profitPerHr >= 0;

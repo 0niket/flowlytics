@@ -36,7 +36,7 @@ export function defaultRecipe(tankCount: number, material: string | ArticleMater
   for (let i = 0; i < tankCount; i++) {
     steps.push({ id: `T${i + 1}`, label: `Tank ${i + 1}`, dwellSec: minutesToSeconds(dwellMin), kind: "tank", tankType: "chemical", tolerancePct: 0.1 });
   }
-  steps.push({ id: "WDO", label: "Dry-Off Oven", dwellSec: minutesToSeconds(10), kind: "oven" });
+  steps.push({ id: "WDO", label: "Dry-Off Oven", dwellSec: 0, dryTimeSec: minutesToSeconds(10), kind: "oven" });
   steps.push({ id: "UNLOAD", label: "Unload", dwellSec: 0, kind: "station" });
   return steps;
 }
