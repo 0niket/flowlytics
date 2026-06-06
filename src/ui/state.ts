@@ -10,7 +10,6 @@ function el<T extends HTMLElement>(id: string): T {
 export const ui: UiElements = {
   autoRun: el("autoRun"),
   configPanel: el("configPanel"),
-  constraintsBody: el("constraintsBody"),
 };
 
 export const state: AppState = {

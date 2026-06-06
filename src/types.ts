@@ -415,7 +415,6 @@ export interface EconomicsResult {
 export interface UiElements {
   autoRun: HTMLInputElement;
   configPanel: HTMLElement;
-  constraintsBody: HTMLElement;
 }
 
 // ─── App State ─────────────────────────────────────────────────
