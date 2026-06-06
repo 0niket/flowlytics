@@ -560,18 +560,6 @@ describe("Builder — economics operations", () => {
     expect(b.config.economics.revenuePerArticle).toBe(0);
   });
 
-  it("setArticlesPerBasket updates config", () => {
-    const b = new Builder();
-    b.setArticlesPerBasket(20);
-    expect(b.config.economics.articlesPerBasket).toBe(20);
-  });
-
-  it("setArticlesPerBasket floors to integer", () => {
-    const b = new Builder();
-    b.setArticlesPerBasket(20.7);
-    expect(b.config.economics.articlesPerBasket).toBe(20);
-  });
-
   it("setOperatorCostPerHr updates config", () => {
     const b = new Builder();
     b.setOperatorCostPerHr(450);

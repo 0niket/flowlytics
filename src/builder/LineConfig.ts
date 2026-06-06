@@ -63,7 +63,6 @@ export interface RunSettings {
 
 export interface EconomicsConfig {
   revenuePerArticle: number;
-  articlesPerBasket: number;
   operatorCostPerHr: number;
   energyCostPerHr: number;
   maintenanceCostPerHr: number;
@@ -85,7 +84,6 @@ export interface LineConfig {
 export function createDefaultEconomicsConfig(): EconomicsConfig {
   return {
     revenuePerArticle: 0,
-    articlesPerBasket: 0,
     operatorCostPerHr: 0,
     energyCostPerHr: 0,
     maintenanceCostPerHr: 0,

@@ -187,10 +187,10 @@ describe("persistence", () => {
   it("v4 draft preserves existing economics values", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 75;
-    config.economics.articlesPerBasket = 30;
+    config.economics.operatorCostPerHr = 500;
     saveDraft(config);
     const draft = loadDraft();
     expect(draft!.config.economics.revenuePerArticle).toBe(75);
-    expect(draft!.config.economics.articlesPerBasket).toBe(30);
+    expect(draft!.config.economics.operatorCostPerHr).toBe(500);
   });
 });

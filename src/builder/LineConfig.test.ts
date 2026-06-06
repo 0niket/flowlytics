@@ -71,7 +71,6 @@ describe("createDefaultEconomicsConfig", () => {
   it("returns all zeros except operatingHoursPerYear and basketLifeYears", () => {
     const econ = createDefaultEconomicsConfig();
     expect(econ.revenuePerArticle).toBe(0);
-    expect(econ.articlesPerBasket).toBe(0);
     expect(econ.operatorCostPerHr).toBe(0);
     expect(econ.energyCostPerHr).toBe(0);
     expect(econ.maintenanceCostPerHr).toBe(0);

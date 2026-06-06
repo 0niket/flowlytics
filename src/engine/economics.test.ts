@@ -66,7 +66,7 @@ describe("calculateEconomics", () => {
   it("revenue only (no costs) → profit = revenue", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 20;
+    config.transport.maxArticlesPerBasket = 20;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
     const result = calculateEconomics(config, sim);
@@ -94,7 +94,7 @@ describe("calculateEconomics", () => {
   it("full config → correct profit/hr and profit margin %", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 20;
+    config.transport.maxArticlesPerBasket = 20;
     config.economics.operatorCostPerHr = 450;
     config.economics.energyCostPerHr = 280;
     config.economics.maintenanceCostPerHr = 120;
@@ -137,7 +137,7 @@ describe("calculateEconomics", () => {
   it("zero throughput → revenue = 0, costPerBasket = Infinity", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 20;
+    config.transport.maxArticlesPerBasket = 20;
     config.economics.operatorCostPerHr = 450;
     const sim = makeSimResult({ throughputSteadyBph: 0 });
 
@@ -157,10 +157,10 @@ describe("calculateEconomics", () => {
     expect(result.hasViolations).toBe(true);
   });
 
-  it("articlesPerBasket = 0 → revenuePerBasket = 0, revenue = 0", () => {
+  it("maxArticlesPerBasket undefined → revenuePerBasket = 0, revenue = 0", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 0;
+    // maxArticlesPerBasket is undefined by default
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
     const result = calculateEconomics(config, sim);
@@ -216,7 +216,7 @@ describe("calculateEconomics", () => {
   it("break-even throughput = totalCosts/hr ÷ revenuePerBasket", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 20;
+    config.transport.maxArticlesPerBasket = 20;
     config.economics.operatorCostPerHr = 1000;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
@@ -239,7 +239,7 @@ describe("calculateEconomics", () => {
   it("chemical cost as % of revenue calculated correctly", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    config.economics.articlesPerBasket = 20;
+    config.transport.maxArticlesPerBasket = 20;
     config.stations[1].tankFixedCostPerHr = 540;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
@@ -252,7 +252,7 @@ describe("calculateEconomics", () => {
   it("profit margin % = profitPerHr / revenuePerHr × 100", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 100;
-    config.economics.articlesPerBasket = 10;
+    config.transport.maxArticlesPerBasket = 10;
     config.economics.operatorCostPerHr = 600;
     const sim = makeSimResult({ throughputSteadyBph: 2 });
 

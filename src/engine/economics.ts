@@ -49,8 +49,11 @@ export function calculateEconomics(
   const throughputBph = simResult.throughputSteadyBph;
   const hasViolations = simResult.violations.length > 0;
 
+  // Articles per basket — derived from transport basket capacity
+  const articlesPerBasket = config.transport.maxArticlesPerBasket ?? 0;
+
   // Revenue
-  const revenuePerBasket = econ.articlesPerBasket * econ.revenuePerArticle;
+  const revenuePerBasket = articlesPerBasket * econ.revenuePerArticle;
   const revenuePerHr = throughputBph * revenuePerBasket;
 
   // Equipment costs — wagons
@@ -92,7 +95,7 @@ export function calculateEconomics(
 
   // Unit economics
   const costPerBasket = safeDivide(totalCostPerHr, throughputBph);
-  const costPerArticle = safeDivide(costPerBasket, econ.articlesPerBasket);
+  const costPerArticle = safeDivide(costPerBasket, articlesPerBasket);
   const profitPerBasket = revenuePerBasket - costPerBasket;
 
   // Ratios

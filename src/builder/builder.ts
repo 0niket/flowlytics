@@ -262,10 +262,6 @@ export class Builder {
     this._config.economics.revenuePerArticle = Math.max(0, rs);
   }
 
-  setArticlesPerBasket(count: number): void {
-    this._config.economics.articlesPerBasket = Math.max(0, Math.floor(count));
-  }
-
   setOperatorCostPerHr(rs: number): void {
     this._config.economics.operatorCostPerHr = Math.max(0, rs);
   }

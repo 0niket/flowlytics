@@ -419,7 +419,7 @@ function renderSimSettingsSection(container: HTMLElement): void {
 
 function getEconomicsSummary(): string {
   const econ = builder.config.economics;
-  if (econ.revenuePerArticle === 0 && econ.articlesPerBasket === 0 &&
+  if (econ.revenuePerArticle === 0 &&
       econ.operatorCostPerHr === 0 && econ.energyCostPerHr === 0) {
     return "No economics configured";
   }
@@ -444,11 +444,6 @@ function renderEconomicsSection(container: HTMLElement): void {
           <label class="field__label">Revenue per article (₹)</label>
           <input class="bldr-econ field__control" data-econ-field="revenuePerArticle" type="number" min="0" step="1" value="${econ.revenuePerArticle || ""}" placeholder="0" />
           <div class="field__hint">typical: ₹30–80/article</div>
-        </div>
-        <div class="field">
-          <label class="field__label">Articles per basket</label>
-          <input class="bldr-econ field__control" data-econ-field="articlesPerBasket" type="number" min="0" step="1" value="${econ.articlesPerBasket || ""}" placeholder="0" />
-          <div class="field__hint">typical: 10–50 articles</div>
         </div>
       </fieldset>
 
@@ -721,7 +716,6 @@ function wireListeners(signal: AbortSignal): void {
         const val = Number((target as HTMLInputElement).value) || 0;
         switch (field) {
           case "revenuePerArticle": builder.setRevenuePerArticle(val); break;
-          case "articlesPerBasket": builder.setArticlesPerBasket(val); break;
           case "operatorCostPerHr": builder.setOperatorCostPerHr(val); break;
           case "energyCostPerHr": builder.setEnergyCostPerHr(val); break;
           case "maintenanceCostPerHr": builder.setMaintenanceCostPerHr(val); break;

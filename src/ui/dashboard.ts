@@ -25,7 +25,8 @@ export function renderFinancialDashboard(
 ): void {
   container.textContent = "";
 
-  const hasRevenue = config.economics.revenuePerArticle > 0 && config.economics.articlesPerBasket > 0;
+  const articlesPerBasket = config.transport.maxArticlesPerBasket ?? 0;
+  const hasRevenue = config.economics.revenuePerArticle > 0 && articlesPerBasket > 0;
 
   // If violations, show alert
   if (economics.hasViolations && hasRevenue) {
@@ -65,7 +66,7 @@ export function renderFinancialDashboard(
       Revenue: ${formatCurrency(economics.revenuePerHr)}/hr &nbsp;&nbsp; Costs: ${formatCurrency(economics.totalCostPerHr)}/hr
     </div>
     <div class="financial-card__detail">
-      ${economics.throughputBph.toFixed(1)} bph × ${config.economics.articlesPerBasket} articles × ${formatCurrency(config.economics.revenuePerArticle)}/article
+      ${economics.throughputBph.toFixed(1)} bph × ${articlesPerBasket} articles × ${formatCurrency(config.economics.revenuePerArticle)}/article
     </div>
   `;
   container.appendChild(hero);
