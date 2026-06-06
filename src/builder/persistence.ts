@@ -1,7 +1,8 @@
 import type { LineConfig } from "./LineConfig";
+import { createDefaultEconomicsConfig } from "./LineConfig";
 
 const STORAGE_KEY = "flowlytics_builder_draft";
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 export interface PersistedDraft {
   config: LineConfig;
@@ -27,10 +28,13 @@ export function loadDraft(): PersistedDraft | null {
     const version = typeof parsed.version === "number" ? parsed.version : 1;
 
     // v1->v2 migration was step shift; v2->v3 drops currentStep entirely
-    // All old drafts are accepted as long as they have a config
+    // v3->v4 adds economics field with defaults
     if (version < CURRENT_VERSION) {
-      // Re-save as v3 (drops currentStep if present)
       const config = parsed.config as LineConfig;
+      // v3->v4: add economics if missing
+      if (!config.economics) {
+        config.economics = createDefaultEconomicsConfig();
+      }
       saveDraft(config);
       return { config, version: CURRENT_VERSION };
     }

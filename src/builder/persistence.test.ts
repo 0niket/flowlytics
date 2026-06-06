@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { saveDraft, loadDraft, clearDraft } from "./persistence";
-import { createDefaultLineConfig } from "./LineConfig";
+import { createDefaultLineConfig, createDefaultEconomicsConfig } from "./LineConfig";
 
 function createMockStorage() {
   const store = new Map<string, string>();
@@ -105,46 +105,92 @@ describe("persistence", () => {
     expect(draft.config.transport.wagons![0].pickSec).toBe(7);
   });
 
-  it("saveDraft writes version 3", () => {
+  it("saveDraft writes version 4", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const raw = globalThis.localStorage.getItem("flowlytics_builder_draft")!;
     const parsed = JSON.parse(raw);
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
   });
 
-  it("migrates v1 draft (drops currentStep)", () => {
+  it("migrates v1 draft (drops currentStep, adds economics)", () => {
     const v1Draft = {
       config: createDefaultLineConfig(),
       currentStep: 2,
     };
+    // Remove economics to simulate v1
+    delete (v1Draft.config as unknown as Record<string, unknown>).economics;
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v1Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(3);
+    expect(draft!.version).toBe(4);
     expect(draft!.config).toBeDefined();
-    // v3 drafts have no currentStep
-    expect((draft as unknown as Record<string, unknown>).currentStep).toBeUndefined();
+    expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("migrates v2 draft (drops currentStep)", () => {
+  it("migrates v2 draft (drops currentStep, adds economics)", () => {
     const v2Draft = {
       config: createDefaultLineConfig(),
       currentStep: 3,
       version: 2,
     };
+    delete (v2Draft.config as unknown as Record<string, unknown>).economics;
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v2Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(3);
+    expect(draft!.version).toBe(4);
     expect(draft!.config).toBeDefined();
+    expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("does not migrate v3 drafts", () => {
+  it("migrates v3 draft (adds economics)", () => {
+    const v3Config = createDefaultLineConfig();
+    delete (v3Config as unknown as Record<string, unknown>).economics;
+    const v3Draft = { config: v3Config, version: 3 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
+    const draft = loadDraft();
+    expect(draft).not.toBeNull();
+    expect(draft!.version).toBe(4);
+    expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
+  });
+
+  it("v3 draft preserves existing station tankFixedCostPerHr as undefined", () => {
+    const v3Config = createDefaultLineConfig();
+    delete (v3Config as unknown as Record<string, unknown>).economics;
+    const v3Draft = { config: v3Config, version: 3 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
+    const draft = loadDraft();
+    expect(draft!.config.stations[1].tankFixedCostPerHr).toBeUndefined();
+  });
+
+  it("v3 draft preserves wagon costRs and lifeYears as undefined", () => {
+    const v3Config = createDefaultLineConfig();
+    delete (v3Config as unknown as Record<string, unknown>).economics;
+    v3Config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4 },
+    ];
+    const v3Draft = { config: v3Config, version: 3 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
+    const draft = loadDraft();
+    expect(draft!.config.transport.wagons![0].costRs).toBeUndefined();
+    expect(draft!.config.transport.wagons![0].lifeYears).toBeUndefined();
+  });
+
+  it("does not migrate v4 drafts", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(3);
+    expect(draft!.version).toBe(4);
+  });
+
+  it("v4 draft preserves existing economics values", () => {
+    const config = createDefaultLineConfig();
+    config.economics.revenuePerArticle = 75;
+    config.economics.articlesPerBasket = 30;
+    saveDraft(config);
+    const draft = loadDraft();
+    expect(draft!.config.economics.revenuePerArticle).toBe(75);
+    expect(draft!.config.economics.articlesPerBasket).toBe(30);
   });
 });
