@@ -547,6 +547,104 @@ describe("Builder — toLineConfig", () => {
   });
 });
 
+describe("Builder — economics operations", () => {
+  it("setRevenuePerArticle updates config", () => {
+    const b = new Builder();
+    b.setRevenuePerArticle(50);
+    expect(b.config.economics.revenuePerArticle).toBe(50);
+  });
+
+  it("setRevenuePerArticle clamps negative to 0", () => {
+    const b = new Builder();
+    b.setRevenuePerArticle(-10);
+    expect(b.config.economics.revenuePerArticle).toBe(0);
+  });
+
+  it("setArticlesPerBasket updates config", () => {
+    const b = new Builder();
+    b.setArticlesPerBasket(20);
+    expect(b.config.economics.articlesPerBasket).toBe(20);
+  });
+
+  it("setArticlesPerBasket floors to integer", () => {
+    const b = new Builder();
+    b.setArticlesPerBasket(20.7);
+    expect(b.config.economics.articlesPerBasket).toBe(20);
+  });
+
+  it("setOperatorCostPerHr updates config", () => {
+    const b = new Builder();
+    b.setOperatorCostPerHr(450);
+    expect(b.config.economics.operatorCostPerHr).toBe(450);
+  });
+
+  it("setEnergyCostPerHr updates config", () => {
+    const b = new Builder();
+    b.setEnergyCostPerHr(280);
+    expect(b.config.economics.energyCostPerHr).toBe(280);
+  });
+
+  it("setMaintenanceCostPerHr updates config", () => {
+    const b = new Builder();
+    b.setMaintenanceCostPerHr(120);
+    expect(b.config.economics.maintenanceCostPerHr).toBe(120);
+  });
+
+  it("setWaterEffluentCostPerHr updates config", () => {
+    const b = new Builder();
+    b.setWaterEffluentCostPerHr(150);
+    expect(b.config.economics.waterAndEffluentCostPerHr).toBe(150);
+  });
+
+  it("setBasketCostRs updates config", () => {
+    const b = new Builder();
+    b.setBasketCostRs(50000);
+    expect(b.config.economics.basketCostRs).toBe(50000);
+  });
+
+  it("setBasketLifeYears updates config", () => {
+    const b = new Builder();
+    b.setBasketLifeYears(5);
+    expect(b.config.economics.basketLifeYears).toBe(5);
+  });
+
+  it("setOperatingHoursPerYear updates config", () => {
+    const b = new Builder();
+    b.setOperatingHoursPerYear(6000);
+    expect(b.config.economics.operatingHoursPerYear).toBe(6000);
+  });
+
+  it("setTankFixedCostPerHr sets cost on tank", () => {
+    const b = new Builder();
+    b.setTankFixedCostPerHr(1, 180);
+    expect(b.config.stations[1].tankFixedCostPerHr).toBe(180);
+  });
+
+  it("setTankFixedCostPerHr throws for non-tank index", () => {
+    const b = new Builder();
+    expect(() => b.setTankFixedCostPerHr(0, 100)).toThrow("No tank at index 0");
+  });
+
+  it("setWagonCostRs sets cost on wagon", () => {
+    const b = new Builder();
+    b.setWagonCostRs(0, 1200000);
+    expect(b.config.transport.wagons![0].costRs).toBe(1200000);
+  });
+
+  it("setWagonLifeYears sets life on wagon", () => {
+    const b = new Builder();
+    b.setWagonLifeYears(0, 10);
+    expect(b.config.transport.wagons![0].lifeYears).toBe(10);
+  });
+
+  it("setWagonCostRs is safe for out-of-range index", () => {
+    const b = new Builder();
+    b.setWagonCostRs(5, 1000);
+    // should not throw
+    expect(b.config.transport.wagons!.length).toBe(1);
+  });
+});
+
 describe("Builder — clamping and edge cases", () => {
   it("setWagonCount clamps to 1", () => {
     const b = new Builder();
