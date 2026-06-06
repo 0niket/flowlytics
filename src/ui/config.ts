@@ -4,6 +4,19 @@ import { lineConfigToSimParams, lineConfigToLayout } from "../builder/LineConfig
 import { calculateEconomics } from "../engine/economics";
 import { renderFinancialDashboard } from "./dashboard";
 
+function switchTab(tab: "overview" | "violations"): void {
+  const overviewPanel = document.getElementById("tabOverview");
+  const violationsPanel = document.getElementById("tabViolations");
+  if (overviewPanel) overviewPanel.hidden = tab !== "overview";
+  if (violationsPanel) violationsPanel.hidden = tab !== "violations";
+
+  const tabs = document.querySelectorAll(".dashboard-tab");
+  for (const btn of tabs) {
+    const btnTab = (btn as HTMLElement).dataset.tab;
+    btn.classList.toggle("dashboard-tab--active", btnTab === tab);
+  }
+}
+
 export function recomputePlan(): void {
   if (!state.lineConfig) return;
   state.params = lineConfigToSimParams(state.lineConfig);
@@ -21,9 +34,34 @@ export function recomputePlan(): void {
 
 function updateResults(): void {
   if (!state.sim || !state.params) return;
-  const container = document.getElementById("financialDashboard");
-  if (!container || !state.economics || !state.lineConfig || !state.sim) return;
-  renderFinancialDashboard(state.economics, state.lineConfig, state.sim.violations, container);
+
+  const pinnedContainer = document.getElementById("dashboardPinned");
+  const overviewContainer = document.getElementById("tabOverview");
+  const violationsContainer = document.getElementById("tabViolations");
+
+  if (!pinnedContainer || !overviewContainer || !violationsContainer) return;
+  if (!state.economics || !state.lineConfig || !state.sim) return;
+
+  renderFinancialDashboard(
+    state.economics,
+    state.lineConfig,
+    state.sim.violations,
+    pinnedContainer,
+    overviewContainer,
+    violationsContainer,
+  );
+
+  // Update violation badge count on tab button
+  const badge = document.getElementById("violationBadge");
+  if (badge) {
+    const count = state.sim.violations.length;
+    if (count > 0) {
+      badge.textContent = String(count);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
 }
 
 export function recomputeAndRender(): void {
@@ -32,5 +70,14 @@ export function recomputeAndRender(): void {
 }
 
 export async function setupConfigPanel(): Promise<void> {
-  // No tab or export setup needed
+  // Tab navigation via event delegation
+  const tabBar = document.querySelector(".dashboard-tabs");
+  if (tabBar) {
+    tabBar.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>(".dashboard-tab");
+      if (!btn) return;
+      const tab = btn.dataset.tab as "overview" | "violations" | undefined;
+      if (tab) switchTab(tab);
+    });
+  }
 }

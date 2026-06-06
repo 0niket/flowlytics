@@ -625,9 +625,82 @@ html.light .toast {
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
 
+/* ===== DASHBOARD PINNED + TABS ===== */
+.dashboard-pinned {
+  flex-shrink: 0;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.dashboard-pinned:empty { display: none; }
+
+.dashboard-tabs {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+}
+.dashboard-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dashboard-tab:hover { color: var(--text); }
+.dashboard-tab--active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.dashboard-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,107,107,0.15);
+  color: var(--danger);
+  border: 1px solid rgba(255,107,107,0.3);
+}
+.dashboard-tab__count[hidden] { display: none; }
+
+#tabOverview,
+#tabViolations {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+#tabOverview[hidden],
+#tabViolations[hidden] { display: none; }
+#tabOverview:empty,
+#tabViolations:empty { display: none; }
+
+/* Light theme overrides for tabs */
+html.light .dashboard-pinned { border-bottom-color: rgba(0,0,0,0.08); }
+html.light .dashboard-tabs { background: #f7f8fa; border-bottom-color: rgba(0,0,0,0.08); }
+html.light .dashboard-tab { color: var(--muted); }
+html.light .dashboard-tab--active { color: var(--text); border-bottom-color: var(--accent); }
+html.light .dashboard-tab__count {
+  background: rgba(220,38,38,0.08);
+  color: var(--danger);
+  border-color: rgba(220,38,38,0.25);
+}
 /* ===== FINANCIAL DASHBOARD ===== */
-#financialDashboard { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
-#financialDashboard:empty { display: none; }
 
 .financial-card {
   border: 1px solid var(--border); border-radius: var(--radius);

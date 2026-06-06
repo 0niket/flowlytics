@@ -6,8 +6,7 @@ import type { LineConfig } from "../builder/LineConfig";
 import { createDefaultLineConfig } from "../builder/LineConfig";
 
 function mockContainer(): HTMLElement {
-  const el = document.createElement("div");
-  return el;
+  return document.createElement("div");
 }
 
 function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResult {
@@ -46,42 +45,43 @@ function configWithEconomics(): LineConfig {
 }
 
 describe("renderFinancialDashboard — missing economics config", () => {
-  it("shows error when revenuePerArticle is zero", () => {
-    const container = mockContainer();
+  it("renders empty pinned section when revenuePerArticle is zero", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
     const config = createDefaultLineConfig();
     config.transport.maxArticlesPerBasket = 20;
-    // revenuePerArticle defaults to 0
-    renderFinancialDashboard(mockEconomics(), config, [], container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("Revenue per article");
+    renderFinancialDashboard(mockEconomics(), config, [], pinned, overview, violations);
+    expect(pinned.children.length).toBe(0);
   });
 
-  it("shows error when maxArticlesPerBasket is not set", () => {
-    const container = mockContainer();
+  it("renders empty pinned section when maxArticlesPerBasket is not set", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
-    // maxArticlesPerBasket not set (undefined → 0)
-    renderFinancialDashboard(mockEconomics(), config, [], container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("articles per basket");
+    renderFinancialDashboard(mockEconomics(), config, [], pinned, overview, violations);
+    expect(pinned.children.length).toBe(0);
   });
 
-  it("shows error listing both missing fields when neither is set", () => {
-    const container = mockContainer();
+  it("renders empty pinned section when neither field is set", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
     const config = createDefaultLineConfig();
-    renderFinancialDashboard(mockEconomics(), config, [], container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("Revenue per article");
-    expect(text).toContain("articles per basket");
+    renderFinancialDashboard(mockEconomics(), config, [], pinned, overview, violations);
+    expect(pinned.children.length).toBe(0);
   });
 
-  it("does not show error when both fields are configured", () => {
-    const container = mockContainer();
+  it("renders profit card when both fields are configured", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
     const config = configWithEconomics();
     const econ = mockEconomics({ revenuePerHr: 1000, profitPerHr: 500, profitMarginPct: 50 });
-    renderFinancialDashboard(econ, config, [], container);
-    const text = container.textContent ?? "";
-    expect(text).not.toContain("missing");
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = pinned.textContent ?? "";
     expect(text).toContain("PROFIT");
   });
 });
