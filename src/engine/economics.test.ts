@@ -63,7 +63,7 @@ describe("calculateEconomics", () => {
     expect(result.hasViolations).toBe(false);
   });
 
-  it("revenue only (no costs) → profit = revenue", () => {
+  it("revenue only (no costs) → profit = revenue, margin = 100%", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
     config.transport.maxArticlesPerBasket = 20;
@@ -78,73 +78,196 @@ describe("calculateEconomics", () => {
     expect(result.unitEconomics.revenuePerBasket).toBe(1000); // 20 × 50
   });
 
-  it("costs only (no revenue) → profit = -costs", () => {
+  it("raw material cost → rawMaterialPerHr = throughput × articles × costPerArticle", () => {
     const config = createDefaultLineConfig();
-    config.economics.operatorCostPerHr = 450;
-    config.economics.energyCostPerHr = 280;
-    const sim = makeSimResult();
-
-    const result = calculateEconomics(config, sim);
-
-    expect(result.revenuePerHr).toBe(0);
-    expect(result.totalCostPerHr).toBe(730);
-    expect(result.profitPerHr).toBe(-730);
-  });
-
-  it("full config → correct profit/hr and profit margin %", () => {
-    const config = createDefaultLineConfig();
-    config.economics.revenuePerArticle = 50;
     config.transport.maxArticlesPerBasket = 20;
-    config.economics.operatorCostPerHr = 450;
-    config.economics.energyCostPerHr = 280;
-    config.economics.maintenanceCostPerHr = 120;
-    config.economics.waterAndEffluentCostPerHr = 150;
+    config.transport.rawMaterialCostPerArticle = 15;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
     const result = calculateEconomics(config, sim);
 
-    expect(result.revenuePerHr).toBe(4000);
-    expect(result.totalCostPerHr).toBe(1000); // 450 + 280 + 120 + 150
-    expect(result.profitPerHr).toBe(3000);
-    expect(result.profitMarginPct).toBe(75);
+    // 4 bph × 20 articles × ₹15/article = ₹1200/hr
+    expect(result.costBreakdown.rawMaterialPerHr).toBe(1200);
+    expect(result.totalCostPerHr).toBe(1200);
   });
 
-  it("lifeYears = 0 → amortization returns Infinity, handled gracefully", () => {
+  it("rawMaterialCostPerArticle undefined → 0 contribution", () => {
     const config = createDefaultLineConfig();
-    config.economics.basketCostRs = 50000;
-    config.economics.basketLifeYears = 0;
+    config.transport.maxArticlesPerBasket = 20;
+    // rawMaterialCostPerArticle is undefined by default
+    const sim = makeSimResult({ throughputSteadyBph: 4 });
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.rawMaterialPerHr).toBe(0);
+  });
+
+  it("single tank chemical cost → (capacity × cost/L) / bathLife", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 25;
+    config.stations[1].bathLifeHours = 200;
     const sim = makeSimResult();
 
     const result = calculateEconomics(config, sim);
 
-    expect(result.costBreakdown.basketCostPerHr).toBe(Infinity);
+    // 500 × 25 / 200 = 62.5
+    expect(result.costBreakdown.chemicalPerHr).toBe(62.5);
+  });
+
+  it("multiple tanks → sum of derived costs", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 25;
+    config.stations[1].bathLifeHours = 200;
+    config.stations.splice(2, 0, {
+      id: "T2", label: "Tank 2", kind: "tank", tankType: "chemical",
+      dwellSec: 150, tolerancePct: 0.1,
+      tankCapacityLitres: 300, chemicalCostPerLitre: 40, bathLifeHours: 150,
+    });
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    // T1: 500×25/200 = 62.5, T2: 300×40/150 = 80 → total = 142.5
+    expect(result.costBreakdown.chemicalPerHr).toBe(142.5);
+  });
+
+  it("partial tank config (missing bathLifeHours) → zero contribution", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 25;
+    // bathLifeHours is undefined
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.chemicalPerHr).toBe(0);
+  });
+
+  it("bathLifeHours = 0 → Infinity (graceful)", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 25;
+    config.stations[1].bathLifeHours = 0;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.chemicalPerHr).toBe(Infinity);
     expect(result.totalCostPerHr).toBe(Infinity);
   });
 
-  it("operatingHoursPerYear = 0 → handled gracefully", () => {
+  it("loading labour: 2 operators × ₹200/hr = ₹400/hr", () => {
     const config = createDefaultLineConfig();
-    config.economics.operatingHoursPerYear = 0;
-    config.economics.basketCostRs = 50000;
-    config.economics.basketLifeYears = 5;
+    const load = config.stations.find((s) => s.kind === "loading")!;
+    load.labourCount = 2;
+    load.labourCostPerHr = 200;
     const sim = makeSimResult();
 
     const result = calculateEconomics(config, sim);
 
-    expect(result.costBreakdown.basketCostPerHr).toBe(Infinity);
-    expect(isFinite(result.totalCostPerHr)).toBe(false);
+    expect(result.costBreakdown.laborPerHr).toBe(400);
   });
 
-  it("zero throughput → revenue = 0, costPerBasket = Infinity", () => {
+  it("both loading + unloading labour → sum", () => {
     const config = createDefaultLineConfig();
-    config.economics.revenuePerArticle = 50;
-    config.transport.maxArticlesPerBasket = 20;
-    config.economics.operatorCostPerHr = 450;
-    const sim = makeSimResult({ throughputSteadyBph: 0 });
+    const load = config.stations.find((s) => s.kind === "loading")!;
+    load.labourCount = 2;
+    load.labourCostPerHr = 200;
+    const unload = config.stations.find((s) => s.kind === "unloading")!;
+    unload.labourCount = 1;
+    unload.labourCostPerHr = 200;
+    const sim = makeSimResult();
 
     const result = calculateEconomics(config, sim);
 
+    // Loading: 2×200=400, Unloading: 1×200=200 → 600
+    expect(result.costBreakdown.laborPerHr).toBe(600);
+  });
+
+  it("tank station with labour fields → ignored", () => {
+    const config = createDefaultLineConfig();
+    // Putting labour fields on a tank should be ignored
+    config.stations[1].labourCount = 5;
+    config.stations[1].labourCostPerHr = 300;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.laborPerHr).toBe(0);
+  });
+
+  it("energy + maintenance from economics config", () => {
+    const config = createDefaultLineConfig();
+    config.economics.energyCostPerHr = 280;
+    config.economics.maintenanceCostPerHr = 120;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.energyPerHr).toBe(280);
+    expect(result.costBreakdown.maintenancePerHr).toBe(120);
+    expect(result.totalCostPerHr).toBe(400);
+  });
+
+  it("full config → totalCostPerHr = sum of all hourly categories", () => {
+    const config = createDefaultLineConfig();
+    config.transport.maxArticlesPerBasket = 20;
+    config.economics.revenuePerArticle = 50;
+
+    // Raw materials
+    config.transport.rawMaterialCostPerArticle = 10;
+    // Chemical on tank
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 20;
+    config.stations[1].bathLifeHours = 100;
+    // Labour
+    const load = config.stations.find((s) => s.kind === "loading")!;
+    load.labourCount = 2;
+    load.labourCostPerHr = 200;
+    // Plant-level
+    config.economics.energyCostPerHr = 280;
+    config.economics.maintenanceCostPerHr = 120;
+
+    const sim = makeSimResult({ throughputSteadyBph: 4 });
+    const result = calculateEconomics(config, sim);
+
+    // Raw: 4×20×10 = 800
+    // Chemical: 500×20/100 = 100
+    // Labour: 2×200 = 400
+    // Energy: 280, Maintenance: 120
+    expect(result.costBreakdown.rawMaterialPerHr).toBe(800);
+    expect(result.costBreakdown.chemicalPerHr).toBe(100);
+    expect(result.costBreakdown.laborPerHr).toBe(400);
+    expect(result.totalCostPerHr).toBe(1700); // 800+100+400+280+120
+  });
+
+  it("wagon capex in capex.totalWagonCost, NOT in totalCostPerHr", () => {
+    const config = createDefaultLineConfig();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000 },
+      { id: "W2", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 800000 },
+    ];
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.capex.totalWagonCost).toBe(2000000);
+    // Wagon cost should NOT be in totalCostPerHr
+    expect(result.totalCostPerHr).toBe(0);
+  });
+
+  it("maxArticlesPerBasket undefined → revenue = 0", () => {
+    const config = createDefaultLineConfig();
+    config.economics.revenuePerArticle = 50;
+    // maxArticlesPerBasket is undefined by default
+    const sim = makeSimResult({ throughputSteadyBph: 4 });
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.unitEconomics.revenuePerBasket).toBe(0);
     expect(result.revenuePerHr).toBe(0);
-    expect(result.unitEconomics.costPerBasket).toBe(Infinity);
   });
 
   it("simulation has violations → hasViolations = true", () => {
@@ -157,67 +280,11 @@ describe("calculateEconomics", () => {
     expect(result.hasViolations).toBe(true);
   });
 
-  it("maxArticlesPerBasket undefined → revenuePerBasket = 0, revenue = 0", () => {
-    const config = createDefaultLineConfig();
-    config.economics.revenuePerArticle = 50;
-    // maxArticlesPerBasket is undefined by default
-    const sim = makeSimResult({ throughputSteadyBph: 4 });
-
-    const result = calculateEconomics(config, sim);
-
-    expect(result.unitEconomics.revenuePerBasket).toBe(0);
-    expect(result.revenuePerHr).toBe(0);
-  });
-
-  it("chemical cost sums across all tanks (fixed costs only)", () => {
-    const config = createDefaultLineConfig();
-    // Default config has T1 chemical tank. Add another.
-    config.stations.splice(2, 0, {
-      id: "T2", label: "Tank 2", kind: "tank", tankType: "chemical",
-      dwellSec: 150, tolerancePct: 0.1, tankFixedCostPerHr: 340,
-    });
-    config.stations[1].tankFixedCostPerHr = 180;
-    const sim = makeSimResult();
-
-    const result = calculateEconomics(config, sim);
-
-    expect(result.costBreakdown.chemicalPerHr).toBe(520); // 180 + 340
-  });
-
-  it("rinse tanks with tankFixedCostPerHr = 0 contribute nothing", () => {
-    const config = createDefaultLineConfig();
-    config.stations.splice(2, 0, {
-      id: "T2", label: "Tank 2", kind: "tank", tankType: "rinse",
-      dwellSec: 60, tolerancePct: 0.5, tankFixedCostPerHr: 0,
-    });
-    config.stations[1].tankFixedCostPerHr = 200;
-    const sim = makeSimResult();
-
-    const result = calculateEconomics(config, sim);
-
-    expect(result.costBreakdown.chemicalPerHr).toBe(200);
-  });
-
-  it("multiple wagons with different costs → sum of individual amortizations", () => {
-    const config = createDefaultLineConfig();
-    config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, lifeYears: 10 },
-      { id: "W2", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 800000, lifeYears: 10 },
-    ];
-    config.economics.operatingHoursPerYear = 4000;
-    const sim = makeSimResult();
-
-    const result = calculateEconomics(config, sim);
-
-    // W1: 1200000 / (10 * 4000) = 30, W2: 800000 / (10 * 4000) = 20 → total = 50
-    expect(result.costBreakdown.wagonCostPerHr).toBe(50);
-  });
-
   it("break-even throughput = totalCosts/hr ÷ revenuePerBasket", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
     config.transport.maxArticlesPerBasket = 20;
-    config.economics.operatorCostPerHr = 1000;
+    config.economics.energyCostPerHr = 1000;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
     const result = calculateEconomics(config, sim);
@@ -228,7 +295,7 @@ describe("calculateEconomics", () => {
 
   it("break-even when revenuePerBasket = 0 → Infinity", () => {
     const config = createDefaultLineConfig();
-    config.economics.operatorCostPerHr = 1000;
+    config.economics.energyCostPerHr = 1000;
     const sim = makeSimResult();
 
     const result = calculateEconomics(config, sim);
@@ -240,12 +307,14 @@ describe("calculateEconomics", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
     config.transport.maxArticlesPerBasket = 20;
-    config.stations[1].tankFixedCostPerHr = 540;
+    config.stations[1].tankCapacityLitres = 1000;
+    config.stations[1].chemicalCostPerLitre = 54;
+    config.stations[1].bathLifeHours = 100;
     const sim = makeSimResult({ throughputSteadyBph: 4 });
 
     const result = calculateEconomics(config, sim);
 
-    // Revenue = 4000, Chemical = 540 → 13.5%
+    // Revenue = 4000, Chemical = 1000×54/100 = 540 → 13.5%
     expect(result.ratios.chemicalCostPctOfRevenue).toBeCloseTo(13.5, 1);
   });
 
@@ -253,7 +322,7 @@ describe("calculateEconomics", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 100;
     config.transport.maxArticlesPerBasket = 10;
-    config.economics.operatorCostPerHr = 600;
+    config.economics.energyCostPerHr = 600;
     const sim = makeSimResult({ throughputSteadyBph: 2 });
 
     const result = calculateEconomics(config, sim);
@@ -263,18 +332,17 @@ describe("calculateEconomics", () => {
     expect(result.profitMarginPct).toBe(70);
   });
 
-  it("basket equipment amortization with multiple baskets", () => {
+  it("zero throughput → revenue = 0, costPerBasket = Infinity", () => {
     const config = createDefaultLineConfig();
-    config.economics.basketCostRs = 10000;
-    config.economics.basketLifeYears = 5;
-    config.economics.operatingHoursPerYear = 4000;
-    config.settings.basketCount = 4;
-    const sim = makeSimResult();
+    config.economics.revenuePerArticle = 50;
+    config.transport.maxArticlesPerBasket = 20;
+    config.economics.energyCostPerHr = 450;
+    const sim = makeSimResult({ throughputSteadyBph: 0 });
 
     const result = calculateEconomics(config, sim);
 
-    // Per basket: 10000 / (5 * 4000) = 0.5 Rs/hr, × 4 baskets = 2
-    expect(result.costBreakdown.basketCostPerHr).toBe(2);
+    expect(result.revenuePerHr).toBe(0);
+    expect(result.unitEconomics.costPerBasket).toBe(Infinity);
   });
 });
 

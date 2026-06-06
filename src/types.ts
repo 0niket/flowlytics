@@ -384,14 +384,15 @@ export interface EconomicsResult {
   profitMarginPct: number;
 
   costBreakdown: {
-    equipmentPerHr: number;
-    wagonCostPerHr: number;
-    basketCostPerHr: number;
+    rawMaterialPerHr: number;
     chemicalPerHr: number;
     laborPerHr: number;
     energyPerHr: number;
     maintenancePerHr: number;
-    waterEffluentPerHr: number;
+  };
+
+  capex: {
+    totalWagonCost: number;
   };
 
   unitEconomics: {

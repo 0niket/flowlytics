@@ -262,10 +262,6 @@ export class Builder {
     this._config.economics.revenuePerArticle = Math.max(0, rs);
   }
 
-  setOperatorCostPerHr(rs: number): void {
-    this._config.economics.operatorCostPerHr = Math.max(0, rs);
-  }
-
   setEnergyCostPerHr(rs: number): void {
     this._config.economics.energyCostPerHr = Math.max(0, rs);
   }
@@ -274,28 +270,50 @@ export class Builder {
     this._config.economics.maintenanceCostPerHr = Math.max(0, rs);
   }
 
-  setWaterEffluentCostPerHr(rs: number): void {
-    this._config.economics.waterAndEffluentCostPerHr = Math.max(0, rs);
+  // ─── Distributed Cost Operations ─────────────────────────
+
+  setRawMaterialCostPerArticle(rs: number): void {
+    this._config.transport.rawMaterialCostPerArticle = Math.max(0, rs);
   }
 
-  setBasketCostRs(rs: number): void {
-    this._config.economics.basketCostRs = Math.max(0, rs);
-  }
-
-  setBasketLifeYears(years: number): void {
-    this._config.economics.basketLifeYears = Math.max(0, years);
-  }
-
-  setOperatingHoursPerYear(hours: number): void {
-    this._config.economics.operatingHoursPerYear = Math.max(0, hours);
-  }
-
-  setTankFixedCostPerHr(stationIndex: number, rs: number): void {
+  setTankCapacityLitres(stationIndex: number, litres: number): void {
     const station = this._config.stations[stationIndex];
     if (!station || station.kind !== "tank") {
       throw new Error(`No tank at index ${stationIndex}`);
     }
-    station.tankFixedCostPerHr = Math.max(0, rs);
+    station.tankCapacityLitres = Math.max(0, litres);
+  }
+
+  setChemicalCostPerLitre(stationIndex: number, rs: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station || station.kind !== "tank") {
+      throw new Error(`No tank at index ${stationIndex}`);
+    }
+    station.chemicalCostPerLitre = Math.max(0, rs);
+  }
+
+  setBathLifeHours(stationIndex: number, hours: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station || station.kind !== "tank") {
+      throw new Error(`No tank at index ${stationIndex}`);
+    }
+    station.bathLifeHours = Math.max(0, hours);
+  }
+
+  setLabourCount(stationIndex: number, count: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station || (station.kind !== "loading" && station.kind !== "unloading")) {
+      throw new Error(`No loading/unloading station at index ${stationIndex}`);
+    }
+    station.labourCount = Math.max(0, Math.round(count));
+  }
+
+  setLabourCostPerHr(stationIndex: number, rs: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station || (station.kind !== "loading" && station.kind !== "unloading")) {
+      throw new Error(`No loading/unloading station at index ${stationIndex}`);
+    }
+    station.labourCostPerHr = Math.max(0, rs);
   }
 
   setWagonCostRs(wagonIndex: number, rs: number): void {
@@ -303,13 +321,6 @@ export class Builder {
     const wagon = this._config.transport.wagons[wagonIndex];
     if (!wagon) return;
     wagon.costRs = Math.max(0, rs);
-  }
-
-  setWagonLifeYears(wagonIndex: number, years: number): void {
-    if (!this._config.transport.wagons) return;
-    const wagon = this._config.transport.wagons[wagonIndex];
-    if (!wagon) return;
-    wagon.lifeYears = Math.max(0, years);
   }
 
   // ─── Settings Operations ─────────────────────────────────

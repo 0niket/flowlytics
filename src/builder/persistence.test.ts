@@ -105,15 +105,68 @@ describe("persistence", () => {
     expect(draft.config.transport.wagons![0].pickSec).toBe(7);
   });
 
-  it("saveDraft writes version 4", () => {
+  it("saveDraft writes version 5", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const raw = globalThis.localStorage.getItem("flowlytics_builder_draft")!;
     const parsed = JSON.parse(raw);
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
   });
 
-  it("migrates v1 draft (drops currentStep, adds economics)", () => {
+  it("migrates v4 draft — removes centralized cost fields", () => {
+    const v4Config = {
+      ...createDefaultLineConfig(),
+      economics: {
+        revenuePerArticle: 50,
+        operatorCostPerHr: 450,
+        energyCostPerHr: 280,
+        maintenanceCostPerHr: 120,
+        waterAndEffluentCostPerHr: 150,
+        basketCostRs: 50000,
+        basketLifeYears: 5,
+        operatingHoursPerYear: 4000,
+      },
+    };
+    v4Config.stations[1] = {
+      ...v4Config.stations[1],
+      tankFixedCostPerHr: 180,
+    } as never;
+    if (v4Config.transport.wagons) {
+      v4Config.transport.wagons[0] = {
+        ...v4Config.transport.wagons[0],
+        lifeYears: 10,
+      } as never;
+    }
+    const v4Draft = { config: v4Config, version: 4 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v4Draft));
+
+    const draft = loadDraft();
+    expect(draft).not.toBeNull();
+    expect(draft!.version).toBe(5);
+
+    // Removed fields should be gone
+    const econ = draft!.config.economics as unknown as Record<string, unknown>;
+    expect(econ.operatorCostPerHr).toBeUndefined();
+    expect(econ.waterAndEffluentCostPerHr).toBeUndefined();
+    expect(econ.basketCostRs).toBeUndefined();
+    expect(econ.basketLifeYears).toBeUndefined();
+    expect(econ.operatingHoursPerYear).toBeUndefined();
+
+    // Kept fields should be preserved
+    expect(draft!.config.economics.revenuePerArticle).toBe(50);
+    expect(draft!.config.economics.energyCostPerHr).toBe(280);
+    expect(draft!.config.economics.maintenanceCostPerHr).toBe(120);
+
+    // tankFixedCostPerHr removed from stations
+    expect((draft!.config.stations[1] as unknown as Record<string, unknown>).tankFixedCostPerHr).toBeUndefined();
+
+    // lifeYears removed from wagons
+    if (draft!.config.transport.wagons) {
+      expect((draft!.config.transport.wagons[0] as unknown as Record<string, unknown>).lifeYears).toBeUndefined();
+    }
+  });
+
+  it("migrates v1 draft (drops currentStep, adds economics, cleans v4 fields)", () => {
     const v1Draft = {
       config: createDefaultLineConfig(),
       currentStep: 2,
@@ -123,74 +176,55 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v1Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(4);
+    expect(draft!.version).toBe(5);
     expect(draft!.config).toBeDefined();
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("migrates v2 draft (drops currentStep, adds economics)", () => {
-    const v2Draft = {
-      config: createDefaultLineConfig(),
-      currentStep: 3,
-      version: 2,
-    };
-    delete (v2Draft.config as unknown as Record<string, unknown>).economics;
-    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v2Draft));
-    const draft = loadDraft();
-    expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(4);
-    expect(draft!.config).toBeDefined();
-    expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
-  });
-
-  it("migrates v3 draft (adds economics)", () => {
+  it("migrates v3 draft (adds economics, cleans v4 fields)", () => {
     const v3Config = createDefaultLineConfig();
     delete (v3Config as unknown as Record<string, unknown>).economics;
     const v3Draft = { config: v3Config, version: 3 };
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(4);
+    expect(draft!.version).toBe(5);
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("v3 draft preserves existing station tankFixedCostPerHr as undefined", () => {
-    const v3Config = createDefaultLineConfig();
-    delete (v3Config as unknown as Record<string, unknown>).economics;
-    const v3Draft = { config: v3Config, version: 3 };
-    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
-    const draft = loadDraft();
-    expect(draft!.config.stations[1].tankFixedCostPerHr).toBeUndefined();
-  });
-
-  it("v3 draft preserves wagon costRs and lifeYears as undefined", () => {
-    const v3Config = createDefaultLineConfig();
-    delete (v3Config as unknown as Record<string, unknown>).economics;
-    v3Config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4 },
-    ];
-    const v3Draft = { config: v3Config, version: 3 };
-    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
-    const draft = loadDraft();
-    expect(draft!.config.transport.wagons![0].costRs).toBeUndefined();
-    expect(draft!.config.transport.wagons![0].lifeYears).toBeUndefined();
-  });
-
-  it("does not migrate v4 drafts", () => {
+  it("does not migrate v5 drafts", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(4);
+    expect(draft!.version).toBe(5);
   });
 
-  it("v4 draft preserves existing economics values", () => {
+  it("v5 draft preserves existing economics values", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 75;
-    config.economics.operatorCostPerHr = 500;
+    config.economics.energyCostPerHr = 280;
     saveDraft(config);
     const draft = loadDraft();
     expect(draft!.config.economics.revenuePerArticle).toBe(75);
-    expect(draft!.config.economics.operatorCostPerHr).toBe(500);
+    expect(draft!.config.economics.energyCostPerHr).toBe(280);
+  });
+
+  it("v5 draft preserves distributed cost fields", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].tankCapacityLitres = 500;
+    config.stations[1].chemicalCostPerLitre = 25;
+    config.stations[1].bathLifeHours = 200;
+    config.stations[0].labourCount = 2;
+    config.stations[0].labourCostPerHr = 200;
+    config.transport.rawMaterialCostPerArticle = 15;
+    saveDraft(config);
+    const draft = loadDraft();
+    expect(draft!.config.stations[1].tankCapacityLitres).toBe(500);
+    expect(draft!.config.stations[1].chemicalCostPerLitre).toBe(25);
+    expect(draft!.config.stations[1].bathLifeHours).toBe(200);
+    expect(draft!.config.stations[0].labourCount).toBe(2);
+    expect(draft!.config.stations[0].labourCostPerHr).toBe(200);
+    expect(draft!.config.transport.rawMaterialCostPerArticle).toBe(15);
   });
 });

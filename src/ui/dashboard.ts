@@ -84,50 +84,61 @@ export function renderFinancialDashboard(
       </div>
     `;
 
-    // Equipment group
-    if (economics.costBreakdown.equipmentPerHr > 0) {
+    // Raw Materials
+    if (economics.costBreakdown.rawMaterialPerHr > 0) {
+      const rawCostPerArticle = config.transport.rawMaterialCostPerArticle ?? 0;
       costHtml += `<div class="cost-group">`;
-      costHtml += `<div class="cost-group__header"><span>Equipment (amortized)</span><span>${formatCurrency(economics.costBreakdown.equipmentPerHr)} /hr</span></div>`;
-      if (economics.costBreakdown.wagonCostPerHr > 0) {
-        const wagonCount = config.transport.wagons?.length ?? config.transport.wagonCount;
-        costHtml += `<div class="cost-group__item">Wagons (${wagonCount}×) ${formatCurrency(economics.costBreakdown.wagonCostPerHr)}</div>`;
-      }
-      if (economics.costBreakdown.basketCostPerHr > 0) {
-        costHtml += `<div class="cost-group__item">Baskets (${config.settings.basketCount}×) ${formatCurrency(economics.costBreakdown.basketCostPerHr)}</div>`;
-      }
+      costHtml += `<div class="cost-group__header"><span>Raw Materials</span><span>${formatCurrency(economics.costBreakdown.rawMaterialPerHr)} /hr</span></div>`;
+      costHtml += `<div class="cost-group__item">${articlesPerBasket} articles × ${formatCurrency(rawCostPerArticle)}/article × ${economics.throughputBph.toFixed(1)} bph</div>`;
       costHtml += `</div>`;
     }
 
-    // Chemicals group
+    // Chemicals
     if (economics.costBreakdown.chemicalPerHr > 0) {
       costHtml += `<hr class="separator" />`;
       costHtml += `<div class="cost-group">`;
       costHtml += `<div class="cost-group__header"><span>Chemicals</span><span>${formatCurrency(economics.costBreakdown.chemicalPerHr)} /hr</span></div>`;
       for (const station of config.stations) {
-        if (station.tankFixedCostPerHr != null && station.tankFixedCostPerHr > 0) {
-          costHtml += `<div class="cost-group__item">${escapeHtml(station.id)} ${escapeHtml(station.label)} ${formatCurrency(station.tankFixedCostPerHr)}</div>`;
+        if (station.kind !== "tank") continue;
+        const cap = station.tankCapacityLitres;
+        const costPerL = station.chemicalCostPerLitre;
+        const bathLife = station.bathLifeHours;
+        if (cap != null && cap > 0 && costPerL != null && costPerL > 0 && bathLife != null && bathLife > 0) {
+          const perHr = (cap * costPerL) / bathLife;
+          costHtml += `<div class="cost-group__item">${escapeHtml(station.id)}: ${cap}L × ${formatCurrency(costPerL)}/L ÷ ${bathLife}h = ${formatCurrency(perHr)}/hr</div>`;
         }
       }
       costHtml += `</div>`;
     }
 
-    // Operating group
-    const opCosts = [
-      { label: "Water & Effluent", value: economics.costBreakdown.waterEffluentPerHr },
-      { label: "Labor", value: economics.costBreakdown.laborPerHr },
+    // Labour
+    if (economics.costBreakdown.laborPerHr > 0) {
+      costHtml += `<hr class="separator" />`;
+      costHtml += `<div class="cost-group">`;
+      costHtml += `<div class="cost-group__header"><span>Labour</span><span>${formatCurrency(economics.costBreakdown.laborPerHr)} /hr</span></div>`;
+      for (const station of config.stations) {
+        if (station.kind !== "loading" && station.kind !== "unloading") continue;
+        const count = station.labourCount;
+        const costPerHr = station.labourCostPerHr;
+        if (count != null && count > 0 && costPerHr != null && costPerHr > 0) {
+          const label = station.kind === "loading" ? "Loading" : "Unloading";
+          costHtml += `<div class="cost-group__item">${label}: ${count} operator${count !== 1 ? "s" : ""} × ${formatCurrency(costPerHr)}/hr</div>`;
+        }
+      }
+      costHtml += `</div>`;
+    }
+
+    // Energy + Maintenance
+    const plantCosts = [
       { label: "Energy", value: economics.costBreakdown.energyPerHr },
       { label: "Maintenance", value: economics.costBreakdown.maintenancePerHr },
     ].filter((c) => c.value > 0);
 
-    if (opCosts.length > 0) {
-      const opTotal = opCosts.reduce((sum, c) => sum + c.value, 0);
+    if (plantCosts.length > 0) {
       costHtml += `<hr class="separator" />`;
-      costHtml += `<div class="cost-group">`;
-      costHtml += `<div class="cost-group__header"><span>Operating</span><span>${formatCurrency(opTotal)} /hr</span></div>`;
-      for (const c of opCosts) {
-        costHtml += `<div class="cost-group__item">${c.label} ${formatCurrency(c.value)}</div>`;
+      for (const c of plantCosts) {
+        costHtml += `<div class="cost-group__header"><span>${c.label}</span><span>${formatCurrency(c.value)} /hr</span></div>`;
       }
-      costHtml += `</div>`;
     }
 
     // Chemical cost % of revenue
@@ -138,6 +149,22 @@ export function renderFinancialDashboard(
 
     costCard.innerHTML = costHtml;
     container.appendChild(costCard);
+  }
+
+  // ─── Capex Section ──────────────────────────────────────
+  if (economics.capex.totalWagonCost > 0) {
+    const capexCard = document.createElement("div");
+    capexCard.className = "financial-card";
+
+    const wagonCount = config.transport.wagons?.length ?? config.transport.wagonCount;
+    capexCard.innerHTML = `
+      <div class="financial-card__header"><span>CAPITAL EQUIPMENT (one-time)</span></div>
+      <div class="cost-group__header" style="margin-top:8px;">
+        <span>Wagons (${wagonCount}×)</span>
+        <span>${formatCurrency(economics.capex.totalWagonCost)}</span>
+      </div>
+    `;
+    container.appendChild(capexCard);
   }
 
   // ─── Unit Economics Card ─────────────────────────────────

@@ -560,12 +560,6 @@ describe("Builder — economics operations", () => {
     expect(b.config.economics.revenuePerArticle).toBe(0);
   });
 
-  it("setOperatorCostPerHr updates config", () => {
-    const b = new Builder();
-    b.setOperatorCostPerHr(450);
-    expect(b.config.economics.operatorCostPerHr).toBe(450);
-  });
-
   it("setEnergyCostPerHr updates config", () => {
     const b = new Builder();
     b.setEnergyCostPerHr(280);
@@ -578,51 +572,10 @@ describe("Builder — economics operations", () => {
     expect(b.config.economics.maintenanceCostPerHr).toBe(120);
   });
 
-  it("setWaterEffluentCostPerHr updates config", () => {
-    const b = new Builder();
-    b.setWaterEffluentCostPerHr(150);
-    expect(b.config.economics.waterAndEffluentCostPerHr).toBe(150);
-  });
-
-  it("setBasketCostRs updates config", () => {
-    const b = new Builder();
-    b.setBasketCostRs(50000);
-    expect(b.config.economics.basketCostRs).toBe(50000);
-  });
-
-  it("setBasketLifeYears updates config", () => {
-    const b = new Builder();
-    b.setBasketLifeYears(5);
-    expect(b.config.economics.basketLifeYears).toBe(5);
-  });
-
-  it("setOperatingHoursPerYear updates config", () => {
-    const b = new Builder();
-    b.setOperatingHoursPerYear(6000);
-    expect(b.config.economics.operatingHoursPerYear).toBe(6000);
-  });
-
-  it("setTankFixedCostPerHr sets cost on tank", () => {
-    const b = new Builder();
-    b.setTankFixedCostPerHr(1, 180);
-    expect(b.config.stations[1].tankFixedCostPerHr).toBe(180);
-  });
-
-  it("setTankFixedCostPerHr throws for non-tank index", () => {
-    const b = new Builder();
-    expect(() => b.setTankFixedCostPerHr(0, 100)).toThrow("No tank at index 0");
-  });
-
   it("setWagonCostRs sets cost on wagon", () => {
     const b = new Builder();
     b.setWagonCostRs(0, 1200000);
     expect(b.config.transport.wagons![0].costRs).toBe(1200000);
-  });
-
-  it("setWagonLifeYears sets life on wagon", () => {
-    const b = new Builder();
-    b.setWagonLifeYears(0, 10);
-    expect(b.config.transport.wagons![0].lifeYears).toBe(10);
   });
 
   it("setWagonCostRs is safe for out-of-range index", () => {
@@ -630,6 +583,82 @@ describe("Builder — economics operations", () => {
     b.setWagonCostRs(5, 1000);
     // should not throw
     expect(b.config.transport.wagons!.length).toBe(1);
+  });
+});
+
+describe("Builder — distributed cost operations", () => {
+  it("setRawMaterialCostPerArticle sets value on transport", () => {
+    const b = new Builder();
+    b.setRawMaterialCostPerArticle(15);
+    expect(b.config.transport.rawMaterialCostPerArticle).toBe(15);
+  });
+
+  it("setRawMaterialCostPerArticle clamps negative to 0", () => {
+    const b = new Builder();
+    b.setRawMaterialCostPerArticle(-5);
+    expect(b.config.transport.rawMaterialCostPerArticle).toBe(0);
+  });
+
+  it("setTankCapacityLitres sets on tank", () => {
+    const b = new Builder();
+    b.setTankCapacityLitres(1, 500);
+    expect(b.config.stations[1].tankCapacityLitres).toBe(500);
+  });
+
+  it("setTankCapacityLitres throws for non-tank index", () => {
+    const b = new Builder();
+    expect(() => b.setTankCapacityLitres(0, 500)).toThrow("No tank at index 0");
+  });
+
+  it("setChemicalCostPerLitre sets on tank", () => {
+    const b = new Builder();
+    b.setChemicalCostPerLitre(1, 25);
+    expect(b.config.stations[1].chemicalCostPerLitre).toBe(25);
+  });
+
+  it("setChemicalCostPerLitre throws for non-tank index", () => {
+    const b = new Builder();
+    expect(() => b.setChemicalCostPerLitre(0, 25)).toThrow("No tank at index 0");
+  });
+
+  it("setBathLifeHours sets on tank", () => {
+    const b = new Builder();
+    b.setBathLifeHours(1, 200);
+    expect(b.config.stations[1].bathLifeHours).toBe(200);
+  });
+
+  it("setBathLifeHours throws for non-tank index", () => {
+    const b = new Builder();
+    expect(() => b.setBathLifeHours(0, 200)).toThrow("No tank at index 0");
+  });
+
+  it("setLabourCount sets on loading station", () => {
+    const b = new Builder();
+    b.setLabourCount(0, 3);
+    expect(b.config.stations[0].labourCount).toBe(3);
+  });
+
+  it("setLabourCount rounds to integer", () => {
+    const b = new Builder();
+    b.setLabourCount(0, 2.7);
+    expect(b.config.stations[0].labourCount).toBe(3);
+  });
+
+  it("setLabourCount throws for tank station", () => {
+    const b = new Builder();
+    expect(() => b.setLabourCount(1, 2)).toThrow("No loading/unloading station at index 1");
+  });
+
+  it("setLabourCostPerHr sets on unloading station", () => {
+    const b = new Builder();
+    const unloadIdx = b.config.stations.findIndex((s) => s.kind === "unloading");
+    b.setLabourCostPerHr(unloadIdx, 200);
+    expect(b.config.stations[unloadIdx].labourCostPerHr).toBe(200);
+  });
+
+  it("setLabourCostPerHr throws for tank station", () => {
+    const b = new Builder();
+    expect(() => b.setLabourCostPerHr(1, 200)).toThrow("No loading/unloading station at index 1");
   });
 });
 

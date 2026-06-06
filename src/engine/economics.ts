@@ -3,11 +3,6 @@ import type { LineConfig } from "../builder/LineConfig";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-function amortize(costRs: number, lifeYears: number, operatingHoursPerYear: number): number {
-  if (lifeYears <= 0 || operatingHoursPerYear <= 0) return Infinity;
-  return costRs / (lifeYears * operatingHoursPerYear);
-}
-
 function safeDivide(numerator: number, denominator: number): number {
   if (denominator === 0) return numerator === 0 ? 0 : Infinity;
   return numerator / denominator;
@@ -56,42 +51,52 @@ export function calculateEconomics(
   const revenuePerBasket = articlesPerBasket * econ.revenuePerArticle;
   const revenuePerHr = throughputBph * revenuePerBasket;
 
-  // Equipment costs — wagons
-  const wagons = config.transport.wagons ?? [];
-  let wagonCostPerHr = 0;
-  for (const w of wagons) {
-    if (w.costRs != null && w.costRs > 0) {
-      wagonCostPerHr += amortize(w.costRs, w.lifeYears ?? 10, econ.operatingHoursPerYear);
-    }
-  }
+  // Raw material cost
+  const rawMaterialCostPerArticle = config.transport.rawMaterialCostPerArticle ?? 0;
+  const rawMaterialPerHr = throughputBph * articlesPerBasket * rawMaterialCostPerArticle;
 
-  // Equipment costs — baskets
-  const basketCount = config.settings.basketCount;
-  const basketCostPerHr = econ.basketCostRs > 0
-    ? basketCount * amortize(econ.basketCostRs, econ.basketLifeYears, econ.operatingHoursPerYear)
-    : 0;
-
-  const equipmentPerHr = wagonCostPerHr + basketCostPerHr;
-
-  // Chemical costs — sum of per-tank fixed costs
+  // Chemical costs — derived from per-tank capacity, cost/litre, bath life
   let chemicalPerHr = 0;
   for (const station of config.stations) {
-    if (station.tankFixedCostPerHr != null && station.tankFixedCostPerHr > 0) {
-      chemicalPerHr += station.tankFixedCostPerHr;
+    if (station.kind !== "tank") continue;
+    const cap = station.tankCapacityLitres;
+    const costPerL = station.chemicalCostPerLitre;
+    const bathLife = station.bathLifeHours;
+    // All three fields must be present and positive for a tank to contribute
+    if (cap != null && cap > 0 && costPerL != null && costPerL > 0 && bathLife != null) {
+      chemicalPerHr += safeDivide(cap * costPerL, bathLife);
     }
   }
 
-  // Operating costs
-  const laborPerHr = econ.operatorCostPerHr;
+  // Labour costs — loading/unloading stations only
+  let laborPerHr = 0;
+  for (const station of config.stations) {
+    if (station.kind !== "loading" && station.kind !== "unloading") continue;
+    const count = station.labourCount;
+    const costPerHr = station.labourCostPerHr;
+    if (count != null && count > 0 && costPerHr != null && costPerHr > 0) {
+      laborPerHr += count * costPerHr;
+    }
+  }
+
+  // Plant-level costs
   const energyPerHr = econ.energyCostPerHr;
   const maintenancePerHr = econ.maintenanceCostPerHr;
-  const waterEffluentPerHr = econ.waterAndEffluentCostPerHr;
 
   const totalCostPerHr =
-    equipmentPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr + waterEffluentPerHr;
+    rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr;
 
   const profitPerHr = revenuePerHr - totalCostPerHr;
   const profitMarginPct = safeDivide(profitPerHr, revenuePerHr) * 100;
+
+  // Wagon capex — one-time, NOT in hourly costs
+  const wagons = config.transport.wagons ?? [];
+  let totalWagonCost = 0;
+  for (const w of wagons) {
+    if (w.costRs != null && w.costRs > 0) {
+      totalWagonCost += w.costRs;
+    }
+  }
 
   // Unit economics
   const costPerBasket = safeDivide(totalCostPerHr, throughputBph);
@@ -111,14 +116,15 @@ export function calculateEconomics(
     profitMarginPct,
 
     costBreakdown: {
-      equipmentPerHr,
-      wagonCostPerHr,
-      basketCostPerHr,
+      rawMaterialPerHr,
       chemicalPerHr,
       laborPerHr,
       energyPerHr,
       maintenancePerHr,
-      waterEffluentPerHr,
+    },
+
+    capex: {
+      totalWagonCost,
     },
 
     unitEconomics: {

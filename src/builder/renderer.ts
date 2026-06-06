@@ -144,13 +144,18 @@ function renderStationSection(container: HTMLElement): void {
         ${isExtra ? '<div class="station-card__subtitle" style="margin-top:4px;">Reserved for future use</div>' : ""}
         ${!isExtra ? `
           <hr class="separator" />
+          <div class="field" style="margin:0;margin-bottom:6px;">
+            <label class="field__label">Tank capacity (litres)</label>
+            <input class="bldr-tank-capacity station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.tankCapacityLitres ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;margin-bottom:6px;">
+            <label class="field__label">Chemical cost (₹/litre)</label>
+            <input class="bldr-chem-cost station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.chemicalCostPerLitre ?? ""}" placeholder="0" />
+          </div>
           <div class="field" style="margin:0;">
-            <label class="field__label">Tank cost (₹/hr)</label>
-            <div class="station-card__field">
-              <input class="bldr-tank-cost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.tankFixedCostPerHr ?? ""}" placeholder="0" />
-              <span class="station-card__unit">₹/hr</span>
-            </div>
-            <div class="field__hint">all-in: heating, chemicals, agitation</div>
+            <label class="field__label">Bath life (hours)</label>
+            <input class="bldr-bath-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.bathLifeHours ?? ""}" placeholder="0" />
+            <div class="field__hint">hours between dumps</div>
           </div>
         ` : ""}
       `;
@@ -189,6 +194,17 @@ function renderStationSection(container: HTMLElement): void {
           </div>
         </div>
         <textarea class="bldr-load-desc station-card__textarea" placeholder="Describe the loading process..." rows="2">${s.loadingDescription ?? ""}</textarea>
+        <hr class="separator" />
+        <div class="grid2">
+          <div class="field" style="margin:0;">
+            <label class="field__label"># Operators</label>
+            <input class="bldr-labour-count station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.labourCount ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Cost/hr (₹)</label>
+            <input class="bldr-labour-cost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.labourCostPerHr ?? ""}" placeholder="0" />
+          </div>
+        </div>
       `;
       lane.appendChild(card);
     } else if (s.kind === "unloading") {
@@ -207,6 +223,17 @@ function renderStationSection(container: HTMLElement): void {
           </div>
         </div>
         <textarea class="bldr-unload-desc station-card__textarea" placeholder="Describe the unloading process..." rows="2">${s.unloadingDescription ?? ""}</textarea>
+        <hr class="separator" />
+        <div class="grid2">
+          <div class="field" style="margin:0;">
+            <label class="field__label"># Operators</label>
+            <input class="bldr-labour-count station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.labourCount ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Cost/hr (₹)</label>
+            <input class="bldr-labour-cost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.labourCostPerHr ?? ""}" placeholder="0" />
+          </div>
+        </div>
       `;
       lane.appendChild(card);
     }
@@ -317,15 +344,9 @@ function renderWagonCards(): void {
           </div>
         </div>
         <hr class="separator" />
-        <div class="grid2" style="margin-top:6px;">
-          <div class="field" style="margin:0;">
-            <label class="field__label">Wagon cost (₹)</label>
-            <input class="bldr-wagon-cost field__control" data-wagon-index="${i}" type="number" min="0" step="10000" value="${w.costRs ?? ""}" placeholder="0" />
-          </div>
-          <div class="field" style="margin:0;">
-            <label class="field__label">Life (years)</label>
-            <input class="bldr-wagon-life field__control" data-wagon-index="${i}" type="number" min="0" step="1" value="${w.lifeYears ?? "10"}" placeholder="10" />
-          </div>
+        <div class="field" style="margin:6px 0 0;">
+          <label class="field__label">Wagon cost (₹)</label>
+          <input class="bldr-wagon-cost field__control" data-wagon-index="${i}" type="number" min="0" step="10000" value="${w.costRs ?? ""}" placeholder="0" />
         </div>
       </div>
     `;
@@ -353,6 +374,8 @@ function renderBasketCapacitySection(container: HTMLElement): void {
     : "";
   const summaryHtml = `<div id="cvBasketPayloadSummary" style="margin-top:8px;font-size:11px;color:var(--muted);">${summaryContent}</div>`;
 
+  const rawMatCost = t.rawMaterialCostPerArticle;
+
   section.innerHTML = `
     <div class="config-view__section-title">Basket Capacity</div>
     <div class="grid3">
@@ -368,6 +391,11 @@ function renderBasketCapacitySection(container: HTMLElement): void {
         <label class="field__label">Max articles</label>
         <div class="field__control field__control--readonly" style="background:transparent;border-color:var(--border);opacity:0.7;">${derivedDisplay}</div>
       </div>
+    </div>
+    <div class="field" style="margin-top:8px;">
+      <label class="field__label">Raw material cost/article (₹)</label>
+      <input id="bldrRawMaterialCost" class="field__control" type="number" min="0" step="1" value="${rawMatCost ?? ""}" placeholder="0" style="max-width:160px;" />
+      <div class="field__hint">cost of goods per article</div>
     </div>
     ${summaryHtml}
   `;
@@ -419,8 +447,7 @@ function renderSimSettingsSection(container: HTMLElement): void {
 
 function getEconomicsSummary(): string {
   const econ = builder.config.economics;
-  if (econ.revenuePerArticle === 0 &&
-      econ.operatorCostPerHr === 0 && econ.energyCostPerHr === 0) {
+  if (econ.revenuePerArticle === 0 && econ.energyCostPerHr === 0) {
     return "No economics configured";
   }
   return "Economics configured";
@@ -448,11 +475,7 @@ function renderEconomicsSection(container: HTMLElement): void {
       </fieldset>
 
       <fieldset class="economics-fieldset">
-        <legend class="economics-fieldset__legend">Operating Costs</legend>
-        <div class="field">
-          <label class="field__label">Labor (₹/hr)</label>
-          <input class="bldr-econ field__control" data-econ-field="operatorCostPerHr" type="number" min="0" step="10" value="${econ.operatorCostPerHr || ""}" placeholder="0" />
-        </div>
+        <legend class="economics-fieldset__legend">Plant Costs</legend>
         <div class="field">
           <label class="field__label">Energy (₹/hr)</label>
           <input class="bldr-econ field__control" data-econ-field="energyCostPerHr" type="number" min="0" step="10" value="${econ.energyCostPerHr || ""}" placeholder="0" />
@@ -460,31 +483,6 @@ function renderEconomicsSection(container: HTMLElement): void {
         <div class="field">
           <label class="field__label">Maintenance (₹/hr)</label>
           <input class="bldr-econ field__control" data-econ-field="maintenanceCostPerHr" type="number" min="0" step="10" value="${econ.maintenanceCostPerHr || ""}" placeholder="0" />
-        </div>
-        <div class="field">
-          <label class="field__label">Water & Effluent (₹/hr)</label>
-          <input class="bldr-econ field__control" data-econ-field="waterAndEffluentCostPerHr" type="number" min="0" step="10" value="${econ.waterAndEffluentCostPerHr || ""}" placeholder="0" />
-        </div>
-      </fieldset>
-
-      <fieldset class="economics-fieldset">
-        <legend class="economics-fieldset__legend">Equipment</legend>
-        <div class="field">
-          <label class="field__label">Basket cost (₹)</label>
-          <input class="bldr-econ field__control" data-econ-field="basketCostRs" type="number" min="0" step="1000" value="${econ.basketCostRs || ""}" placeholder="0" />
-        </div>
-        <div class="field">
-          <label class="field__label">Basket life (years)</label>
-          <input class="bldr-econ field__control" data-econ-field="basketLifeYears" type="number" min="0" step="1" value="${econ.basketLifeYears}" placeholder="5" />
-        </div>
-      </fieldset>
-
-      <fieldset class="economics-fieldset">
-        <legend class="economics-fieldset__legend">Plant</legend>
-        <div class="field">
-          <label class="field__label">Operating hours/year</label>
-          <input class="bldr-econ field__control" data-econ-field="operatingHoursPerYear" type="number" min="0" step="100" value="${econ.operatingHoursPerYear}" placeholder="4000" />
-          <div class="field__hint">default: 4000 (2 shifts × 250 days)</div>
         </div>
       </fieldset>
     </div>
@@ -716,13 +714,8 @@ function wireListeners(signal: AbortSignal): void {
         const val = Number((target as HTMLInputElement).value) || 0;
         switch (field) {
           case "revenuePerArticle": builder.setRevenuePerArticle(val); break;
-          case "operatorCostPerHr": builder.setOperatorCostPerHr(val); break;
           case "energyCostPerHr": builder.setEnergyCostPerHr(val); break;
           case "maintenanceCostPerHr": builder.setMaintenanceCostPerHr(val); break;
-          case "waterAndEffluentCostPerHr": builder.setWaterEffluentCostPerHr(val); break;
-          case "basketCostRs": builder.setBasketCostRs(val); break;
-          case "basketLifeYears": builder.setBasketLifeYears(val); break;
-          case "operatingHoursPerYear": builder.setOperatingHoursPerYear(val); break;
         }
         const summaryEl = document.getElementById("cvEconomicsSummary");
         if (summaryEl) summaryEl.textContent = getEconomicsSummary();
@@ -730,11 +723,49 @@ function wireListeners(signal: AbortSignal): void {
         return;
       }
 
-      // Per-tank cost
-      if (target.classList.contains("bldr-tank-cost")) {
+      // Raw material cost per article
+      if (target.id === "bldrRawMaterialCost") {
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setRawMaterialCostPerArticle(val);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-tank chemical cost inputs
+      if (target.classList.contains("bldr-tank-capacity")) {
         const index = Number(target.getAttribute("data-index"));
         const val = Number((target as HTMLInputElement).value) || 0;
-        builder.setTankFixedCostPerHr(index, val);
+        builder.setTankCapacityLitres(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-chem-cost")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setChemicalCostPerLitre(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-bath-life")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setBathLifeHours(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-station labour inputs
+      if (target.classList.contains("bldr-labour-count")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setLabourCount(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-labour-cost")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setLabourCostPerHr(index, val);
         autoRunIfEnabled();
         return;
       }
@@ -744,15 +775,6 @@ function wireListeners(signal: AbortSignal): void {
         const idx = Number(target.getAttribute("data-wagon-index"));
         const val = Number((target as HTMLInputElement).value) || 0;
         builder.setWagonCostRs(idx, val);
-        autoRunIfEnabled();
-        return;
-      }
-
-      // Per-wagon life
-      if (target.classList.contains("bldr-wagon-life")) {
-        const idx = Number(target.getAttribute("data-wagon-index"));
-        const val = Number((target as HTMLInputElement).value) || 0;
-        builder.setWagonLifeYears(idx, val);
         autoRunIfEnabled();
         return;
       }

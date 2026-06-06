@@ -68,16 +68,12 @@ describe("createDefaultLineConfig", () => {
 });
 
 describe("createDefaultEconomicsConfig", () => {
-  it("returns all zeros except operatingHoursPerYear and basketLifeYears", () => {
+  it("returns all zeros for the 3 remaining fields", () => {
     const econ = createDefaultEconomicsConfig();
     expect(econ.revenuePerArticle).toBe(0);
-    expect(econ.operatorCostPerHr).toBe(0);
     expect(econ.energyCostPerHr).toBe(0);
     expect(econ.maintenanceCostPerHr).toBe(0);
-    expect(econ.waterAndEffluentCostPerHr).toBe(0);
-    expect(econ.basketCostRs).toBe(0);
-    expect(econ.basketLifeYears).toBe(5);
-    expect(econ.operatingHoursPerYear).toBe(4000);
+    expect(Object.keys(econ)).toHaveLength(3);
   });
 });
 

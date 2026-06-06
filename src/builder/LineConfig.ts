@@ -22,7 +22,13 @@ export interface StationConfig {
   chemicalDescription?: string;
   loadingDescription?: string;
   unloadingDescription?: string;
-  tankFixedCostPerHr?: number;        // Rs/hr — all-in tank operating cost
+  // Tank chemical cost (tank kind only):
+  tankCapacityLitres?: number;
+  chemicalCostPerLitre?: number;
+  bathLifeHours?: number;
+  // Labour (loading/unloading kind only):
+  labourCount?: number;
+  labourCostPerHr?: number;
 }
 
 export interface WagonConfig {
@@ -36,7 +42,6 @@ export interface WagonConfig {
   pickSec: number;
   dropSec: number;
   costRs?: number;                    // One-time purchase cost
-  lifeYears?: number;                 // Useful life for amortization
 }
 
 export interface TransportConfig {
@@ -51,6 +56,7 @@ export interface TransportConfig {
   maxWeightKg?: number;
   articleWeightKg?: number;
   maxArticlesPerBasket?: number;
+  rawMaterialCostPerArticle?: number;
   wagons?: WagonConfig[];
 }
 
@@ -63,13 +69,8 @@ export interface RunSettings {
 
 export interface EconomicsConfig {
   revenuePerArticle: number;
-  operatorCostPerHr: number;
   energyCostPerHr: number;
   maintenanceCostPerHr: number;
-  waterAndEffluentCostPerHr: number;
-  basketCostRs: number;
-  basketLifeYears: number;
-  operatingHoursPerYear: number;
 }
 
 export interface LineConfig {
@@ -84,13 +85,8 @@ export interface LineConfig {
 export function createDefaultEconomicsConfig(): EconomicsConfig {
   return {
     revenuePerArticle: 0,
-    operatorCostPerHr: 0,
     energyCostPerHr: 0,
     maintenanceCostPerHr: 0,
-    waterAndEffluentCostPerHr: 0,
-    basketCostRs: 0,
-    basketLifeYears: 5,
-    operatingHoursPerYear: 4000,
   };
 }
 
