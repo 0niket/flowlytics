@@ -21,7 +21,6 @@ RUN dpkg -i /tmp/oda.deb || apt-get install -f -y && rm /tmp/oda.deb
 
 WORKDIR /app
 COPY --from=build /build/dist/ /app/dist/
-COPY assets/cad/oda_out/ /app/assets/cad/oda_out/
 COPY deploy/server.py /app/deploy/server.py
 
 ENV ODA_CONVERTER=/usr/bin/ODAFileConverter
