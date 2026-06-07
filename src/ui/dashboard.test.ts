@@ -162,3 +162,44 @@ describe("renderFinancialDashboard — depreciation line", () => {
     expect(text).toContain("Depreciation");
   });
 });
+
+describe("renderFinancialDashboard — unit economics formulas", () => {
+  it("shows cost/basket formula with bph", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 1000,
+      profitPerHr: 3000,
+      profitMarginPct: 75,
+      unitEconomics: { costPerBasket: 200, costPerArticle: 10, revenuePerBasket: 1000, profitPerBasket: 800 },
+      throughputBph: 5,
+      breakEvenBph: 1,
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("\u00F7");
+    expect(text).toContain("bph");
+  });
+
+  it("shows break-even formula with /basket", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 1000,
+      profitPerHr: 3000,
+      profitMarginPct: 75,
+      unitEconomics: { costPerBasket: 200, costPerArticle: 10, revenuePerBasket: 1000, profitPerBasket: 800 },
+      throughputBph: 5,
+      breakEvenBph: 1,
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("/basket");
+  });
+});

@@ -209,14 +209,17 @@ export function renderOverviewTab(
         <div>
           <div class="unit-metric__label">Cost/basket</div>
           <div class="unit-metric__value">${formatCurrency(economics.unitEconomics.costPerBasket)}</div>
+          <div class="unit-metric__detail">${formatCurrency(economics.totalCostPerHr)}/hr \u00F7 ${economics.throughputBph.toFixed(1)} bph = ${formatCurrency(economics.unitEconomics.costPerBasket)}</div>
         </div>
         <div>
           <div class="unit-metric__label">Cost/article</div>
           <div class="unit-metric__value">${formatCurrency(economics.unitEconomics.costPerArticle)}</div>
+          <div class="unit-metric__detail">${formatCurrency(economics.unitEconomics.costPerBasket)} \u00F7 ${articlesPerBasket} articles = ${formatCurrency(economics.unitEconomics.costPerArticle)}</div>
         </div>
         <div>
           <div class="unit-metric__label">Break-even</div>
           <div class="unit-metric__value" style="color:${breakEvenColor}">${fmtBph(economics.breakEvenBph)}</div>
+          <div class="unit-metric__detail">${formatCurrency(economics.totalCostPerHr)}/hr \u00F7 ${formatCurrency(economics.unitEconomics.revenuePerBasket)}/basket = ${economics.breakEvenBph.toFixed(1)} bph</div>
         </div>
       </div>
     `;
