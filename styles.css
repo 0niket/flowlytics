@@ -867,6 +867,9 @@ html.light .dashboard-tab__count {
 }
 .formula-box__main { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .formula-box__detail { font-size: 11px; color: var(--muted); }
+details.formula-box summary::-webkit-details-marker { display: none; }
+details.formula-box summary::marker { display: none; content: ""; }
+details.formula-box[open] .formula-box__chevron { transform: rotate(90deg); }
 
 .cycle-row {
   display: grid; grid-template-columns: 14px 1fr auto auto;

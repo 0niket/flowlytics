@@ -497,62 +497,68 @@ function renderBasketCountExplanation(config: typeof builder.config): string {
   const bottleneck = b.serviceSec >= bottleneckCyclePart ? "load/unload" : "wagon capacity";
 
   return `
-    <div class="formula-box" style="text-align:left;font-size:11px;line-height:1.6;">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px;">Little\u2019s Law</div>
-      <div style="text-align:center;font-size:16px;font-weight:600;margin-bottom:4px;font-family:var(--mono);">L = \u03bb \u00d7 W</div>
-      <div style="text-align:center;font-size:10px;color:var(--muted);margin-bottom:10px;">
-        avg. items in system = arrival rate \u00d7 time in system
+    <details class="formula-box" style="text-align:left;font-size:11px;line-height:1.6;cursor:default;">
+      <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:9px;color:var(--muted);transition:transform 0.15s;" class="formula-box__chevron">\u25b6</span>
+        <span style="font-size:10px;color:var(--muted);">Why ${b.result}?</span>
+        <span style="font-size:11px;font-family:var(--mono);color:var(--muted);">L = \u03bb \u00d7 W = ${b.result}</span>
+      </summary>
+      <div style="margin-top:10px;">
+        <div style="text-align:center;font-size:16px;font-weight:600;margin-bottom:4px;font-family:var(--mono);">L = \u03bb \u00d7 W</div>
+        <div style="text-align:center;font-size:10px;color:var(--muted);margin-bottom:10px;">
+          avg. items in system = arrival rate \u00d7 time in system
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:3px 6px 3px 0;color:var(--muted);width:20px;font-family:var(--mono);font-weight:600;">L</td>
+            <td style="padding:3px 0;">baskets in the line (WIP)</td>
+            <td style="padding:3px 0;text-align:right;font-family:var(--mono);font-weight:600;">= ?</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:3px 6px 3px 0;color:var(--muted);font-family:var(--mono);font-weight:600;">\u03bb</td>
+            <td style="padding:3px 0;">throughput (arrival rate)</td>
+            <td style="padding:3px 0;text-align:right;font-family:var(--mono);">${(b.throughputPerSec * 3600).toFixed(2)} bph</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 6px 3px 0;color:var(--muted);font-family:var(--mono);font-weight:600;">W</td>
+            <td style="padding:3px 0;">cycle time (time in system)</td>
+            <td style="padding:3px 0;text-align:right;font-family:var(--mono);">${fmtSec(b.totalCycleSec)}</td>
+          </tr>
+        </table>
+
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:6px;">
+          <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Deriving the values</div>
+
+          <div style="margin-bottom:6px;">
+            <strong>W</strong> (cycle time) = dwell + handling<br/>
+            <span style="color:var(--muted);margin-left:8px;">${fmtSec(b.totalDwellSec)} dwell</span>
+            <span style="color:var(--muted);"> + ${b.activeTankCount} \u00d7 ${fmtSec(b.handlingPerTankSec)}/tank</span>
+            <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${fmtSec(b.totalCycleSec)}</strong></span>
+          </div>
+
+          <div style="margin-bottom:6px;">
+            <strong>\u03bb</strong> (throughput) = 1 \u00f7 bottleneck interval<br/>
+            <span style="color:var(--muted);margin-left:8px;">bottleneck = max(service, W \u00f7 wagons)</span><br/>
+            <span style="color:var(--muted);margin-left:8px;">= max(${fmtSec(b.serviceSec)}, ${fmtSec(b.totalCycleSec)} \u00f7 ${b.wagonCount})</span>
+            <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${fmtSec(Math.round(b.effectiveCycleSec))}</strong></span>
+            <span style="color:var(--muted);"> (${bottleneck})</span><br/>
+            <span style="color:var(--muted);margin-left:8px;">\u03bb = 1 \u00f7 ${fmtSec(Math.round(b.effectiveCycleSec))}</span>
+            <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${(b.throughputPerSec * 3600).toFixed(2)} bph</strong></span>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:8px;">
+          <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Result</div>
+          <div style="font-family:var(--mono);">
+            L = ${(b.throughputPerSec * 3600).toFixed(2)} \u00d7 ${fmtSec(b.totalCycleSec)} = ${b.optimalWip.toFixed(1)} baskets
+          </div>
+          <div style="margin-top:2px;">
+            \u2308${b.optimalWip.toFixed(1)}\u2309 + 1 buffer = <strong>${b.result} baskets</strong>
+          </div>
+        </div>
       </div>
-
-      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:3px 6px 3px 0;color:var(--muted);width:20px;font-family:var(--mono);font-weight:600;">L</td>
-          <td style="padding:3px 0;">baskets in the line (WIP)</td>
-          <td style="padding:3px 0;text-align:right;font-family:var(--mono);font-weight:600;">= ?</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:3px 6px 3px 0;color:var(--muted);font-family:var(--mono);font-weight:600;">\u03bb</td>
-          <td style="padding:3px 0;">throughput (arrival rate)</td>
-          <td style="padding:3px 0;text-align:right;font-family:var(--mono);">${(b.throughputPerSec * 3600).toFixed(2)} bph</td>
-        </tr>
-        <tr>
-          <td style="padding:3px 6px 3px 0;color:var(--muted);font-family:var(--mono);font-weight:600;">W</td>
-          <td style="padding:3px 0;">cycle time (time in system)</td>
-          <td style="padding:3px 0;text-align:right;font-family:var(--mono);">${fmtSec(b.totalCycleSec)}</td>
-        </tr>
-      </table>
-
-      <div style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:6px;">
-        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Deriving the values</div>
-
-        <div style="margin-bottom:6px;">
-          <strong>W</strong> (cycle time) = dwell + handling<br/>
-          <span style="color:var(--muted);margin-left:8px;">${fmtSec(b.totalDwellSec)} dwell</span>
-          <span style="color:var(--muted);"> + ${b.activeTankCount} \u00d7 ${fmtSec(b.handlingPerTankSec)}/tank</span>
-          <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${fmtSec(b.totalCycleSec)}</strong></span>
-        </div>
-
-        <div style="margin-bottom:6px;">
-          <strong>\u03bb</strong> (throughput) = 1 \u00f7 bottleneck interval<br/>
-          <span style="color:var(--muted);margin-left:8px;">bottleneck = max(service, W \u00f7 wagons)</span><br/>
-          <span style="color:var(--muted);margin-left:8px;">= max(${fmtSec(b.serviceSec)}, ${fmtSec(b.totalCycleSec)} \u00f7 ${b.wagonCount})</span>
-          <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${fmtSec(Math.round(b.effectiveCycleSec))}</strong></span>
-          <span style="color:var(--muted);"> (${bottleneck})</span><br/>
-          <span style="color:var(--muted);margin-left:8px;">\u03bb = 1 \u00f7 ${fmtSec(Math.round(b.effectiveCycleSec))}</span>
-          <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${(b.throughputPerSec * 3600).toFixed(2)} bph</strong></span>
-        </div>
-      </div>
-
-      <div style="border-top:1px solid var(--border);padding-top:8px;">
-        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Result</div>
-        <div style="font-family:var(--mono);">
-          L = ${(b.throughputPerSec * 3600).toFixed(2)} \u00d7 ${fmtSec(b.totalCycleSec)} = ${b.optimalWip.toFixed(1)} baskets
-        </div>
-        <div style="margin-top:2px;">
-          \u2308${b.optimalWip.toFixed(1)}\u2309 + 1 buffer = <strong>${b.result} baskets</strong>
-        </div>
-      </div>
-    </div>
+    </details>
   `;
 }
 

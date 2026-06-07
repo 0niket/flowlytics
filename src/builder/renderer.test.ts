@@ -70,6 +70,16 @@ describe("renderer — basket count input", () => {
     expect(document.getElementById("bldrBasketCountReset")).toBeNull();
   });
 
+  it("formula explanation is collapsed by default", () => {
+    const root = document.getElementById("configViewRoot")!;
+    const details = root.querySelector("details.formula-box") as HTMLDetailsElement;
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+    // Summary is visible with compact label
+    const summary = details.querySelector("summary");
+    expect(summary!.textContent).toContain("Why");
+  });
+
   it("renders formula box with L = λ × W and variable definitions", () => {
     const root = document.getElementById("configViewRoot")!;
     const formulaBox = root.querySelector(".formula-box");
