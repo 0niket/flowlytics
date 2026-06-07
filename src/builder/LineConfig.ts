@@ -74,6 +74,7 @@ export interface RunSettings {
   targetBph: number;
   simHours: number;
   basketCount: number;
+  basketCountOverride?: number | null;
 }
 
 export interface EconomicsConfig {
@@ -210,7 +211,7 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
   return {
     preset: "custom",
     tankCount: tankIds.length,
-    basketCount: computeOptimalBasketCount(config),
+    basketCount: config.settings.basketCountOverride ?? computeOptimalBasketCount(config),
     recipeSteps,
     wdoTimeMin: wdoStation ? (wdoStation.dryTimeSec ?? wdoStation.dwellSec) / 60 : 10,
     loadTimeMin: loadStation ? loadStation.dwellSec / 60 : 20,

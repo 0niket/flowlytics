@@ -472,6 +472,25 @@ describe("Builder — settings operations", () => {
     expect(b.config.settings.simHours).toBe(4);
   });
 
+  it("setBasketCount sets basketCountOverride", () => {
+    const b = new Builder();
+    b.setBasketCount(5);
+    expect(b.config.settings.basketCountOverride).toBe(5);
+  });
+
+  it("setBasketCount(null) clears override", () => {
+    const b = new Builder();
+    b.setBasketCount(5);
+    b.setBasketCount(null);
+    expect(b.config.settings.basketCountOverride).toBeNull();
+  });
+
+  it("setBasketCount(0) clamps to 1", () => {
+    const b = new Builder();
+    b.setBasketCount(0);
+    expect(b.config.settings.basketCountOverride).toBe(1);
+  });
+
 });
 
 describe("Builder — validation", () => {

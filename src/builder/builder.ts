@@ -385,6 +385,10 @@ export class Builder {
     this._config.settings.simHours = Math.max(0.25, hours);
   }
 
+  setBasketCount(count: number | null): void {
+    this._config.settings.basketCountOverride = count != null ? Math.max(1, count) : null;
+  }
+
   // ─── Wagon Config ────────────────────────────────────────
 
   setWagonRange(wagonIndex: number, fromStationId: string, toStationId: string): void {

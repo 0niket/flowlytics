@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createDefaultLineConfig,
   createDefaultEconomicsConfig,
+  computeOptimalBasketCount,
   lineConfigToSimParams,
   lineConfigToLayout,
   lineConfigFromSimParams,
@@ -134,6 +135,29 @@ describe("lineConfigToSimParams", () => {
     const config = createDefaultLineConfig();
     const params = lineConfigToSimParams(config);
     expect(params.preset).toBe("custom");
+  });
+});
+
+describe("lineConfigToSimParams — basketCountOverride", () => {
+  it("uses override when basketCountOverride is set", () => {
+    const config = createDefaultLineConfig();
+    config.settings.basketCountOverride = 5;
+    const params = lineConfigToSimParams(config);
+    expect(params.basketCount).toBe(5);
+  });
+
+  it("falls back to auto-computed when basketCountOverride is null", () => {
+    const config = createDefaultLineConfig();
+    config.settings.basketCountOverride = null;
+    const params = lineConfigToSimParams(config);
+    expect(params.basketCount).toBe(computeOptimalBasketCount(config));
+  });
+
+  it("falls back to auto-computed when basketCountOverride is undefined", () => {
+    const config = createDefaultLineConfig();
+    config.settings.basketCountOverride = undefined;
+    const params = lineConfigToSimParams(config);
+    expect(params.basketCount).toBe(computeOptimalBasketCount(config));
   });
 });
 
