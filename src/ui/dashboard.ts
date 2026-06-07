@@ -225,6 +225,20 @@ export function renderOverviewTab(
     `;
     container.appendChild(unitCard);
   }
+
+  // Throughput Card
+  if (economics.throughputBph > 0) {
+    const tpCard = document.createElement("div");
+    tpCard.className = "financial-card";
+
+    tpCard.innerHTML = `
+      <div class="financial-card__header"><span>THROUGHPUT</span></div>
+      <div class="unit-metric__value" style="margin-top:8px;">${economics.throughputBph.toFixed(1)} bph</div>
+      <div class="cost-group__item">${economics.completedCount} baskets completed in ${economics.simHours}h simulation</div>
+      <div class="cost-group__item">Steady-state: ${economics.throughputBph.toFixed(1)} bph (excludes warm-up)</div>
+    `;
+    container.appendChild(tpCard);
+  }
 }
 
 /**

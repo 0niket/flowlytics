@@ -412,6 +412,16 @@ describe("calculateEconomics", () => {
     expect(result.profitMarginPct).toBe(70);
   });
 
+  it("completedCount and simHours are populated from simulation result and config", () => {
+    const config = createDefaultLineConfig();
+    const sim = makeSimResult({ completedCount: 12 });
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.completedCount).toBe(12);
+    expect(result.simHours).toBe(config.settings.simHours);
+  });
+
   it("zero throughput → revenue = 0, costPerBasket = Infinity", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;

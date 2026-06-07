@@ -169,5 +169,7 @@ export function calculateEconomics(
     throughputBph,
     hasViolations,
     breakEvenBph,
+    completedCount: simResult.completedCount,
+    simHours: config.settings.simHours,
   };
 }

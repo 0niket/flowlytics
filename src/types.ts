@@ -409,6 +409,8 @@ export interface EconomicsResult {
   throughputBph: number;
   hasViolations: boolean;
   breakEvenBph: number;
+  completedCount: number;
+  simHours: number;
 }
 
 // ─── UI Elements ───────────────────────────────────────────────

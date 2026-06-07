@@ -34,6 +34,8 @@ function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResul
     throughputBph: 5,
     hasViolations: false,
     breakEvenBph: 0,
+    completedCount: 10,
+    simHours: 2,
     ...overrides,
   };
 }
@@ -201,5 +203,45 @@ describe("renderFinancialDashboard — unit economics formulas", () => {
     renderFinancialDashboard(econ, config, [], pinned, overview, violations);
     const text = overview.textContent ?? "";
     expect(text).toContain("/basket");
+  });
+});
+
+describe("renderFinancialDashboard — throughput card", () => {
+  it("renders throughput card with THROUGHPUT header", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 1000,
+      profitPerHr: 3000,
+      profitMarginPct: 75,
+      throughputBph: 5,
+      completedCount: 10,
+      simHours: 2,
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("THROUGHPUT");
+  });
+
+  it("shows completed basket count in throughput card", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 1000,
+      profitPerHr: 3000,
+      profitMarginPct: 75,
+      throughputBph: 5,
+      completedCount: 10,
+      simHours: 2,
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("10 baskets");
   });
 });
