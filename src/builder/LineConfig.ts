@@ -151,27 +151,57 @@ function stationKindFromRecipeStep(step: RecipeStep): StationConfig["kind"] {
 
 // ─── Basket Count Heuristic ──────────────────────────────────
 
-export function computeOptimalBasketCount(config: LineConfig): number {
+export interface BasketCountBreakdown {
+  activeTankCount: number;
+  totalDwellSec: number;
+  handlingPerTankSec: number;
+  totalCycleSec: number;
+  serviceSec: number;
+  wagonCount: number;
+  effectiveCycleSec: number;
+  throughputPerSec: number;
+  optimalWip: number;
+  result: number;
+}
+
+export function computeBasketCountBreakdown(config: LineConfig): BasketCountBreakdown {
   const tanks = config.stations.filter((s) => s.kind === "tank" && s.tankType !== "extra");
   const activeTankCount = tanks.length;
-  if (activeTankCount === 0) return 1;
+  if (activeTankCount === 0) {
+    return {
+      activeTankCount: 0, totalDwellSec: 0, handlingPerTankSec: 0,
+      totalCycleSec: 0, serviceSec: 0, wagonCount: config.transport.wagonCount,
+      effectiveCycleSec: 0, throughputPerSec: 0, optimalWip: 0, result: 1,
+    };
+  }
 
   const totalDwellSec = tanks.reduce((sum, t) => sum + t.dwellSec, 0);
-  const handlingPerTank = config.transport.liftSec + config.transport.dripSec +
+  const handlingPerTankSec = config.transport.liftSec + config.transport.dripSec +
     config.transport.lowerSec + config.transport.pickSec + config.transport.dropSec;
-  const totalCycleSec = totalDwellSec + activeTankCount * handlingPerTank;
+  const totalCycleSec = totalDwellSec + activeTankCount * handlingPerTankSec;
   const loadStation = config.stations.find((s) => s.kind === "loading");
   const unloadStation = config.stations.find((s) => s.kind === "unloading");
   const serviceSec = (loadStation?.dwellSec ?? 0) + (unloadStation?.dwellSec ?? 0);
+  const wagonCount = Math.max(1, config.transport.wagonCount);
 
   // Little's Law approximation: baskets = throughput * cycle_time
   // throughput ≈ 1 / max(service_time, cycle_time / wagon_count)
-  const effectiveCycle = Math.max(serviceSec, totalCycleSec / Math.max(1, config.transport.wagonCount));
-  const throughput = effectiveCycle > 0 ? 1 / effectiveCycle : 0;
-  const optimalWip = throughput * totalCycleSec;
+  const effectiveCycleSec = Math.max(serviceSec, totalCycleSec / wagonCount);
+  const throughputPerSec = effectiveCycleSec > 0 ? 1 / effectiveCycleSec : 0;
+  const optimalWip = throughputPerSec * totalCycleSec;
 
   // Add buffer of 1, clamp between 1 and tank count + 2
-  return Math.max(1, Math.min(activeTankCount + 2, Math.ceil(optimalWip) + 1));
+  const result = Math.max(1, Math.min(activeTankCount + 2, Math.ceil(optimalWip) + 1));
+
+  return {
+    activeTankCount, totalDwellSec, handlingPerTankSec,
+    totalCycleSec, serviceSec, wagonCount,
+    effectiveCycleSec, throughputPerSec, optimalWip, result,
+  };
+}
+
+export function computeOptimalBasketCount(config: LineConfig): number {
+  return computeBasketCountBreakdown(config).result;
 }
 
 // ─── Converters ───────────────────────────────────────────────

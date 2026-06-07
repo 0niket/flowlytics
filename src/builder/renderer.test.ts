@@ -69,4 +69,29 @@ describe("renderer — basket count input", () => {
     expect(Number(input.value)).toBe(optimal);
     expect(document.getElementById("bldrBasketCountReset")).toBeNull();
   });
+
+  it("renders formula box with L = λ × W and variable definitions", () => {
+    const root = document.getElementById("configViewRoot")!;
+    const formulaBox = root.querySelector(".formula-box");
+    expect(formulaBox).not.toBeNull();
+    const text = formulaBox!.textContent!;
+    // Formal formula
+    expect(text).toContain("L = \u03bb \u00d7 W");
+    // Variable mapping table
+    expect(text).toContain("WIP");
+    expect(text).toContain("throughput");
+    expect(text).toContain("cycle time");
+    // Result
+    expect(text).toContain("baskets");
+  });
+
+  it("formula shows derivation with dwell, handling, and bottleneck", () => {
+    const root = document.getElementById("configViewRoot")!;
+    const formulaBox = root.querySelector(".formula-box");
+    const text = formulaBox!.textContent!;
+    expect(text).toContain("dwell");
+    expect(text).toContain("handling");
+    expect(text).toContain("bottleneck");
+    expect(text).toContain("buffer");
+  });
 });
