@@ -131,10 +131,11 @@ export function renderOverviewTab(
       costHtml += `</div>`;
     }
 
-    // Energy + Maintenance
+    // Energy + Maintenance + Depreciation
     const plantCosts = [
       { label: "Energy", value: economics.costBreakdown.energyPerHr },
       { label: "Maintenance", value: economics.costBreakdown.maintenancePerHr },
+      { label: "Depreciation", value: economics.costBreakdown.depreciationPerHr },
     ].filter((c) => c.value > 0);
 
     if (plantCosts.length > 0) {

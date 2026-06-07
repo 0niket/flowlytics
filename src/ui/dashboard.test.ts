@@ -21,6 +21,7 @@ function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResul
       laborPerHr: 0,
       energyPerHr: 0,
       maintenancePerHr: 0,
+      depreciationPerHr: 0,
     },
     capex: { totalWagonCost: 0 },
     unitEconomics: {
@@ -83,5 +84,31 @@ describe("renderFinancialDashboard — missing economics config", () => {
     renderFinancialDashboard(econ, config, [], pinned, overview, violations);
     const text = pinned.textContent ?? "";
     expect(text).toContain("PROFIT");
+  });
+});
+
+describe("renderFinancialDashboard — depreciation line", () => {
+  it("renders depreciation line in overview when depreciationPerHr > 0", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 120,
+      profitPerHr: 3880,
+      profitMarginPct: 97,
+      costBreakdown: {
+        rawMaterialPerHr: 0,
+        chemicalPerHr: 0,
+        laborPerHr: 0,
+        energyPerHr: 0,
+        maintenancePerHr: 0,
+        depreciationPerHr: 120,
+      },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("Depreciation");
   });
 });

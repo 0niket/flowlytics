@@ -331,6 +331,20 @@ export class Builder {
     wagon.costRs = Math.max(0, rs);
   }
 
+  setWagonUsefulLifeYears(wagonIndex: number, years: number): void {
+    if (!this._config.transport.wagons) return;
+    const wagon = this._config.transport.wagons[wagonIndex];
+    if (!wagon) return;
+    wagon.usefulLifeYears = Math.max(0, years);
+  }
+
+  setWagonOperatingHoursPerYear(wagonIndex: number, hours: number): void {
+    if (!this._config.transport.wagons) return;
+    const wagon = this._config.transport.wagons[wagonIndex];
+    if (!wagon) return;
+    wagon.operatingHoursPerYear = Math.max(0, hours);
+  }
+
   // ─── Settings Operations ─────────────────────────────────
 
   setArticleMaterial(type: ArticleMaterialType): void {

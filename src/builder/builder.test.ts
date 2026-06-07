@@ -585,6 +585,18 @@ describe("Builder — economics operations", () => {
     // should not throw
     expect(b.config.transport.wagons!.length).toBe(1);
   });
+
+  it("setWagonUsefulLifeYears sets value on wagon", () => {
+    const b = new Builder();
+    b.setWagonUsefulLifeYears(0, 5);
+    expect(b.config.transport.wagons![0].usefulLifeYears).toBe(5);
+  });
+
+  it("setWagonOperatingHoursPerYear sets value on wagon", () => {
+    const b = new Builder();
+    b.setWagonOperatingHoursPerYear(0, 2000);
+    expect(b.config.transport.wagons![0].operatingHoursPerYear).toBe(2000);
+  });
 });
 
 describe("Builder — distributed cost operations", () => {

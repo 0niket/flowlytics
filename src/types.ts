@@ -390,6 +390,7 @@ export interface EconomicsResult {
     laborPerHr: number;
     energyPerHr: number;
     maintenancePerHr: number;
+    depreciationPerHr: number;
   };
 
   capex: {

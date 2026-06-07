@@ -83,20 +83,27 @@ export function calculateEconomics(
   const energyPerHr = econ.energyCostPerHr;
   const maintenancePerHr = econ.maintenanceCostPerHr;
 
-  const totalCostPerHr =
-    rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr;
-
-  const profitPerHr = revenuePerHr - totalCostPerHr;
-  const profitMarginPct = safeDivide(profitPerHr, revenuePerHr) * 100;
-
-  // Wagon capex — one-time, NOT in hourly costs
+  // Wagon capex + depreciation
   const wagons = config.transport.wagons ?? [];
   let totalWagonCost = 0;
+  let depreciationPerHr = 0;
   for (const w of wagons) {
     if (w.costRs != null && w.costRs > 0) {
       totalWagonCost += w.costRs;
+      const life = w.usefulLifeYears ?? 0;
+      const opHrs = w.operatingHoursPerYear ?? 0;
+      const totalHours = life * opHrs;
+      if (totalHours > 0) {
+        depreciationPerHr += w.costRs / totalHours;
+      }
     }
   }
+
+  const totalCostPerHr =
+    rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr + depreciationPerHr;
+
+  const profitPerHr = revenuePerHr - totalCostPerHr;
+  const profitMarginPct = safeDivide(profitPerHr, revenuePerHr) * 100;
 
   // Unit economics
   const costPerBasket = safeDivide(totalCostPerHr, throughputBph);
@@ -121,6 +128,7 @@ export function calculateEconomics(
       laborPerHr,
       energyPerHr,
       maintenancePerHr,
+      depreciationPerHr,
     },
 
     capex: {

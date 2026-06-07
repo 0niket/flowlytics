@@ -43,6 +43,8 @@ export interface WagonConfig {
   pickSec: number;
   dropSec: number;
   costRs?: number;                    // One-time purchase cost
+  usefulLifeYears?: number;            // Depreciation: useful life in years
+  operatingHoursPerYear?: number;      // Depreciation: operating hours per year
 }
 
 export interface TransportConfig {

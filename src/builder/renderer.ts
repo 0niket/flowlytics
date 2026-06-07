@@ -358,6 +358,16 @@ function renderWagonCards(): void {
           <label class="field__label">Wagon cost (₹)</label>
           <input class="bldr-wagon-cost field__control" data-wagon-index="${i}" type="number" min="0" step="10000" value="${w.costRs ?? ""}" placeholder="0" />
         </div>
+        <div class="grid2" style="margin-top:6px;">
+          <div class="field" style="margin:0;">
+            <label class="field__label">Useful life (years)</label>
+            <input class="bldr-wagon-life field__control" data-wagon-index="${i}" type="number" min="0" step="1" value="${w.usefulLifeYears ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Operating hrs/year</label>
+            <input class="bldr-wagon-ophrs field__control" data-wagon-index="${i}" type="number" min="0" step="100" value="${w.operatingHoursPerYear ?? ""}" placeholder="0" />
+          </div>
+        </div>
       </div>
     `;
   }
@@ -797,6 +807,24 @@ function wireListeners(signal: AbortSignal): void {
         const idx = Number(target.getAttribute("data-wagon-index"));
         const val = Number((target as HTMLInputElement).value) || 0;
         builder.setWagonCostRs(idx, val);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-wagon useful life
+      if (target.classList.contains("bldr-wagon-life")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setWagonUsefulLifeYears(idx, val);
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Per-wagon operating hours per year
+      if (target.classList.contains("bldr-wagon-ophrs")) {
+        const idx = Number(target.getAttribute("data-wagon-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setWagonOperatingHoursPerYear(idx, val);
         autoRunIfEnabled();
         return;
       }

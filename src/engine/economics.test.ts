@@ -258,6 +258,34 @@ describe("calculateEconomics", () => {
     expect(result.totalCostPerHr).toBe(0);
   });
 
+  it("wagon with cost + life + hours → depreciationPerHr included in totalCostPerHr", () => {
+    const config = createDefaultLineConfig();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+    ];
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    // 1,200,000 / (5 × 2000) = 120
+    expect(result.costBreakdown.depreciationPerHr).toBe(120);
+    expect(result.totalCostPerHr).toBe(120);
+    expect(result.capex.totalWagonCost).toBe(1_200_000);
+  });
+
+  it("wagon with cost but no life/hours → depreciationPerHr = 0", () => {
+    const config = createDefaultLineConfig();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000 },
+    ];
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.depreciationPerHr).toBe(0);
+    expect(result.totalCostPerHr).toBe(0);
+  });
+
   it("maxArticlesPerBasket undefined → revenue = 0", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 50;
