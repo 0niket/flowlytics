@@ -1,4 +1,4 @@
-import type { EconomicsResult } from "../types";
+import type { EconomicsResult, SimPlan, SimulationResult } from "../types";
 import type { LineConfig } from "../builder/LineConfig";
 import { formatCurrency, countUniqueViolatedBaskets } from "../engine/economics";
 import type { Violation } from "../types";
@@ -296,19 +296,130 @@ export function renderOverviewTab(
     container.appendChild(unitCard);
   }
 
-  // Throughput Card
-  if (economics.throughputBph > 0) {
-    const tpCard = document.createElement("div");
-    tpCard.className = "financial-card";
+}
 
-    tpCard.innerHTML = `
-      <div class="financial-card__header"><span>THROUGHPUT</span></div>
-      <div class="unit-metric__value" style="margin-top:8px;">${economics.throughputBph.toFixed(1)} bph</div>
-      <div class="cost-group__item">${economics.completedCount} baskets completed in ${economics.simHours}h simulation</div>
-      <div class="cost-group__item">Steady-state: ${economics.throughputBph.toFixed(1)} bph (excludes warm-up)</div>
-    `;
-    container.appendChild(tpCard);
+function fmtSec(sec: number): string {
+  if (sec >= 60) {
+    const min = sec / 60;
+    return min.toFixed(1) + "m";
   }
+  return sec.toFixed(0) + "s";
+}
+
+/**
+ * Renders the throughput tab: hero, three-tier, formula, Gantt chart,
+ * and cycle time bucket breakdown.
+ */
+export function renderThroughputTab(
+  economics: EconomicsResult,
+  plan: SimPlan,
+  sim: SimulationResult,
+  container: HTMLElement,
+): void {
+  container.textContent = "";
+
+  // Hero card
+  const heroCard = document.createElement("div");
+  heroCard.className = "financial-card";
+  heroCard.innerHTML = `
+    <div class="throughput-hero">
+      <div class="throughput-hero__value">${economics.throughputBph.toFixed(1)}<span class="throughput-hero__unit"> bph</span></div>
+      <div class="throughput-hero__sub">${economics.completedCount} baskets completed in ${economics.simHours}h simulation</div>
+      <div class="throughput-hero__sub">Steady-state measurement (excludes warm-up)</div>
+    </div>
+  `;
+  container.appendChild(heroCard);
+
+  // Three-tier comparison
+  const tierCard = document.createElement("div");
+  tierCard.className = "financial-card";
+  let tierHtml = `<div class="financial-card__header"><span>THREE-TIER COMPARISON</span></div>`;
+  tierHtml += `<div class="tier-grid">`;
+  tierHtml += `<div class="tier-card"><div class="tier-card__label">Target</div><div class="tier-card__value">${sim.targetThroughput.toFixed(1)}</div></div>`;
+  tierHtml += `<div class="tier-card"><div class="tier-card__label">Simulated</div><div class="tier-card__value" style="color:var(--accent);">${sim.simulatedThroughput.toFixed(1)}</div></div>`;
+  tierHtml += `<div class="tier-card"><div class="tier-card__label">Theoretical</div><div class="tier-card__value" style="color:var(--accent2);">${sim.theoreticalMaxThroughput.toFixed(1)}</div></div>`;
+  tierHtml += `</div>`;
+  if (sim.throughputLimitation) {
+    tierHtml += `<div class="limitation-badge">\u26A0 ${escapeHtml(sim.throughputLimitation.factor)}: ${escapeHtml(sim.throughputLimitation.description)}</div>`;
+  }
+  tierCard.innerHTML = tierHtml;
+  container.appendChild(tierCard);
+
+  // Throughput formula
+  const formulaCard = document.createElement("div");
+  formulaCard.className = "financial-card";
+  const theoreticalBph = plan.cycleSeconds > 0 ? (3600 / plan.cycleSeconds) : 0;
+  formulaCard.innerHTML = `
+    <div class="financial-card__header"><span>THROUGHPUT FORMULA</span></div>
+    <div class="formula-box">
+      <div class="formula-box__main">throughput = 3600 \u00F7 cycle_time</div>
+      <div class="formula-box__detail">3600s \u00F7 ${plan.cycleSeconds.toFixed(0)}s = ${theoreticalBph.toFixed(1)} bph (theoretical)</div>
+    </div>
+  `;
+  container.appendChild(formulaCard);
+
+  // Cycle time breakdown + Gantt
+  const cycleCard = document.createElement("div");
+  cycleCard.className = "financial-card";
+  const b = plan.buckets;
+  const total = plan.cycleSeconds;
+
+  let cycleHtml = `<div class="financial-card__header"><span>CYCLE TIME BREAKDOWN</span><span style="font-size:13px;font-weight:600;">${fmtSec(total)}</span></div>`;
+
+  // Gantt bar
+  cycleHtml += `<div class="gantt" style="margin:14px 0 8px;">`;
+  cycleHtml += `<div class="gantt__bar" style="display:flex;height:28px;border-radius:4px;overflow:hidden;background:var(--bg-dark,#0d1117);border:1px solid var(--border);">`;
+  if (b.manual > 0) cycleHtml += `<div class="gantt__seg gantt__seg--manual" style="flex:${b.manual};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#da3633;">${fmtSec(b.manual)}</div>`;
+  if (b.dwell > 0) cycleHtml += `<div class="gantt__seg gantt__seg--dwell" style="flex:${b.dwell};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#58a6ff;">${fmtSec(b.dwell)}</div>`;
+  if (b.handling > 0) cycleHtml += `<div class="gantt__seg gantt__seg--handling" style="flex:${b.handling};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#d29922;">${fmtSec(b.handling)}</div>`;
+  if (b.travel > 0) cycleHtml += `<div class="gantt__seg gantt__seg--travel" style="flex:${b.travel};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#a371f7;">${fmtSec(b.travel)}</div>`;
+  if (b.drip > 0) cycleHtml += `<div class="gantt__seg gantt__seg--drip" style="flex:${b.drip};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#3fb950;">${fmtSec(b.drip)}</div>`;
+  cycleHtml += `</div>`;
+
+  // Legend
+  cycleHtml += `<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">`;
+  const legendItems = [
+    { label: "Manual", color: "#da3633", value: b.manual },
+    { label: "Dwell", color: "#58a6ff", value: b.dwell },
+    { label: "Handling", color: "#d29922", value: b.handling },
+    { label: "Travel", color: "#a371f7", value: b.travel },
+    { label: "Drip", color: "#3fb950", value: b.drip },
+  ];
+  for (const item of legendItems) {
+    if (item.value > 0) {
+      cycleHtml += `<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);"><div style="width:8px;height:8px;border-radius:2px;background:${item.color};"></div>${item.label}</div>`;
+    }
+  }
+  cycleHtml += `</div></div>`;
+
+  // Bucket breakdown rows
+  const bucketRows = [
+    { label: "Manual", color: "#da3633", detail: "load + unload", value: b.manual },
+    { label: "Dwell", color: "#58a6ff", detail: "tank + wdo times", value: b.dwell },
+    { label: "Handling", color: "#d29922", detail: "pick/lift/lower/drop", value: b.handling },
+    { label: "Travel", color: "#a371f7", detail: "wagon movement", value: b.travel },
+    { label: "Drip", color: "#3fb950", detail: "post-pickup drain", value: b.drip },
+  ];
+
+  for (const row of bucketRows) {
+    if (row.value > 0) {
+      cycleHtml += `<div class="cycle-row"><div class="cycle-dot" style="background:${row.color};"></div><div class="cycle-row__label">${row.label}</div><div class="cycle-row__detail">${row.detail}</div><div class="cycle-row__value">${fmtSec(row.value)}</div></div>`;
+    }
+  }
+
+  // Total row
+  cycleHtml += `<div class="cycle-row cycle-row--total"><div></div><div class="cycle-row__label" style="font-weight:600;">Total Cycle</div><div class="cycle-row__detail"></div><div class="cycle-row__value" style="color:var(--accent);font-weight:700;">${fmtSec(total)}</div></div>`;
+
+  // Step-by-step details
+  cycleHtml += `<hr class="separator" />`;
+  cycleHtml += `<div class="financial-card__header" style="margin-top:8px;"><span>STEP-BY-STEP</span></div>`;
+  for (const step of plan.steps) {
+    const dur = step.end - step.start;
+    cycleHtml += `<div class="cost-group__item">${escapeHtml(step.label)}: ${fmtSec(dur)}</div>`;
+  }
+
+  cycleCard.innerHTML = cycleHtml;
+  container.appendChild(cycleCard);
 }
 
 /**

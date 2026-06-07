@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import { renderFinancialDashboard } from "./dashboard";
-import type { EconomicsResult } from "../types";
+import { renderFinancialDashboard, renderThroughputTab } from "./dashboard";
+import type { EconomicsResult, SimPlan, SimulationResult } from "../types";
 import type { LineConfig } from "../builder/LineConfig";
 import { createDefaultLineConfig } from "../builder/LineConfig";
 
@@ -342,8 +342,8 @@ describe("renderFinancialDashboard — unit economics formulas", () => {
   });
 });
 
-describe("renderFinancialDashboard — throughput card", () => {
-  it("renders throughput card with THROUGHPUT header", () => {
+describe("renderFinancialDashboard — throughput moved to separate tab", () => {
+  it("overview tab does NOT contain THROUGHPUT card", () => {
     const pinned = mockContainer();
     const overview = mockContainer();
     const violations = mockContainer();
@@ -359,25 +359,137 @@ describe("renderFinancialDashboard — throughput card", () => {
     });
     renderFinancialDashboard(econ, config, [], pinned, overview, violations);
     const text = overview.textContent ?? "";
-    expect(text).toContain("THROUGHPUT");
+    expect(text).not.toContain("THROUGHPUT");
+  });
+});
+
+function mockSimResult(overrides: Partial<SimulationResult> = {}): SimulationResult {
+  return {
+    simEnd: 7200,
+    completedCount: 10,
+    throughputBph: 5,
+    throughputSteadyBph: 5,
+    throughputTrimmedBph: 5,
+    throughputStatus: "ok" as const,
+    avgLeadTimeSec: 600,
+    waits: {},
+    bottleneck: "none",
+    violations: [],
+    util: { wagons: [], stations: [] },
+    loading: { queueWaits: [], avgQueueWait: 0, util01: 0.5 },
+    unloading: { util01: 0.5 },
+    inventory: {
+      avgWip: 2, maxWip: 3, optimalWip: 2,
+      recommendedBuffer: 2, excessWip: 0, recommendedBph: 5,
+      arrivalBph: 5, isOverfeeding: false, wipSamples: [],
+    },
+    baskets: [],
+    events: [],
+    snapshots: [],
+    schedulingDecisions: [],
+    failures: [],
+    lineStopped: false,
+    targetThroughput: 6,
+    simulatedThroughput: 5,
+    theoreticalMaxThroughput: 8,
+    ...overrides,
+  } as SimulationResult;
+}
+
+function mockPlan(overrides: Partial<SimPlan> = {}): SimPlan {
+  return {
+    steps: [
+      { type: "manual", at: "LOAD", label: "Loading", start: 0, end: 150 },
+      { type: "travel", from: "LOAD", to: "T1", label: "Travel LOAD -> T1", start: 150, end: 200, distanceMm: 1400 },
+      { type: "handling", at: "T1", label: "Drop/Lower @ T1", start: 200, end: 230 },
+      { type: "dwell", at: "T1", label: "Dwell @ T1", start: 230, end: 530 },
+    ],
+    cycleSeconds: 948,
+    violations: [],
+    buckets: { travel: 78, handling: 80, dwell: 450, manual: 300, drip: 40 },
+    ...overrides,
+  };
+}
+
+describe("renderThroughputTab", () => {
+  it("renders THROUGHPUT FORMULA header", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
+    const plan = mockPlan();
+    const sim = mockSimResult();
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("THROUGHPUT FORMULA");
   });
 
-  it("shows completed basket count in throughput card", () => {
-    const pinned = mockContainer();
-    const overview = mockContainer();
-    const violations = mockContainer();
-    const config = configWithEconomics();
-    const econ = mockEconomics({
-      revenuePerHr: 4000,
-      totalCostPerHr: 1000,
-      profitPerHr: 3000,
-      profitMarginPct: 75,
-      throughputBph: 5,
-      completedCount: 10,
-      simHours: 2,
+  it("shows cycle time breakdown with bucket values", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
+    const plan = mockPlan();
+    const sim = mockSimResult();
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("CYCLE TIME BREAKDOWN");
+    expect(text).toContain("Manual");
+    expect(text).toContain("Dwell");
+    expect(text).toContain("Handling");
+    expect(text).toContain("Travel");
+    expect(text).toContain("Drip");
+  });
+
+  it("shows the throughput formula: 3600 ÷ cycleSeconds", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 3.8 });
+    const plan = mockPlan({ cycleSeconds: 948 });
+    const sim = mockSimResult();
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("3600");
+    expect(text).toContain("948");
+  });
+
+  it("shows three-tier throughput comparison", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
+    const plan = mockPlan();
+    const sim = mockSimResult({ targetThroughput: 6, simulatedThroughput: 5, theoreticalMaxThroughput: 8 });
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("Target");
+    expect(text).toContain("Simulated");
+    expect(text).toContain("Theoretical");
+  });
+
+  it("shows throughput limitation when present", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      throughputLimitation: { factor: "wagon_bottleneck", description: "W1 at 94% utilisation" },
     });
-    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
-    const text = overview.textContent ?? "";
-    expect(text).toContain("10 baskets");
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("wagon_bottleneck");
+  });
+
+  it("shows step-by-step plan steps including dwell labels", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5 });
+    const plan = mockPlan();
+    const sim = mockSimResult();
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("Dwell @ T1");
+  });
+
+  it("shows completed basket count and sim hours", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 14, simHours: 4 });
+    const plan = mockPlan();
+    const sim = mockSimResult();
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("14 baskets");
+    expect(text).toContain("4h");
   });
 });

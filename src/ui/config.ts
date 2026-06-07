@@ -2,12 +2,14 @@ import { state } from "./state";
 import { buildSimPlan, runSimulation } from "../engine/simulation";
 import { lineConfigToSimParams, lineConfigToLayout } from "../builder/LineConfig";
 import { calculateEconomics } from "../engine/economics";
-import { renderFinancialDashboard } from "./dashboard";
+import { renderFinancialDashboard, renderThroughputTab } from "./dashboard";
 
-function switchTab(tab: "overview" | "violations"): void {
+function switchTab(tab: "overview" | "throughput" | "violations"): void {
   const overviewPanel = document.getElementById("tabOverview");
+  const throughputPanel = document.getElementById("tabThroughput");
   const violationsPanel = document.getElementById("tabViolations");
   if (overviewPanel) overviewPanel.hidden = tab !== "overview";
+  if (throughputPanel) throughputPanel.hidden = tab !== "throughput";
   if (violationsPanel) violationsPanel.hidden = tab !== "violations";
 
   const tabs = document.querySelectorAll(".dashboard-tab");
@@ -37,9 +39,10 @@ function updateResults(): void {
 
   const pinnedContainer = document.getElementById("dashboardPinned");
   const overviewContainer = document.getElementById("tabOverview");
+  const throughputContainer = document.getElementById("tabThroughput");
   const violationsContainer = document.getElementById("tabViolations");
 
-  if (!pinnedContainer || !overviewContainer || !violationsContainer) return;
+  if (!pinnedContainer || !overviewContainer || !throughputContainer || !violationsContainer) return;
   if (!state.economics || !state.lineConfig || !state.sim) return;
 
   renderFinancialDashboard(
@@ -50,6 +53,11 @@ function updateResults(): void {
     overviewContainer,
     violationsContainer,
   );
+
+  // Render throughput tab
+  if (state.plan) {
+    renderThroughputTab(state.economics, state.plan, state.sim, throughputContainer);
+  }
 
   // Update violation badge count on tab button
   const badge = document.getElementById("violationBadge");
@@ -76,7 +84,7 @@ export async function setupConfigPanel(): Promise<void> {
     tabBar.addEventListener("click", (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>(".dashboard-tab");
       if (!btn) return;
-      const tab = btn.dataset.tab as "overview" | "violations" | undefined;
+      const tab = btn.dataset.tab as "overview" | "throughput" | "violations" | undefined;
       if (tab) switchTab(tab);
     });
   }

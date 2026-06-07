@@ -679,6 +679,7 @@ html.light .toast {
 .dashboard-tab__count[hidden] { display: none; }
 
 #tabOverview,
+#tabThroughput,
 #tabViolations {
   display: flex;
   flex-direction: column;
@@ -686,8 +687,10 @@ html.light .toast {
   padding: 4px 0;
 }
 #tabOverview[hidden],
+#tabThroughput[hidden],
 #tabViolations[hidden] { display: none; }
 #tabOverview:empty,
+#tabThroughput:empty,
 #tabViolations:empty { display: none; }
 
 /* Light theme overrides for tabs */
@@ -820,6 +823,72 @@ html.light .dashboard-tab__count {
 .unit-metric__value {
   font-size: 15px; font-weight: 600; font-family: var(--mono);
   margin-top: 2px;
+}
+.unit-metric__detail {
+  font-size: 10px; color: var(--muted); font-family: var(--mono);
+  margin-top: 2px; line-height: 1.5;
+}
+
+/* ===== THROUGHPUT TAB ===== */
+.throughput-hero { text-align: center; padding: 16px 0 8px; }
+.throughput-hero__value {
+  font-size: 32px; font-weight: 700; font-family: var(--mono);
+  color: var(--accent);
+}
+.throughput-hero__unit { font-size: 14px; font-weight: 400; color: var(--muted); }
+.throughput-hero__sub {
+  font-size: 11px; color: var(--muted); font-family: var(--mono);
+  margin-top: 3px;
+}
+
+.tier-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 12px 0; }
+.tier-card {
+  background: var(--bg, #0d1117); border: 1px solid var(--border);
+  border-radius: var(--radius, 6px); padding: 10px 12px; text-align: center;
+}
+.tier-card__label {
+  font-size: 9px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted); font-family: var(--mono);
+  margin-bottom: 4px;
+}
+.tier-card__value { font-size: 16px; font-weight: 700; font-family: var(--mono); }
+
+.limitation-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2);
+  border-radius: 4px; padding: 6px 10px; margin-top: 8px;
+  font-size: 10px; font-family: var(--mono); color: var(--danger);
+}
+
+.formula-box {
+  background: var(--bg, #0d1117); border: 1px solid var(--border);
+  border-radius: 4px; padding: 12px 14px; margin: 10px 0;
+  font-family: var(--mono); text-align: center;
+}
+.formula-box__main { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.formula-box__detail { font-size: 11px; color: var(--muted); }
+
+.cycle-row {
+  display: grid; grid-template-columns: 14px 1fr auto auto;
+  gap: 8px; align-items: baseline; padding: 5px 0;
+  border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.cycle-row:last-child { border-bottom: none; }
+.cycle-row--total {
+  border-top: 1px solid var(--border); border-bottom: none;
+  font-weight: 600; margin-top: 2px; padding-top: 8px;
+}
+.cycle-dot {
+  width: 8px; height: 8px; border-radius: 2px; margin-top: 2px;
+}
+.cycle-row__label { color: var(--text); }
+.cycle-row__detail {
+  font-size: 10px; color: var(--muted); font-family: var(--mono);
+  text-align: right;
+}
+.cycle-row__value {
+  font-size: 12px; font-weight: 500; font-family: var(--mono);
+  text-align: right; min-width: 48px;
 }
 
 /* ===== ECONOMICS SIDEBAR ===== */
