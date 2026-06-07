@@ -391,6 +391,29 @@ describe("Builder — wagon config sync", () => {
   });
 });
 
+describe("Builder — WDO operating cost", () => {
+  it("setWdoOperatingCostPerHr sets value on WDO station", () => {
+    const b = new Builder();
+    b.enableWdo();
+    const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
+    b.setWdoOperatingCostPerHr(wdoIdx, 500);
+    expect(b.config.stations[wdoIdx].operatingCostPerHr).toBe(500);
+  });
+
+  it("setWdoOperatingCostPerHr throws for non-WDO station", () => {
+    const b = new Builder();
+    expect(() => b.setWdoOperatingCostPerHr(0, 500)).toThrow("No WDO station at index 0");
+  });
+
+  it("setWdoOperatingCostPerHr clamps negative to 0", () => {
+    const b = new Builder();
+    b.enableWdo();
+    const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
+    b.setWdoOperatingCostPerHr(wdoIdx, -100);
+    expect(b.config.stations[wdoIdx].operatingCostPerHr).toBe(0);
+  });
+});
+
 describe("Builder — settings operations", () => {
   it("setArticleMaterial updates material type", () => {
     const b = new Builder();

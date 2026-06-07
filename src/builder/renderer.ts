@@ -186,6 +186,11 @@ function renderStationSection(container: HTMLElement): void {
             </div>
           </div>
         </div>
+        <hr class="separator" />
+        <div class="field" style="margin:0;">
+          <label class="field__label">Operating cost (₹/hr)</label>
+          <input class="bldr-wdo-opcost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.operatingCostPerHr ?? ""}" placeholder="0" />
+        </div>
       `;
       lane.appendChild(card);
     } else if (s.kind === "loading") {
@@ -647,6 +652,15 @@ function wireListeners(signal: AbortSignal): void {
           minutesToSeconds(Number((target as HTMLInputElement).value) || 10),
           index
         );
+        autoRunIfEnabled();
+        return;
+      }
+
+      // WDO operating cost
+      if (target.classList.contains("bldr-wdo-opcost")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setWdoOperatingCostPerHr(index, val);
         autoRunIfEnabled();
         return;
       }

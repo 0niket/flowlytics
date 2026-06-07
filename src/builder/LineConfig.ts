@@ -30,6 +30,8 @@ export interface StationConfig {
   // Labour (loading/unloading kind only):
   labourCount?: number;
   labourCostPerHr?: number;
+  // WDO operating cost (wdo kind only):
+  operatingCostPerHr?: number;
 }
 
 export interface WagonConfig {

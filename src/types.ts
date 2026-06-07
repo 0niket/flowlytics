@@ -391,6 +391,7 @@ export interface EconomicsResult {
     energyPerHr: number;
     maintenancePerHr: number;
     depreciationPerHr: number;
+    wdoCostPerHr: number;
   };
 
   capex: {

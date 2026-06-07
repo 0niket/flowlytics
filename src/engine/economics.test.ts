@@ -331,6 +331,31 @@ describe("calculateEconomics", () => {
     expect(result.breakEvenBph).toBe(Infinity);
   });
 
+  it("WDO with operatingCostPerHr → wdoCostPerHr included in totalCostPerHr", () => {
+    const config = createDefaultLineConfig();
+    config.stations.splice(2, 0, {
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 0, dryTimeSec: 600, operatingCostPerHr: 500,
+    });
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.wdoCostPerHr).toBe(500);
+    expect(result.totalCostPerHr).toBe(500);
+  });
+
+  it("WDO without operatingCostPerHr → wdoCostPerHr = 0", () => {
+    const config = createDefaultLineConfig();
+    config.stations.splice(2, 0, {
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 0, dryTimeSec: 600,
+    });
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.wdoCostPerHr).toBe(0);
+  });
+
   it("profit margin % = profitPerHr / revenuePerHr × 100", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 100;

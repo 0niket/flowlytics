@@ -22,6 +22,7 @@ function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResul
       energyPerHr: 0,
       maintenancePerHr: 0,
       depreciationPerHr: 0,
+      wdoCostPerHr: 0,
     },
     capex: { totalWagonCost: 0 },
     unitEconomics: {
@@ -86,6 +87,36 @@ describe("renderFinancialDashboard — missing economics config", () => {
   });
 });
 
+describe("renderFinancialDashboard — WDO cost line", () => {
+  it("renders WDO operating cost line in overview when wdoCostPerHr > 0", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 500,
+      profitPerHr: 3500,
+      profitMarginPct: 87.5,
+      costBreakdown: {
+        rawMaterialPerHr: 0,
+        chemicalPerHr: 0,
+        laborPerHr: 0,
+        energyPerHr: 0,
+        maintenancePerHr: 0,
+        depreciationPerHr: 0,
+        wdoCostPerHr: 500,
+      },
+    });
+    config.stations.splice(2, 0, {
+      id: "WDO", label: "WDO", kind: "wdo", dwellSec: 0, dryTimeSec: 600, operatingCostPerHr: 500,
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("WDO Operating");
+  });
+});
+
 describe("renderFinancialDashboard — depreciation line", () => {
   it("renders depreciation line in overview when depreciationPerHr > 0", () => {
     const pinned = mockContainer();
@@ -104,6 +135,7 @@ describe("renderFinancialDashboard — depreciation line", () => {
         energyPerHr: 0,
         maintenancePerHr: 0,
         depreciationPerHr: 120,
+        wdoCostPerHr: 0,
       },
     });
     renderFinancialDashboard(econ, config, [], pinned, overview, violations);

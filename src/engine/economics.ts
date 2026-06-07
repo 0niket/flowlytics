@@ -79,6 +79,16 @@ export function calculateEconomics(
     }
   }
 
+  // WDO operating costs
+  let wdoCostPerHr = 0;
+  for (const station of config.stations) {
+    if (station.kind !== "wdo") continue;
+    const opCost = station.operatingCostPerHr;
+    if (opCost != null && opCost > 0) {
+      wdoCostPerHr += opCost;
+    }
+  }
+
   // Plant-level costs
   const energyPerHr = econ.energyCostPerHr;
   const maintenancePerHr = econ.maintenanceCostPerHr;
@@ -100,7 +110,7 @@ export function calculateEconomics(
   }
 
   const totalCostPerHr =
-    rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr + depreciationPerHr;
+    rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr + depreciationPerHr + wdoCostPerHr;
 
   const profitPerHr = revenuePerHr - totalCostPerHr;
   const profitMarginPct = safeDivide(profitPerHr, revenuePerHr) * 100;
@@ -126,6 +136,7 @@ export function calculateEconomics(
       energyPerHr,
       maintenancePerHr,
       depreciationPerHr,
+      wdoCostPerHr,
     },
 
     capex: {

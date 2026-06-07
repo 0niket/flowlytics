@@ -316,6 +316,14 @@ export class Builder {
     station.labourCount = Math.max(0, Math.round(count));
   }
 
+  setWdoOperatingCostPerHr(stationIndex: number, rs: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station || station.kind !== "wdo") {
+      throw new Error(`No WDO station at index ${stationIndex}`);
+    }
+    station.operatingCostPerHr = Math.max(0, rs);
+  }
+
   setLabourCostPerHr(stationIndex: number, rs: number): void {
     const station = this._config.stations[stationIndex];
     if (!station || (station.kind !== "loading" && station.kind !== "unloading")) {

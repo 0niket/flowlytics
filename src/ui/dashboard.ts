@@ -131,6 +131,21 @@ export function renderOverviewTab(
       costHtml += `</div>`;
     }
 
+    // WDO Operating Cost
+    if (economics.costBreakdown.wdoCostPerHr > 0) {
+      costHtml += `<hr class="separator" />`;
+      costHtml += `<div class="cost-group">`;
+      costHtml += `<div class="cost-group__header"><span>WDO Operating</span><span>${formatCurrency(economics.costBreakdown.wdoCostPerHr)} /hr</span></div>`;
+      for (const station of config.stations) {
+        if (station.kind !== "wdo") continue;
+        const opCost = station.operatingCostPerHr;
+        if (opCost != null && opCost > 0) {
+          costHtml += `<div class="cost-group__item">${escapeHtml(station.id)}: ${formatCurrency(opCost)}/hr</div>`;
+        }
+      }
+      costHtml += `</div>`;
+    }
+
     // Energy + Maintenance + Depreciation
     const plantCosts = [
       { label: "Energy", value: economics.costBreakdown.energyPerHr },
