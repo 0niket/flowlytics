@@ -3,4 +3,4 @@ services:
     name: flowlytics
     runtime: docker
     plan: free
-    healthCheckPath: /index.html
+    healthCheckPath: /
