@@ -306,14 +306,78 @@ function fmtSec(sec: number): string {
   return sec.toFixed(0) + "s";
 }
 
+// ─── Gantt chart helpers ──────────────────────────────────────
+
+const GANTT_STATE_COLORS: Record<string, string> = {
+  LOADING: "#da3633",
+  IN_TRANSIT: "#a371f7",
+  UNLOADING: "#3fb950",
+  WAITING_LOAD: "#21262d",
+  WAITING_UNLOAD: "#21262d",
+  READY_FOR_PICKUP: "#e3b341",
+  DONE: "#30363d",
+  FAILED: "#ff6b6b",
+};
+
+const GANTT_TANK_COLORS: Record<string, string> = {
+  T1: "#58a6ff", T2: "#388bfd", T3: "#1f6feb", T4: "#1a7f37",
+  WDO: "#d29922",
+};
+
+function ganttColor(state: string, station: string): string {
+  if (state === "IN_TANK") return GANTT_TANK_COLORS[station] ?? "#58a6ff";
+  return GANTT_STATE_COLORS[state] ?? "#30363d";
+}
+
+function extractStation(reason: string): string {
+  const m = reason.match(/dropped_at_(\w+)/);
+  return m ? m[1] : "";
+}
+
+interface GanttSegment {
+  start: number;
+  end: number;
+  state: string;
+  station: string;
+  color: string;
+  isWaiting: boolean;
+}
+
+function basketToSegments(
+  history: { timestamp: number; fromState: string; toState: string; reason: string }[],
+  simEnd: number,
+): GanttSegment[] {
+  const segments: GanttSegment[] = [];
+  for (let i = 0; i < history.length; i++) {
+    const tr = history[i];
+    const nextTr = history[i + 1];
+    const start = tr.timestamp;
+    const end = nextTr ? nextTr.timestamp : simEnd;
+    const state = tr.toState;
+    const station = state === "IN_TANK" ? extractStation(tr.reason) : "";
+    const isWaiting = state === "WAITING_LOAD" || state === "WAITING_UNLOAD" || state === "DONE";
+    segments.push({ start, end, state, station, color: ganttColor(state, station), isWaiting });
+  }
+  return segments;
+}
+
+const GANTT_LEGEND = [
+  { label: "Loading", color: "#da3633" },
+  { label: "Dwell", color: "#58a6ff" },
+  { label: "WDO", color: "#d29922" },
+  { label: "Transit", color: "#a371f7" },
+  { label: "Unloading", color: "#3fb950" },
+  { label: "Ready", color: "#e3b341" },
+  { label: "Wait/Idle", color: "#21262d" },
+];
+
 /**
- * Renders the throughput tab: hero, three-tier, formula, Gantt chart,
- * and cycle time bucket breakdown.
+ * Renders the throughput tab: hero, formula, and simulation Gantt chart.
  */
 export function renderThroughputTab(
   economics: EconomicsResult,
   plan: SimPlan,
-  _sim: SimulationResult,
+  sim: SimulationResult,
   container: HTMLElement,
 ): void {
   container.textContent = "";
@@ -326,7 +390,7 @@ export function renderThroughputTab(
     <div class="throughput-hero">
       <div class="throughput-hero__value">${economics.throughputBph.toFixed(1)}<span class="throughput-hero__unit"> bph</span></div>
       <div class="throughput-hero__sub">${economics.completedCount} baskets completed in ${economics.simHours}h simulation</div>
-      <div class="throughput-hero__sub" style="color:var(--muted);">pipeline throughput — multiple baskets move through stations simultaneously</div>
+      <div class="throughput-hero__sub" style="color:var(--muted);">pipeline throughput \u2014 multiple baskets move through stations simultaneously</div>
     </div>
   `;
   container.appendChild(heroCard);
@@ -344,68 +408,132 @@ export function renderThroughputTab(
   `;
   container.appendChild(formulaCard);
 
-  // Cycle time breakdown + Gantt
-  const cycleCard = document.createElement("div");
-  cycleCard.className = "financial-card";
-  const b = plan.buckets;
-  const total = plan.cycleSeconds;
+  // Simulation Timeline Gantt
+  const basketsWithHistory = sim.baskets.filter(b => b.stateHistory && b.stateHistory.length > 0);
+  if (basketsWithHistory.length === 0) return;
 
-  let cycleHtml = `<div class="financial-card__header"><span>CYCLE TIME BREAKDOWN</span><span style="font-size:13px;font-weight:600;">${fmtSec(total)}</span></div>`;
+  const ganttCard = document.createElement("div");
+  ganttCard.className = "financial-card";
 
-  // Gantt bar
-  cycleHtml += `<div class="gantt" style="margin:14px 0 8px;">`;
-  cycleHtml += `<div class="gantt__bar" style="display:flex;height:28px;border-radius:4px;overflow:hidden;background:var(--bg-dark,#0d1117);border:1px solid var(--border);">`;
-  if (b.manual > 0) cycleHtml += `<div class="gantt__seg gantt__seg--manual" style="flex:${b.manual};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#da3633;">${fmtSec(b.manual)}</div>`;
-  if (b.dwell > 0) cycleHtml += `<div class="gantt__seg gantt__seg--dwell" style="flex:${b.dwell};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#58a6ff;">${fmtSec(b.dwell)}</div>`;
-  if (b.handling > 0) cycleHtml += `<div class="gantt__seg gantt__seg--handling" style="flex:${b.handling};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#d29922;">${fmtSec(b.handling)}</div>`;
-  if (b.travel > 0) cycleHtml += `<div class="gantt__seg gantt__seg--travel" style="flex:${b.travel};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#a371f7;">${fmtSec(b.travel)}</div>`;
-  if (b.drip > 0) cycleHtml += `<div class="gantt__seg gantt__seg--drip" style="flex:${b.drip};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#0d1117;background:#3fb950;">${fmtSec(b.drip)}</div>`;
-  cycleHtml += `</div>`;
+  // Header
+  const header = document.createElement("div");
+  header.className = "financial-card__header";
+  header.innerHTML = `<span>SIMULATION TIMELINE</span><span style="font-size:11px;color:var(--muted);">${basketsWithHistory.length} baskets \u00B7 ${(sim.simEnd / 3600).toFixed(1)}h</span>`;
+  ganttCard.appendChild(header);
 
   // Legend
-  cycleHtml += `<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">`;
-  const legendItems = [
-    { label: "Manual", color: "#da3633", value: b.manual },
-    { label: "Dwell", color: "#58a6ff", value: b.dwell },
-    { label: "Handling", color: "#d29922", value: b.handling },
-    { label: "Travel", color: "#a371f7", value: b.travel },
-    { label: "Drip", color: "#3fb950", value: b.drip },
-  ];
-  for (const item of legendItems) {
-    if (item.value > 0) {
-      cycleHtml += `<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);"><div style="width:8px;height:8px;border-radius:2px;background:${item.color};"></div>${item.label}</div>`;
+  const legend = document.createElement("div");
+  legend.className = "gantt-legend";
+  for (const item of GANTT_LEGEND) {
+    const el = document.createElement("div");
+    el.className = "gantt-legend__item";
+    el.innerHTML = `<span class="gantt-legend__dot" style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${item.color};"></span>${escapeHtml(item.label)}`;
+    legend.appendChild(el);
+  }
+  ganttCard.appendChild(legend);
+
+  // Gantt body: labels + scrollable area
+  const ROW_H = 26;
+  const LABEL_W = 56;
+  const PX_PER_SEC = 0.15; // 540px per hour — reasonable for 4h sim
+  const canvasWidth = Math.ceil(sim.simEnd * PX_PER_SEC) + 20;
+  const maxHeight = Math.min(basketsWithHistory.length * ROW_H + 28, 400); // 28 for time axis
+
+  const ganttWrap = document.createElement("div");
+  ganttWrap.style.cssText = "position:relative;overflow:hidden;";
+
+  // Y-axis labels
+  const labelsDiv = document.createElement("div");
+  labelsDiv.style.cssText = `position:absolute;left:0;top:28px;width:${LABEL_W}px;z-index:3;background:var(--panel,#131920);border-right:1px solid var(--border);`;
+  for (const basket of basketsWithHistory) {
+    const row = document.createElement("div");
+    row.className = "gantt-label";
+    row.style.cssText = `height:${ROW_H}px;display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.03);`;
+    row.textContent = basket.id;
+    labelsDiv.appendChild(row);
+  }
+  ganttWrap.appendChild(labelsDiv);
+
+  // Scrollable area
+  const scrollDiv = document.createElement("div");
+  scrollDiv.className = "gantt-scroll";
+  scrollDiv.style.cssText = `overflow-x:auto;overflow-y:auto;max-height:${maxHeight}px;margin-left:${LABEL_W}px;`;
+
+  const canvasDiv = document.createElement("div");
+  canvasDiv.style.cssText = `position:relative;min-width:${canvasWidth}px;`;
+
+  // Time axis (sticky top)
+  const timeAxis = document.createElement("div");
+  timeAxis.style.cssText = "position:sticky;top:0;z-index:2;height:28px;background:var(--panel,#131920);border-bottom:1px solid var(--border);";
+  const tickInterval = sim.simEnd > 7200 ? 1800 : sim.simEnd > 3600 ? 600 : 300;
+  for (let t = 0; t <= sim.simEnd; t += tickInterval) {
+    const x = t * PX_PER_SEC;
+    const mark = document.createElement("div");
+    mark.style.cssText = `position:absolute;bottom:4px;left:${x}px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;`;
+    mark.textContent = fmtSec(t);
+    timeAxis.appendChild(mark);
+  }
+  canvasDiv.appendChild(timeAxis);
+
+  // Rows
+  const rowsDiv = document.createElement("div");
+  rowsDiv.style.cssText = "position:relative;";
+
+  // Grid lines
+  for (let t = tickInterval; t <= sim.simEnd; t += tickInterval) {
+    const line = document.createElement("div");
+    line.style.cssText = `position:absolute;top:0;bottom:0;left:${t * PX_PER_SEC}px;width:1px;background:rgba(255,255,255,0.035);pointer-events:none;z-index:0;`;
+    rowsDiv.appendChild(line);
+  }
+
+  for (const basket of basketsWithHistory) {
+    const segments = basketToSegments(basket.stateHistory!, sim.simEnd);
+    const row = document.createElement("div");
+    row.className = "gantt-row";
+    row.style.cssText = `height:${ROW_H}px;position:relative;border-bottom:1px solid rgba(255,255,255,0.03);`;
+
+    for (const seg of segments) {
+      const left = seg.start * PX_PER_SEC;
+      const width = Math.max(1, (seg.end - seg.start) * PX_PER_SEC);
+      const el = document.createElement("div");
+      el.className = "gantt-seg" + (seg.isWaiting ? " gantt-seg--waiting" : "");
+      el.style.cssText = `position:absolute;top:3px;left:${left}px;width:${width}px;height:${ROW_H - 6}px;border-radius:2px;background:${seg.color};cursor:pointer;`;
+      if (seg.isWaiting) el.style.opacity = "0.35";
+
+      // Label on wide segments
+      if (width > 28) {
+        const lbl = document.createElement("span");
+        lbl.style.cssText = "font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(0,0,0,0.7);padding:0 3px;line-height:" + (ROW_H - 6) + "px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;";
+        if (seg.state === "IN_TANK") lbl.textContent = seg.station;
+        else if (seg.state === "IN_TRANSIT") lbl.textContent = "\u2192";
+        else if (width > 40) {
+          const short: Record<string, string> = { LOADING: "LOAD", UNLOADING: "UNLD", READY_FOR_PICKUP: "RDY", WAITING_LOAD: "WAIT", WAITING_UNLOAD: "WAIT", DONE: "DONE" };
+          lbl.textContent = short[seg.state] ?? seg.state;
+        }
+        el.appendChild(lbl);
+      }
+
+      // Tooltip via title attribute (lightweight, no JS tooltip system needed)
+      const stateLabel = seg.state === "IN_TANK" ? `IN_TANK @ ${seg.station}` : seg.state;
+      const dur = seg.end - seg.start;
+      el.title = `${basket.id} \u2014 ${stateLabel}\n${fmtSec(seg.start)} \u2192 ${fmtSec(seg.end)} (${fmtSec(dur)})`;
+
+      row.appendChild(el);
     }
-  }
-  cycleHtml += `</div></div>`;
-
-  // Bucket breakdown rows
-  const bucketRows = [
-    { label: "Manual", color: "#da3633", detail: "load + unload", value: b.manual },
-    { label: "Dwell", color: "#58a6ff", detail: "tank + wdo times", value: b.dwell },
-    { label: "Handling", color: "#d29922", detail: "pick/lift/lower/drop", value: b.handling },
-    { label: "Travel", color: "#a371f7", detail: "wagon movement", value: b.travel },
-    { label: "Drip", color: "#3fb950", detail: "post-pickup drain", value: b.drip },
-  ];
-
-  for (const row of bucketRows) {
-    if (row.value > 0) {
-      cycleHtml += `<div class="cycle-row"><div class="cycle-dot" style="background:${row.color};"></div><div class="cycle-row__label">${row.label}</div><div class="cycle-row__detail">${row.detail}</div><div class="cycle-row__value">${fmtSec(row.value)}</div></div>`;
-    }
+    rowsDiv.appendChild(row);
   }
 
-  // Total row
-  cycleHtml += `<div class="cycle-row cycle-row--total"><div></div><div class="cycle-row__label" style="font-weight:600;">Total Cycle</div><div class="cycle-row__detail"></div><div class="cycle-row__value" style="color:var(--accent);font-weight:700;">${fmtSec(total)}</div></div>`;
+  canvasDiv.appendChild(rowsDiv);
+  scrollDiv.appendChild(canvasDiv);
+  ganttWrap.appendChild(scrollDiv);
 
-  // Step-by-step details
-  cycleHtml += `<hr class="separator" />`;
-  cycleHtml += `<div class="financial-card__header" style="margin-top:8px;"><span>STEP-BY-STEP</span></div>`;
-  for (const step of plan.steps) {
-    const dur = step.end - step.start;
-    cycleHtml += `<div class="cost-group__item">${escapeHtml(step.label)}: ${fmtSec(dur)}</div>`;
-  }
+  // Sync label scroll with content scroll
+  scrollDiv.addEventListener("scroll", () => {
+    labelsDiv.style.top = `${-scrollDiv.scrollTop + 28}px`;
+  });
 
-  cycleCard.innerHTML = cycleHtml;
-  container.appendChild(cycleCard);
+  ganttCard.appendChild(ganttWrap);
+  container.appendChild(ganttCard);
 }
 
 /**

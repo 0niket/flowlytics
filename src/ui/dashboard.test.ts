@@ -422,32 +422,6 @@ describe("renderThroughputTab", () => {
     expect(text).toContain("THROUGHPUT FORMULA");
   });
 
-  it("shows cycle time breakdown with bucket values", () => {
-    const container = mockContainer();
-    const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
-    const plan = mockPlan();
-    const sim = mockSimResult();
-    renderThroughputTab(econ, plan, sim, container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("CYCLE TIME BREAKDOWN");
-    expect(text).toContain("Manual");
-    expect(text).toContain("Dwell");
-    expect(text).toContain("Handling");
-    expect(text).toContain("Travel");
-    expect(text).toContain("Drip");
-  });
-
-  it("shows the throughput formula: 3600 ÷ cycleSeconds", () => {
-    const container = mockContainer();
-    const econ = mockEconomics({ throughputBph: 3.8 });
-    const plan = mockPlan({ cycleSeconds: 948 });
-    const sim = mockSimResult();
-    renderThroughputTab(econ, plan, sim, container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("3600");
-    expect(text).toContain("948");
-  });
-
   it("does NOT show three-tier comparison (removed)", () => {
     const container = mockContainer();
     const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
@@ -478,5 +452,134 @@ describe("renderThroughputTab", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("14 baskets");
     expect(text).toContain("4h");
+  });
+
+  it("renders simulation timeline Gantt chart header", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 3, simHours: 2 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      simEnd: 7200,
+      baskets: [
+        {
+          id: "B1", createdAt: 0, cycleCount: 1, currentState: "DONE" as const,
+          stateEnteredAt: 7000, elapsedInState: 200, loc: "DONE",
+          insertedAt: 0, readyAt: 100, doneAt: 7000,
+          totalWaitSec: 50, totalTravelSec: 100, totalDwellSec: 600,
+          stateHistory: [
+            { timestamp: 0, fromState: "WAITING_LOAD" as const, toState: "LOADING" as const, reason: "loading_started" },
+            { timestamp: 150, fromState: "LOADING" as const, toState: "READY_FOR_PICKUP" as const, reason: "load_complete" },
+            { timestamp: 180, fromState: "READY_FOR_PICKUP" as const, toState: "IN_TRANSIT" as const, reason: "picked_up" },
+            { timestamp: 210, fromState: "IN_TRANSIT" as const, toState: "IN_TANK" as const, reason: "dropped_at_T1" },
+            { timestamp: 510, fromState: "IN_TANK" as const, toState: "READY_FOR_PICKUP" as const, reason: "dwell_complete" },
+          ],
+        },
+      ],
+    });
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).toContain("SIMULATION TIMELINE");
+  });
+
+  it("renders Gantt rows for each basket with stateHistory", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 2, simHours: 2 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      simEnd: 7200,
+      baskets: [
+        {
+          id: "B1", createdAt: 0, cycleCount: 1, currentState: "DONE" as const,
+          stateEnteredAt: 7000, elapsedInState: 200, loc: "DONE",
+          insertedAt: 0, readyAt: 100, doneAt: 7000,
+          totalWaitSec: 50, totalTravelSec: 100, totalDwellSec: 600,
+          stateHistory: [
+            { timestamp: 0, fromState: "WAITING_LOAD" as const, toState: "LOADING" as const, reason: "loading_started" },
+            { timestamp: 150, fromState: "LOADING" as const, toState: "IN_TANK" as const, reason: "dropped_at_T1" },
+          ],
+        },
+        {
+          id: "B2", createdAt: 100, cycleCount: 1, currentState: "IN_TANK" as const,
+          stateEnteredAt: 300, elapsedInState: 100, loc: "T1",
+          insertedAt: 100, readyAt: 200, doneAt: null,
+          totalWaitSec: 30, totalTravelSec: 80, totalDwellSec: 400,
+          stateHistory: [
+            { timestamp: 100, fromState: "WAITING_LOAD" as const, toState: "LOADING" as const, reason: "loading_started" },
+          ],
+        },
+      ],
+    });
+    renderThroughputTab(econ, plan, sim, container);
+    // Should have gantt rows
+    const rows = container.querySelectorAll(".gantt-row");
+    expect(rows.length).toBe(2);
+  });
+
+  it("renders Gantt segments as positioned divs", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 1, simHours: 1 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      simEnd: 3600,
+      baskets: [
+        {
+          id: "B1", createdAt: 0, cycleCount: 1, currentState: "IN_TANK" as const,
+          stateEnteredAt: 200, elapsedInState: 100, loc: "T1",
+          insertedAt: 0, readyAt: 150, doneAt: null,
+          totalWaitSec: 0, totalTravelSec: 50, totalDwellSec: 300,
+          stateHistory: [
+            { timestamp: 0, fromState: "WAITING_LOAD" as const, toState: "LOADING" as const, reason: "loading_started" },
+            { timestamp: 150, fromState: "LOADING" as const, toState: "READY_FOR_PICKUP" as const, reason: "load_complete" },
+            { timestamp: 180, fromState: "READY_FOR_PICKUP" as const, toState: "IN_TRANSIT" as const, reason: "picked_up" },
+            { timestamp: 210, fromState: "IN_TRANSIT" as const, toState: "IN_TANK" as const, reason: "dropped_at_T1" },
+          ],
+        },
+      ],
+    });
+    renderThroughputTab(econ, plan, sim, container);
+    const segs = container.querySelectorAll(".gantt-seg");
+    expect(segs.length).toBe(4); // LOADING, READY_FOR_PICKUP, IN_TRANSIT, IN_TANK
+  });
+
+  it("renders legend with station colors", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      simEnd: 3600,
+      baskets: [
+        {
+          id: "B1", createdAt: 0, cycleCount: 1, currentState: "LOADING" as const,
+          stateEnteredAt: 0, elapsedInState: 0, loc: "LOAD",
+          insertedAt: 0, readyAt: null, doneAt: null,
+          totalWaitSec: 0, totalTravelSec: 0, totalDwellSec: 0,
+          stateHistory: [
+            { timestamp: 0, fromState: "WAITING_LOAD" as const, toState: "LOADING" as const, reason: "loading_started" },
+          ],
+        },
+      ],
+    });
+    renderThroughputTab(econ, plan, sim, container);
+    const legendItems = container.querySelectorAll(".gantt-legend__item");
+    expect(legendItems.length).toBeGreaterThan(0);
+  });
+
+  it("skips Gantt when baskets have no stateHistory", () => {
+    const container = mockContainer();
+    const econ = mockEconomics({ throughputBph: 5 });
+    const plan = mockPlan();
+    const sim = mockSimResult({
+      baskets: [
+        {
+          id: "B1", createdAt: 0, cycleCount: 1, currentState: "DONE" as const,
+          stateEnteredAt: 7000, elapsedInState: 200, loc: "DONE",
+          insertedAt: 0, readyAt: 100, doneAt: 7000,
+          totalWaitSec: 50, totalTravelSec: 100, totalDwellSec: 600,
+        },
+      ],
+    });
+    renderThroughputTab(econ, plan, sim, container);
+    const text = container.textContent ?? "";
+    expect(text).not.toContain("SIMULATION TIMELINE");
   });
 });
