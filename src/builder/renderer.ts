@@ -1,5 +1,5 @@
 import { Builder } from "./builder";
-import { lineConfigToLayout, lineConfigToSimParams } from "./LineConfig";
+import { computeOptimalBasketCount, lineConfigToLayout, lineConfigToSimParams } from "./LineConfig";
 import type { ArticleMaterialType, TankType } from "./LineConfig";
 import { MATERIALS } from "../materials/data";
 import { clearDraft } from "./persistence";
@@ -487,11 +487,23 @@ function renderSimSettingsSection(container: HTMLElement): void {
   section.className = "config-view__section";
   section.id = "cvSimSettingsSection";
 
+  const optimalCount = computeOptimalBasketCount(builder.config);
+  const currentCount = s.basketCountOverride ?? optimalCount;
+  const isOverridden = s.basketCountOverride != null;
+
   section.innerHTML = `
     <div class="config-view__section-title">Simulation Settings</div>
     <div class="field">
       <label class="field__label">Duration (hr)</label>
       <input id="bldrSimHours" class="field__control" type="number" min="0.25" step="0.25" value="${s.simHours}" style="max-width:160px;" />
+    </div>
+    <div class="field">
+      <label class="field__label">Basket count</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input id="bldrBasketCount" class="field__control" type="number" min="1" step="1" value="${currentCount}" style="max-width:100px;" />
+        ${isOverridden ? '<a id="bldrBasketCountReset" href="#" style="font-size:11px;color:var(--accent);">Reset</a>' : ""}
+      </div>
+      <div class="field__hint" id="bldrBasketCountHint">${isOverridden ? `Auto-recommendation: ${optimalCount} (Little\u2019s Law)` : `Auto (Little\u2019s Law): ${optimalCount}`}</div>
     </div>
   `;
   container.appendChild(section);
@@ -806,6 +818,35 @@ function wireListeners(signal: AbortSignal): void {
         return;
       }
 
+      // Basket count
+      if (target.id === "bldrBasketCount") {
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val) && val >= 1) {
+          builder.setBasketCount(val);
+          autoRunIfEnabled();
+          // Update hint to show recommendation
+          const hint = document.getElementById("bldrBasketCountHint");
+          if (hint) {
+            const optimal = computeOptimalBasketCount(builder.config);
+            hint.textContent = `Auto-recommendation: ${optimal} (Little\u2019s Law)`;
+          }
+          // Show reset link if not already present
+          const resetLink = document.getElementById("bldrBasketCountReset");
+          if (!resetLink) {
+            const input = document.getElementById("bldrBasketCount");
+            if (input?.parentElement) {
+              const link = document.createElement("a");
+              link.id = "bldrBasketCountReset";
+              link.href = "#";
+              link.style.cssText = "font-size:11px;color:var(--accent);";
+              link.textContent = "Reset";
+              input.parentElement.appendChild(link);
+            }
+          }
+        }
+        return;
+      }
+
       // Economics inputs
       if (target.classList.contains("bldr-econ")) {
         const field = target.getAttribute("data-econ-field");
@@ -961,6 +1002,20 @@ function wireListeners(signal: AbortSignal): void {
         } catch {
           // silently ignore
         }
+        return;
+      }
+
+      // Basket count reset
+      if (target.id === "bldrBasketCountReset") {
+        e.preventDefault();
+        builder.setBasketCount(null);
+        const optimal = computeOptimalBasketCount(builder.config);
+        const input = document.getElementById("bldrBasketCount") as HTMLInputElement | null;
+        if (input) input.value = String(optimal);
+        const hint = document.getElementById("bldrBasketCountHint");
+        if (hint) hint.textContent = `Auto (Little\u2019s Law): ${optimal}`;
+        target.remove();
+        autoRunIfEnabled();
         return;
       }
 
