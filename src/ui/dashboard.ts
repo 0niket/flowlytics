@@ -313,47 +313,33 @@ function fmtSec(sec: number): string {
 export function renderThroughputTab(
   economics: EconomicsResult,
   plan: SimPlan,
-  sim: SimulationResult,
+  _sim: SimulationResult,
   container: HTMLElement,
 ): void {
   container.textContent = "";
 
-  // Hero card
+  // Hero card — pipeline throughput from simulation
   const heroCard = document.createElement("div");
   heroCard.className = "financial-card";
+  const singleBasketBph = plan.cycleSeconds > 0 ? (3600 / plan.cycleSeconds) : 0;
   heroCard.innerHTML = `
     <div class="throughput-hero">
       <div class="throughput-hero__value">${economics.throughputBph.toFixed(1)}<span class="throughput-hero__unit"> bph</span></div>
       <div class="throughput-hero__sub">${economics.completedCount} baskets completed in ${economics.simHours}h simulation</div>
-      <div class="throughput-hero__sub">Steady-state measurement (excludes warm-up)</div>
+      <div class="throughput-hero__sub" style="color:var(--muted);">pipeline throughput — multiple baskets move through stations simultaneously</div>
     </div>
   `;
   container.appendChild(heroCard);
 
-  // Three-tier comparison
-  const tierCard = document.createElement("div");
-  tierCard.className = "financial-card";
-  let tierHtml = `<div class="financial-card__header"><span>THREE-TIER COMPARISON</span></div>`;
-  tierHtml += `<div class="tier-grid">`;
-  tierHtml += `<div class="tier-card"><div class="tier-card__label">Target</div><div class="tier-card__value">${sim.targetThroughput.toFixed(1)}</div></div>`;
-  tierHtml += `<div class="tier-card"><div class="tier-card__label">Simulated</div><div class="tier-card__value" style="color:var(--accent);">${sim.simulatedThroughput.toFixed(1)}</div></div>`;
-  tierHtml += `<div class="tier-card"><div class="tier-card__label">Theoretical</div><div class="tier-card__value" style="color:var(--accent2);">${sim.theoreticalMaxThroughput.toFixed(1)}</div></div>`;
-  tierHtml += `</div>`;
-  if (sim.throughputLimitation) {
-    tierHtml += `<div class="limitation-badge">\u26A0 ${escapeHtml(sim.throughputLimitation.factor)}: ${escapeHtml(sim.throughputLimitation.description)}</div>`;
-  }
-  tierCard.innerHTML = tierHtml;
-  container.appendChild(tierCard);
-
   // Throughput formula
   const formulaCard = document.createElement("div");
   formulaCard.className = "financial-card";
-  const theoreticalBph = plan.cycleSeconds > 0 ? (3600 / plan.cycleSeconds) : 0;
   formulaCard.innerHTML = `
     <div class="financial-card__header"><span>THROUGHPUT FORMULA</span></div>
     <div class="formula-box">
-      <div class="formula-box__main">throughput = 3600 \u00F7 cycle_time</div>
-      <div class="formula-box__detail">3600s \u00F7 ${plan.cycleSeconds.toFixed(0)}s = ${theoreticalBph.toFixed(1)} bph (theoretical)</div>
+      <div class="formula-box__main">single-basket cycle = ${plan.cycleSeconds.toFixed(0)}s (${fmtSec(plan.cycleSeconds)})</div>
+      <div class="formula-box__detail">3600s \u00F7 ${plan.cycleSeconds.toFixed(0)}s = ${singleBasketBph.toFixed(1)} bph if only 1 basket in the line</div>
+      <div class="formula-box__detail" style="margin-top:4px;">With ${economics.completedCount} baskets pipelining through ${plan.steps.filter(s => s.type === "dwell").length} stations: ${economics.throughputBph.toFixed(1)} bph (measured from simulation)</div>
     </div>
   `;
   container.appendChild(formulaCard);

@@ -448,38 +448,25 @@ describe("renderThroughputTab", () => {
     expect(text).toContain("948");
   });
 
-  it("shows three-tier throughput comparison", () => {
+  it("does NOT show three-tier comparison (removed)", () => {
     const container = mockContainer();
     const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
     const plan = mockPlan();
     const sim = mockSimResult({ targetThroughput: 6, simulatedThroughput: 5, theoreticalMaxThroughput: 8 });
     renderThroughputTab(econ, plan, sim, container);
     const text = container.textContent ?? "";
-    expect(text).toContain("Target");
-    expect(text).toContain("Simulated");
-    expect(text).toContain("Theoretical");
+    expect(text).not.toContain("THREE-TIER");
+    expect(text).not.toContain("Theoretical");
   });
 
-  it("shows throughput limitation when present", () => {
+  it("shows pipeline throughput explanation", () => {
     const container = mockContainer();
-    const econ = mockEconomics({ throughputBph: 5 });
-    const plan = mockPlan();
-    const sim = mockSimResult({
-      throughputLimitation: { factor: "wagon_bottleneck", description: "W1 at 94% utilisation" },
-    });
-    renderThroughputTab(econ, plan, sim, container);
-    const text = container.textContent ?? "";
-    expect(text).toContain("wagon_bottleneck");
-  });
-
-  it("shows step-by-step plan steps including dwell labels", () => {
-    const container = mockContainer();
-    const econ = mockEconomics({ throughputBph: 5 });
+    const econ = mockEconomics({ throughputBph: 5, completedCount: 10, simHours: 2 });
     const plan = mockPlan();
     const sim = mockSimResult();
     renderThroughputTab(econ, plan, sim, container);
     const text = container.textContent ?? "";
-    expect(text).toContain("Dwell @ T1");
+    expect(text).toContain("pipeline");
   });
 
   it("shows completed basket count and sim hours", () => {
