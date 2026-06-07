@@ -146,18 +146,56 @@ export function renderOverviewTab(
       costHtml += `</div>`;
     }
 
-    // Energy + Maintenance + Depreciation
-    const plantCosts = [
-      { label: "Energy", value: economics.costBreakdown.energyPerHr },
-      { label: "Maintenance", value: economics.costBreakdown.maintenancePerHr },
-      { label: "Depreciation", value: economics.costBreakdown.depreciationPerHr },
-    ].filter((c) => c.value > 0);
-
-    if (plantCosts.length > 0) {
+    // Energy
+    if (economics.costBreakdown.energyPerHr > 0) {
       costHtml += `<hr class="separator" />`;
-      for (const c of plantCosts) {
-        costHtml += `<div class="cost-group__header"><span>${c.label}</span><span>${formatCurrency(c.value)} /hr</span></div>`;
+      costHtml += `<div class="cost-group">`;
+      costHtml += `<div class="cost-group__header"><span>Energy</span><span>${formatCurrency(economics.costBreakdown.energyPerHr)} /hr</span></div>`;
+      costHtml += `<div class="cost-group__item">plant-level energy cost (configured)</div>`;
+      costHtml += `</div>`;
+    }
+
+    // Maintenance
+    if (economics.costBreakdown.maintenancePerHr > 0) {
+      costHtml += `<hr class="separator" />`;
+      costHtml += `<div class="cost-group">`;
+      costHtml += `<div class="cost-group__header"><span>Maintenance</span><span>${formatCurrency(economics.costBreakdown.maintenancePerHr)} /hr</span></div>`;
+      costHtml += `<div class="cost-group__item">plant-level maintenance cost (configured)</div>`;
+      costHtml += `</div>`;
+    }
+
+    // Depreciation
+    if (economics.costBreakdown.depreciationPerHr > 0) {
+      costHtml += `<hr class="separator" />`;
+      costHtml += `<div class="cost-group">`;
+      costHtml += `<div class="cost-group__header"><span>Depreciation</span><span>${formatCurrency(economics.costBreakdown.depreciationPerHr)} /hr</span></div>`;
+      // Per-wagon depreciation
+      const wagons = config.transport.wagons ?? [];
+      for (const w of wagons) {
+        if (w.costRs != null && w.costRs > 0) {
+          const life = w.usefulLifeYears ?? 0;
+          const opHrs = w.operatingHoursPerYear ?? 0;
+          const totalHours = life * opHrs;
+          if (totalHours > 0) {
+            const perHr = w.costRs / totalHours;
+            costHtml += `<div class="cost-group__item">${escapeHtml(w.id)}: ${formatCurrency(w.costRs)} \u00F7 (${life}yr \u00D7 ${opHrs}h/yr) = ${formatCurrency(perHr)}/hr</div>`;
+          }
+        }
       }
+      // Per-station equipment depreciation
+      for (const station of config.stations) {
+        const cost = station.equipmentCostRs;
+        if (cost != null && cost > 0) {
+          const life = station.equipmentLifeYears ?? 0;
+          const opHrs = station.equipmentOperatingHoursPerYear ?? 0;
+          const totalHours = life * opHrs;
+          if (totalHours > 0) {
+            const perHr = cost / totalHours;
+            costHtml += `<div class="cost-group__item">${escapeHtml(station.id)}: ${formatCurrency(cost)} \u00F7 (${life}yr \u00D7 ${opHrs}h/yr) = ${formatCurrency(perHr)}/hr</div>`;
+          }
+        }
+      }
+      costHtml += `</div>`;
     }
 
     costCard.innerHTML = costHtml;
@@ -169,7 +207,7 @@ export function renderOverviewTab(
     const capexCard = document.createElement("div");
     capexCard.className = "financial-card";
 
-    let capexHtml = `<div class="financial-card__header"><span>CAPITAL EQUIPMENT (one-time)</span></div>`;
+    let capexHtml = `<div class="financial-card__header"><span>ONE-TIME CAPEX</span></div>`;
 
     if (economics.capex.totalWagonCost > 0) {
       const wagonCount = config.transport.wagons?.length ?? config.transport.wagonCount;
@@ -179,6 +217,19 @@ export function renderOverviewTab(
           <span>${formatCurrency(economics.capex.totalWagonCost)}</span>
         </div>
       `;
+      const wagons = config.transport.wagons ?? [];
+      for (const w of wagons) {
+        if (w.costRs != null && w.costRs > 0) {
+          capexHtml += `<div class="cost-group__item">${escapeHtml(w.id)}: ${formatCurrency(w.costRs)}</div>`;
+          const life = w.usefulLifeYears ?? 0;
+          const opHrs = w.operatingHoursPerYear ?? 0;
+          const totalHours = life * opHrs;
+          if (totalHours > 0) {
+            const perHr = w.costRs / totalHours;
+            capexHtml += `<div class="cost-group__item">\u21B3 ${formatCurrency(w.costRs)} \u00F7 (${life}yr \u00D7 ${opHrs}h) = ${formatCurrency(perHr)}/hr amortised</div>`;
+          }
+        }
+      }
     }
 
     if (economics.capex.totalStationEquipmentCost > 0) {
@@ -188,6 +239,25 @@ export function renderOverviewTab(
           <span>${formatCurrency(economics.capex.totalStationEquipmentCost)}</span>
         </div>
       `;
+      for (const station of config.stations) {
+        const cost = station.equipmentCostRs;
+        if (cost != null && cost > 0) {
+          capexHtml += `<div class="cost-group__item">${escapeHtml(station.id)}: ${formatCurrency(cost)}</div>`;
+          const life = station.equipmentLifeYears ?? 0;
+          const opHrs = station.equipmentOperatingHoursPerYear ?? 0;
+          const totalHours = life * opHrs;
+          if (totalHours > 0) {
+            const perHr = cost / totalHours;
+            capexHtml += `<div class="cost-group__item">\u21B3 ${formatCurrency(cost)} \u00F7 (${life}yr \u00D7 ${opHrs}h) = ${formatCurrency(perHr)}/hr amortised</div>`;
+          }
+        }
+      }
+    }
+
+    // Total amortised depreciation
+    if (economics.costBreakdown.depreciationPerHr > 0) {
+      capexHtml += `<hr class="separator" />`;
+      capexHtml += `<div class="cost-group__header" style="font-size:11px;color:var(--muted);"><span>Total amortised depreciation</span><span style="color:var(--text);">${formatCurrency(economics.costBreakdown.depreciationPerHr)}/hr</span></div>`;
     }
 
     capexCard.innerHTML = capexHtml;

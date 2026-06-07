@@ -163,6 +163,142 @@ describe("renderFinancialDashboard — depreciation line", () => {
     const text = overview.textContent ?? "";
     expect(text).toContain("Depreciation");
   });
+
+  it("shows per-wagon depreciation formula when wagon has cost/life/hours", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+    ];
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 120,
+      profitPerHr: 3880,
+      profitMarginPct: 97,
+      costBreakdown: {
+        rawMaterialPerHr: 0, chemicalPerHr: 0, laborPerHr: 0,
+        energyPerHr: 0, maintenancePerHr: 0,
+        depreciationPerHr: 120, wdoCostPerHr: 0,
+      },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("W1:");
+    expect(text).toContain("5yr");
+  });
+
+  it("shows per-station equipment depreciation formula", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    config.stations[1].equipmentCostRs = 500000;
+    config.stations[1].equipmentLifeYears = 10;
+    config.stations[1].equipmentOperatingHoursPerYear = 4000;
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 12.5,
+      profitPerHr: 3987.5,
+      profitMarginPct: 99.7,
+      costBreakdown: {
+        rawMaterialPerHr: 0, chemicalPerHr: 0, laborPerHr: 0,
+        energyPerHr: 0, maintenancePerHr: 0,
+        depreciationPerHr: 12.5, wdoCostPerHr: 0,
+      },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("T1");
+    expect(text).toContain("10yr");
+  });
+});
+
+describe("renderFinancialDashboard — energy/maintenance formula detail", () => {
+  it("shows energy detail line with plant-level label", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 280,
+      profitPerHr: 3720,
+      profitMarginPct: 93,
+      costBreakdown: {
+        rawMaterialPerHr: 0, chemicalPerHr: 0, laborPerHr: 0,
+        energyPerHr: 280, maintenancePerHr: 0,
+        depreciationPerHr: 0, wdoCostPerHr: 0,
+      },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("Energy");
+    expect(text).toContain("plant-level");
+  });
+});
+
+describe("renderFinancialDashboard — capex card", () => {
+  it("uses ONE-TIME CAPEX heading", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 0,
+      profitPerHr: 4000,
+      profitMarginPct: 100,
+      capex: { totalWagonCost: 1200000, totalStationEquipmentCost: 0 },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("ONE-TIME CAPEX");
+    expect(text).not.toContain("CAPITAL EQUIPMENT");
+  });
+
+  it("shows per-wagon capex breakdown with amortised cost", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+    ];
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 120,
+      profitPerHr: 3880,
+      profitMarginPct: 97,
+      capex: { totalWagonCost: 1200000, totalStationEquipmentCost: 0 },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("W1");
+    expect(text).toContain("amortised");
+  });
+
+  it("shows per-station equipment capex with amortised cost", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    config.stations[1].equipmentCostRs = 500000;
+    config.stations[1].equipmentLifeYears = 10;
+    config.stations[1].equipmentOperatingHoursPerYear = 4000;
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 12.5,
+      profitPerHr: 3987.5,
+      profitMarginPct: 99.7,
+      capex: { totalWagonCost: 0, totalStationEquipmentCost: 500000 },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("T1");
+    expect(text).toContain("amortised");
+  });
 });
 
 describe("renderFinancialDashboard — unit economics formulas", () => {
