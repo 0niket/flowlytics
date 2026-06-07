@@ -145,12 +145,6 @@ export function renderOverviewTab(
       }
     }
 
-    // Chemical cost % of revenue
-    if (economics.ratios.chemicalCostPctOfRevenue > 0 && isFinite(economics.ratios.chemicalCostPctOfRevenue)) {
-      costHtml += `<hr class="separator" />`;
-      costHtml += `<div class="financial-card__ratio">Chemical cost: ${fmtPct(economics.ratios.chemicalCostPctOfRevenue)} of revenue</div>`;
-    }
-
     costCard.innerHTML = costHtml;
     container.appendChild(costCard);
   }

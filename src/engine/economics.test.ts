@@ -331,21 +331,6 @@ describe("calculateEconomics", () => {
     expect(result.breakEvenBph).toBe(Infinity);
   });
 
-  it("chemical cost as % of revenue calculated correctly", () => {
-    const config = createDefaultLineConfig();
-    config.economics.revenuePerArticle = 50;
-    config.transport.maxArticlesPerBasket = 20;
-    config.stations[1].tankCapacityLitres = 1000;
-    config.stations[1].chemicalCostPerLitre = 54;
-    config.stations[1].bathLifeHours = 100;
-    const sim = makeSimResult({ throughputSteadyBph: 4 });
-
-    const result = calculateEconomics(config, sim);
-
-    // Revenue = 4000, Chemical = 1000×54/100 = 540 → 13.5%
-    expect(result.ratios.chemicalCostPctOfRevenue).toBeCloseTo(13.5, 1);
-  });
-
   it("profit margin % = profitPerHr / revenuePerHr × 100", () => {
     const config = createDefaultLineConfig();
     config.economics.revenuePerArticle = 100;

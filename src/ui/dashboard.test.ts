@@ -30,7 +30,6 @@ function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResul
       revenuePerBasket: 0,
       profitPerBasket: 0,
     },
-    ratios: { chemicalCostPctOfRevenue: 0 },
     throughputBph: 5,
     hasViolations: false,
     breakEvenBph: 0,

@@ -404,10 +404,6 @@ export interface EconomicsResult {
     profitPerBasket: number;
   };
 
-  ratios: {
-    chemicalCostPctOfRevenue: number;
-  };
-
   throughputBph: number;
   hasViolations: boolean;
   breakEvenBph: number;

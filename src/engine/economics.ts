@@ -110,9 +110,6 @@ export function calculateEconomics(
   const costPerArticle = safeDivide(costPerBasket, articlesPerBasket);
   const profitPerBasket = revenuePerBasket - costPerBasket;
 
-  // Ratios
-  const chemicalCostPctOfRevenue = safeDivide(chemicalPerHr, revenuePerHr) * 100;
-
   // Break-even
   const breakEvenBph = safeDivide(totalCostPerHr, revenuePerBasket);
 
@@ -140,10 +137,6 @@ export function calculateEconomics(
       costPerArticle,
       revenuePerBasket,
       profitPerBasket,
-    },
-
-    ratios: {
-      chemicalCostPctOfRevenue,
     },
 
     throughputBph,
