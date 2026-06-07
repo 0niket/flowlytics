@@ -391,6 +391,45 @@ describe("Builder — wagon config sync", () => {
   });
 });
 
+describe("Builder — station equipment capex", () => {
+  it("setStationEquipmentCost sets value on station", () => {
+    const b = new Builder();
+    b.setStationEquipmentCost(1, 500_000);
+    expect(b.config.stations[1].equipmentCostRs).toBe(500_000);
+  });
+
+  it("setStationEquipmentLifeYears sets value on station", () => {
+    const b = new Builder();
+    b.setStationEquipmentLifeYears(1, 10);
+    expect(b.config.stations[1].equipmentLifeYears).toBe(10);
+  });
+
+  it("setStationEquipmentOperatingHoursPerYear sets value on station", () => {
+    const b = new Builder();
+    b.setStationEquipmentOperatingHoursPerYear(1, 4000);
+    expect(b.config.stations[1].equipmentOperatingHoursPerYear).toBe(4000);
+  });
+
+  it("setStationEquipmentCost throws for invalid index", () => {
+    const b = new Builder();
+    expect(() => b.setStationEquipmentCost(99, 100)).toThrow("No station at index 99");
+  });
+
+  it("setStationEquipmentCost clamps negative to 0", () => {
+    const b = new Builder();
+    b.setStationEquipmentCost(1, -500);
+    expect(b.config.stations[1].equipmentCostRs).toBe(0);
+  });
+
+  it("works on WDO stations too", () => {
+    const b = new Builder();
+    b.enableWdo();
+    const wdoIdx = b.config.stations.findIndex((s) => s.kind === "wdo");
+    b.setStationEquipmentCost(wdoIdx, 300_000);
+    expect(b.config.stations[wdoIdx].equipmentCostRs).toBe(300_000);
+  });
+});
+
 describe("Builder — WDO operating cost", () => {
   it("setWdoOperatingCostPerHr sets value on WDO station", () => {
     const b = new Builder();

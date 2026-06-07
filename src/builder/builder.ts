@@ -316,6 +316,24 @@ export class Builder {
     station.labourCount = Math.max(0, Math.round(count));
   }
 
+  setStationEquipmentCost(stationIndex: number, rs: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station) throw new Error(`No station at index ${stationIndex}`);
+    station.equipmentCostRs = Math.max(0, rs);
+  }
+
+  setStationEquipmentLifeYears(stationIndex: number, years: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station) throw new Error(`No station at index ${stationIndex}`);
+    station.equipmentLifeYears = Math.max(0, years);
+  }
+
+  setStationEquipmentOperatingHoursPerYear(stationIndex: number, hours: number): void {
+    const station = this._config.stations[stationIndex];
+    if (!station) throw new Error(`No station at index ${stationIndex}`);
+    station.equipmentOperatingHoursPerYear = Math.max(0, hours);
+  }
+
   setWdoOperatingCostPerHr(stationIndex: number, rs: number): void {
     const station = this._config.stations[stationIndex];
     if (!station || station.kind !== "wdo") {

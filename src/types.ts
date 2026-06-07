@@ -396,6 +396,7 @@ export interface EconomicsResult {
 
   capex: {
     totalWagonCost: number;
+    totalStationEquipmentCost: number;
   };
 
   unitEconomics: {

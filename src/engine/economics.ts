@@ -109,6 +109,21 @@ export function calculateEconomics(
     }
   }
 
+  // Station equipment capex + depreciation
+  let totalStationEquipmentCost = 0;
+  for (const station of config.stations) {
+    const cost = station.equipmentCostRs;
+    if (cost != null && cost > 0) {
+      totalStationEquipmentCost += cost;
+      const life = station.equipmentLifeYears ?? 0;
+      const opHrs = station.equipmentOperatingHoursPerYear ?? 0;
+      const totalHours = life * opHrs;
+      if (totalHours > 0) {
+        depreciationPerHr += cost / totalHours;
+      }
+    }
+  }
+
   const totalCostPerHr =
     rawMaterialPerHr + chemicalPerHr + laborPerHr + energyPerHr + maintenancePerHr + depreciationPerHr + wdoCostPerHr;
 
@@ -141,6 +156,7 @@ export function calculateEconomics(
 
     capex: {
       totalWagonCost,
+      totalStationEquipmentCost,
     },
 
     unitEconomics: {

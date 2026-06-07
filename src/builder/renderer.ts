@@ -157,6 +157,21 @@ function renderStationSection(container: HTMLElement): void {
             <input class="bldr-bath-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.bathLifeHours ?? ""}" placeholder="0" />
             <div class="field__hint">hours between dumps</div>
           </div>
+          <hr class="separator" />
+          <div class="field" style="margin:0;margin-bottom:6px;">
+            <label class="field__label">Equipment cost (₹)</label>
+            <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
+          </div>
+          <div class="grid2">
+            <div class="field" style="margin:0;">
+              <label class="field__label">Useful life (years)</label>
+              <input class="bldr-equip-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.equipmentLifeYears ?? ""}" placeholder="0" />
+            </div>
+            <div class="field" style="margin:0;">
+              <label class="field__label">Operating hrs/year</label>
+              <input class="bldr-equip-ophrs station-card__input" data-index="${i}" type="number" min="0" step="100" value="${s.equipmentOperatingHoursPerYear ?? ""}" placeholder="0" />
+            </div>
+          </div>
         ` : ""}
       `;
       lane.appendChild(card);
@@ -187,9 +202,23 @@ function renderStationSection(container: HTMLElement): void {
           </div>
         </div>
         <hr class="separator" />
-        <div class="field" style="margin:0;">
+        <div class="field" style="margin:0;margin-bottom:6px;">
           <label class="field__label">Operating cost (₹/hr)</label>
           <input class="bldr-wdo-opcost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.operatingCostPerHr ?? ""}" placeholder="0" />
+        </div>
+        <div class="field" style="margin:0;margin-bottom:6px;">
+          <label class="field__label">Equipment cost (₹)</label>
+          <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
+        </div>
+        <div class="grid2">
+          <div class="field" style="margin:0;">
+            <label class="field__label">Useful life (years)</label>
+            <input class="bldr-equip-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.equipmentLifeYears ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Operating hrs/year</label>
+            <input class="bldr-equip-ophrs station-card__input" data-index="${i}" type="number" min="0" step="100" value="${s.equipmentOperatingHoursPerYear ?? ""}" placeholder="0" />
+          </div>
         </div>
       `;
       lane.appendChild(card);
@@ -652,6 +681,29 @@ function wireListeners(signal: AbortSignal): void {
           minutesToSeconds(Number((target as HTMLInputElement).value) || 10),
           index
         );
+        autoRunIfEnabled();
+        return;
+      }
+
+      // Station equipment capex inputs
+      if (target.classList.contains("bldr-equip-cost")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setStationEquipmentCost(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-equip-life")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setStationEquipmentLifeYears(index, val);
+        autoRunIfEnabled();
+        return;
+      }
+      if (target.classList.contains("bldr-equip-ophrs")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value) || 0;
+        builder.setStationEquipmentOperatingHoursPerYear(index, val);
         autoRunIfEnabled();
         return;
       }

@@ -331,6 +331,48 @@ describe("calculateEconomics", () => {
     expect(result.breakEvenBph).toBe(Infinity);
   });
 
+  it("station with equipment capex → adds to depreciationPerHr", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].equipmentCostRs = 500_000;
+    config.stations[1].equipmentLifeYears = 10;
+    config.stations[1].equipmentOperatingHoursPerYear = 4000;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    // 500_000 / (10 × 4000) = 12.5
+    expect(result.costBreakdown.depreciationPerHr).toBe(12.5);
+    expect(result.totalCostPerHr).toBe(12.5);
+    expect(result.capex.totalStationEquipmentCost).toBe(500_000);
+  });
+
+  it("station with equipment cost but no life/hours → 0 depreciation contribution", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].equipmentCostRs = 500_000;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    expect(result.costBreakdown.depreciationPerHr).toBe(0);
+    expect(result.capex.totalStationEquipmentCost).toBe(500_000);
+  });
+
+  it("wagon + station depreciation are summed together", () => {
+    const config = createDefaultLineConfig();
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+    ];
+    config.stations[1].equipmentCostRs = 500_000;
+    config.stations[1].equipmentLifeYears = 10;
+    config.stations[1].equipmentOperatingHoursPerYear = 4000;
+    const sim = makeSimResult();
+
+    const result = calculateEconomics(config, sim);
+
+    // Wagon: 1_200_000 / (5 × 2000) = 120, Station: 500_000 / (10 × 4000) = 12.5
+    expect(result.costBreakdown.depreciationPerHr).toBe(132.5);
+  });
+
   it("WDO with operatingCostPerHr → wdoCostPerHr included in totalCostPerHr", () => {
     const config = createDefaultLineConfig();
     config.stations.splice(2, 0, {

@@ -165,18 +165,32 @@ export function renderOverviewTab(
   }
 
   // Capex Section
-  if (economics.capex.totalWagonCost > 0) {
+  if (economics.capex.totalWagonCost > 0 || economics.capex.totalStationEquipmentCost > 0) {
     const capexCard = document.createElement("div");
     capexCard.className = "financial-card";
 
-    const wagonCount = config.transport.wagons?.length ?? config.transport.wagonCount;
-    capexCard.innerHTML = `
-      <div class="financial-card__header"><span>CAPITAL EQUIPMENT (one-time)</span></div>
-      <div class="cost-group__header" style="margin-top:8px;">
-        <span>Wagons (${wagonCount}\u00D7)</span>
-        <span>${formatCurrency(economics.capex.totalWagonCost)}</span>
-      </div>
-    `;
+    let capexHtml = `<div class="financial-card__header"><span>CAPITAL EQUIPMENT (one-time)</span></div>`;
+
+    if (economics.capex.totalWagonCost > 0) {
+      const wagonCount = config.transport.wagons?.length ?? config.transport.wagonCount;
+      capexHtml += `
+        <div class="cost-group__header" style="margin-top:8px;">
+          <span>Wagons (${wagonCount}\u00D7)</span>
+          <span>${formatCurrency(economics.capex.totalWagonCost)}</span>
+        </div>
+      `;
+    }
+
+    if (economics.capex.totalStationEquipmentCost > 0) {
+      capexHtml += `
+        <div class="cost-group__header" style="margin-top:8px;">
+          <span>Station Equipment</span>
+          <span>${formatCurrency(economics.capex.totalStationEquipmentCost)}</span>
+        </div>
+      `;
+    }
+
+    capexCard.innerHTML = capexHtml;
     container.appendChild(capexCard);
   }
 

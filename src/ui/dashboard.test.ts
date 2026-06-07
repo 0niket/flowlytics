@@ -24,7 +24,7 @@ function mockEconomics(overrides: Partial<EconomicsResult> = {}): EconomicsResul
       depreciationPerHr: 0,
       wdoCostPerHr: 0,
     },
-    capex: { totalWagonCost: 0 },
+    capex: { totalWagonCost: 0, totalStationEquipmentCost: 0 },
     unitEconomics: {
       costPerBasket: 0,
       costPerArticle: 0,
@@ -114,6 +114,25 @@ describe("renderFinancialDashboard — WDO cost line", () => {
     renderFinancialDashboard(econ, config, [], pinned, overview, violations);
     const text = overview.textContent ?? "";
     expect(text).toContain("WDO Operating");
+  });
+});
+
+describe("renderFinancialDashboard — station equipment capex", () => {
+  it("renders station equipment in capex card when totalStationEquipmentCost > 0", () => {
+    const pinned = mockContainer();
+    const overview = mockContainer();
+    const violations = mockContainer();
+    const config = configWithEconomics();
+    const econ = mockEconomics({
+      revenuePerHr: 4000,
+      totalCostPerHr: 100,
+      profitPerHr: 3900,
+      profitMarginPct: 97.5,
+      capex: { totalWagonCost: 0, totalStationEquipmentCost: 500000 },
+    });
+    renderFinancialDashboard(econ, config, [], pinned, overview, violations);
+    const text = overview.textContent ?? "";
+    expect(text).toContain("Station Equipment");
   });
 });
 

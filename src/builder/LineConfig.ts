@@ -32,6 +32,10 @@ export interface StationConfig {
   labourCostPerHr?: number;
   // WDO operating cost (wdo kind only):
   operatingCostPerHr?: number;
+  // Station equipment capex (any kind):
+  equipmentCostRs?: number;
+  equipmentLifeYears?: number;
+  equipmentOperatingHoursPerYear?: number;
 }
 
 export interface WagonConfig {
