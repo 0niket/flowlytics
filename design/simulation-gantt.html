@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulation Gantt — Design Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0b0f17;
+    --card: #131920;
+    --card-border: rgba(255,255,255,0.06);
+    --text: #d9e2f1;
+    --muted: #6b7a8d;
+    --accent: #4aa3ff;
+    --accent2: #70f0b8;
+    --danger: #ff6b6b;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    /* Gantt state colors */
+    --st-loading: #da3633;
+    --st-t1: #58a6ff;
+    --st-t2: #388bfd;
+    --st-t3: #1f6feb;
+    --st-wdo: #d29922;
+    --st-transit: #a371f7;
+    --st-unloading: #3fb950;
+    --st-waiting: #21262d;
+    --st-ready: #e3b341;
+    --st-done: #30363d;
+    /* Row geometry */
+    --row-h: 28px;
+    --label-w: 72px;
+    --time-h: 32px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  /* ─── Card wrapper ─── */
+  .gantt-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    overflow: hidden;
+    max-width: 1200px;
+  }
+  .gantt-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .gantt-card__title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .gantt-card__stats {
+    display: flex;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .gantt-card__stats span {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ─── Legend ─── */
+  .gantt-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--card-border);
+    background: rgba(0,0,0,0.15);
+  }
+  .gantt-legend__item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .gantt-legend__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ─── Gantt container ─── */
+  .gantt-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fixed Y-axis labels */
+  .gantt-labels {
+    position: absolute;
+    left: 0;
+    top: var(--time-h);
+    width: var(--label-w);
+    z-index: 3;
+    background: var(--card);
+    border-right: 1px solid var(--card-border);
+  }
+  .gantt-labels__row {
+    height: var(--row-h);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .gantt-labels__row:nth-child(odd) {
+    background: rgba(255,255,255,0.015);
+  }
+
+  /* Scrollable area */
+  .gantt-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 440px;
+    margin-left: var(--label-w);
+    scrollbar-width: thin;
+    scrollbar-color: #30363d transparent;
+  }
+  .gantt-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .gantt-scroll::-webkit-scrollbar-track { background: transparent; }
+  .gantt-scroll::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  .gantt-scroll::-webkit-scrollbar-corner { background: transparent; }
+
+  /* Inner canvas */
+  .gantt-canvas {
+    position: relative;
+    min-width: 2000px; /* will be set dynamically */
+  }
+
+  /* Time axis */
+  .gantt-time {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: var(--time-h);
+    background: var(--card);
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+  }
+  .gantt-time__mark {
+    position: absolute;
+    bottom: 4px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--muted);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .gantt-time__line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Basket rows */
+  .gantt-rows {
+    position: relative;
+  }
+  .gantt-row {
+    height: var(--row-h);
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .gantt-row:nth-child(odd) {
+    background: rgba(255,255,255,0.015);
+  }
+
+  /* Segments */
+  .gantt-seg {
+    position: absolute;
+    top: 3px;
+    height: calc(var(--row-h) - 6px);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: filter 0.1s, transform 0.1s;
+    /* Subtle inner shadow for depth */
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.2);
+    min-width: 1px;
+  }
+  .gantt-seg:hover {
+    filter: brightness(1.25);
+    transform: scaleY(1.15);
+    z-index: 10;
+  }
+  .gantt-seg--waiting {
+    opacity: 0.4;
+    box-shadow: none;
+  }
+
+  /* Segment label (only shown on wide segments) */
+  .gantt-seg__label {
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 600;
+    color: rgba(0,0,0,0.7);
+    padding: 0 4px;
+    line-height: calc(var(--row-h) - 6px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Tooltip */
+  .gantt-tooltip {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    background: #1c2333;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    min-width: 200px;
+    line-height: 1.5;
+  }
+  .gantt-tooltip.visible { display: block; }
+  .gantt-tooltip__state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .gantt-tooltip__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+  .gantt-tooltip__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    color: var(--muted);
+  }
+  .gantt-tooltip__row span:last-child {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ─── Grid lines that span full height ─── */
+  .gantt-gridlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .gantt-gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,0.035);
+  }
+
+  /* ─── Now-line (playhead) ─── */
+  .gantt-now {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--danger);
+    z-index: 5;
+    opacity: 0.7;
+  }
+  .gantt-now::before {
+    content: 'NOW';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--danger);
+    letter-spacing: 1px;
+  }
+
+  /* ─── Cycle separator ─── */
+  .gantt-cycle-sep {
+    position: absolute;
+    top: 3px;
+    height: calc(var(--row-h) - 6px);
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--muted) 0, var(--muted) 2px,
+      transparent 2px, transparent 4px
+    );
+    opacity: 0.4;
+    z-index: 4;
+  }
+</style>
+</head>
+<body>
+
+<div class="gantt-card" id="ganttCard">
+  <div class="gantt-card__header">
+    <div class="gantt-card__title">Simulation Timeline</div>
+    <div class="gantt-card__stats">
+      baskets: <span id="statBaskets">5</span>
+      &nbsp; cycles: <span id="statCycles">19</span>
+      &nbsp; duration: <span id="statDuration">2.0h</span>
+    </div>
+  </div>
+  <div class="gantt-legend" id="legend"></div>
+  <div class="gantt-wrap">
+    <div class="gantt-labels" id="labels"></div>
+    <div class="gantt-scroll" id="scroll">
+      <div class="gantt-canvas" id="canvas">
+        <div class="gantt-time" id="timeAxis"></div>
+        <div class="gantt-rows" id="rows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="gantt-tooltip" id="tooltip"></div>
+
+<script>
+// ─── Mock Data Generator ─────────────────────────────────────
+// Simulates 5 baskets cycling through LOAD → T1 → T2 → T3 → WDO → UNLOAD
+
+const STATIONS = ['LOAD', 'T1', 'T2', 'T3', 'WDO', 'UNLOAD'];
+const SIM_END = 7200; // 2 hours in seconds
+
+const STATE_COLORS = {
+  'LOADING': '#da3633',
+  'IN_TANK:T1': '#58a6ff',
+  'IN_TANK:T2': '#388bfd',
+  'IN_TANK:T3': '#1f6feb',
+  'IN_TANK:WDO': '#d29922',
+  'IN_TRANSIT': '#a371f7',
+  'UNLOADING': '#3fb950',
+  'WAITING_LOAD': '#21262d',
+  'WAITING_UNLOAD': '#21262d',
+  'READY_FOR_PICKUP': '#e3b341',
+  'DONE': '#30363d',
+};
+
+const LEGEND_ITEMS = [
+  { label: 'Loading', color: '#da3633' },
+  { label: 'T1 (dwell)', color: '#58a6ff' },
+  { label: 'T2 (dwell)', color: '#388bfd' },
+  { label: 'T3 (dwell)', color: '#1f6feb' },
+  { label: 'WDO (dry)', color: '#d29922' },
+  { label: 'Transit', color: '#a371f7' },
+  { label: 'Unloading', color: '#3fb950' },
+  { label: 'Ready/Wait', color: '#e3b341' },
+  { label: 'Idle', color: '#21262d' },
+];
+
+// Generate realistic stateHistory for each basket
+function generateBasketHistory(basketId, startDelay, basketCount) {
+  const history = [];
+  let t = startDelay;
+  let cycle = 0;
+
+  while (t < SIM_END - 300) {
+    cycle++;
+    // WAITING_LOAD (stagger)
+    const waitLoad = cycle === 1 ? 0 : Math.random() * 20 + 5;
+    if (waitLoad > 0) {
+      history.push({ timestamp: t, fromState: cycle === 1 ? 'WAITING_LOAD' : 'DONE', toState: 'WAITING_LOAD', reason: 'cycle_restart', station: 'LOAD' });
+      t += waitLoad;
+    }
+
+    // LOADING
+    history.push({ timestamp: t, fromState: 'WAITING_LOAD', toState: 'LOADING', reason: 'loading_started', station: 'LOAD' });
+    t += 150 + Math.random() * 30; // ~2.5 min
+
+    // READY_FOR_PICKUP after loading
+    history.push({ timestamp: t, fromState: 'LOADING', toState: 'READY_FOR_PICKUP', reason: 'load_complete', station: 'LOAD' });
+    t += 10 + Math.random() * 30; // wagon wait
+
+    // TRANSIT to T1
+    history.push({ timestamp: t, fromState: 'READY_FOR_PICKUP', toState: 'IN_TRANSIT', reason: 'picked_up', station: 'LOAD→T1' });
+    t += 25 + Math.random() * 10;
+
+    // T1 dwell
+    history.push({ timestamp: t, fromState: 'IN_TRANSIT', toState: 'IN_TANK', reason: 'dropped_at_T1', station: 'T1' });
+    t += 300 + Math.random() * 40; // 5 min dwell
+
+    // Ready for pickup at T1
+    history.push({ timestamp: t, fromState: 'IN_TANK', toState: 'READY_FOR_PICKUP', reason: 'dwell_complete', station: 'T1' });
+    t += 8 + Math.random() * 25;
+
+    // Transit T1→T2
+    history.push({ timestamp: t, fromState: 'READY_FOR_PICKUP', toState: 'IN_TRANSIT', reason: 'picked_up', station: 'T1→T2' });
+    t += 15 + Math.random() * 8;
+
+    // T2 dwell
+    history.push({ timestamp: t, fromState: 'IN_TRANSIT', toState: 'IN_TANK', reason: 'dropped_at_T2', station: 'T2' });
+    t += 180 + Math.random() * 30; // 3 min dwell
+
+    // Ready for pickup at T2
+    history.push({ timestamp: t, fromState: 'IN_TANK', toState: 'READY_FOR_PICKUP', reason: 'dwell_complete', station: 'T2' });
+    t += 5 + Math.random() * 20;
+
+    // Transit T2→T3
+    history.push({ timestamp: t, fromState: 'READY_FOR_PICKUP', toState: 'IN_TRANSIT', reason: 'picked_up', station: 'T2→T3' });
+    t += 12 + Math.random() * 6;
+
+    // T3 dwell
+    history.push({ timestamp: t, fromState: 'IN_TRANSIT', toState: 'IN_TANK', reason: 'dropped_at_T3', station: 'T3' });
+    t += 120 + Math.random() * 20; // 2 min dwell
+
+    // Ready for pickup at T3
+    history.push({ timestamp: t, fromState: 'IN_TANK', toState: 'READY_FOR_PICKUP', reason: 'dwell_complete', station: 'T3' });
+    t += 6 + Math.random() * 18;
+
+    // Transit T3→WDO
+    history.push({ timestamp: t, fromState: 'READY_FOR_PICKUP', toState: 'IN_TRANSIT', reason: 'picked_up', station: 'T3→WDO' });
+    t += 18 + Math.random() * 8;
+
+    // WDO dwell (drying)
+    history.push({ timestamp: t, fromState: 'IN_TRANSIT', toState: 'IN_TANK', reason: 'dropped_at_WDO', station: 'WDO' });
+    t += 600 + Math.random() * 60; // 10 min dry
+
+    // Ready for pickup at WDO
+    history.push({ timestamp: t, fromState: 'IN_TANK', toState: 'READY_FOR_PICKUP', reason: 'dwell_complete', station: 'WDO' });
+    t += 10 + Math.random() * 30;
+
+    // Transit WDO→UNLOAD
+    history.push({ timestamp: t, fromState: 'READY_FOR_PICKUP', toState: 'IN_TRANSIT', reason: 'picked_up', station: 'WDO→UNLOAD' });
+    t += 20 + Math.random() * 10;
+
+    // WAITING_UNLOAD
+    history.push({ timestamp: t, fromState: 'IN_TRANSIT', toState: 'WAITING_UNLOAD', reason: 'dropped_at_unload', station: 'UNLOAD' });
+    t += 5 + Math.random() * 15;
+
+    // UNLOADING
+    history.push({ timestamp: t, fromState: 'WAITING_UNLOAD', toState: 'UNLOADING', reason: 'unloading_started', station: 'UNLOAD' });
+    t += 150 + Math.random() * 30; // ~2.5 min
+
+    // DONE
+    history.push({ timestamp: t, fromState: 'UNLOADING', toState: 'DONE', reason: 'unload_complete', station: 'UNLOAD' });
+  }
+
+  return { id: basketId, stateHistory: history, cycles: cycle };
+}
+
+// Generate 5 baskets with staggered starts
+const baskets = [];
+let totalCycles = 0;
+for (let i = 0; i < 5; i++) {
+  const b = generateBasketHistory(`B${i + 1}`, i * 180, 5); // 3 min stagger
+  baskets.push(b);
+  totalCycles += b.cycles;
+}
+
+// ─── Rendering ─────────────────────────────────────────────────
+
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return `${h}h${rm > 0 ? rm + 'm' : ''}`;
+  }
+  return s > 0 ? `${m}m${s}s` : `${m}m`;
+}
+
+function fmtDuration(sec) {
+  if (sec >= 60) return (sec / 60).toFixed(1) + 'm';
+  return sec.toFixed(0) + 's';
+}
+
+function getSegmentColor(state, station) {
+  if (state === 'IN_TANK') {
+    return STATE_COLORS[`IN_TANK:${station}`] || STATE_COLORS['IN_TANK:T1'];
+  }
+  return STATE_COLORS[state] || '#30363d';
+}
+
+function isWaitingState(state) {
+  return state === 'WAITING_LOAD' || state === 'WAITING_UNLOAD' || state === 'DONE';
+}
+
+// Convert stateHistory to segments [{start, end, state, station, color}]
+function historyToSegments(history, simEnd) {
+  const segments = [];
+  for (let i = 0; i < history.length; i++) {
+    const tr = history[i];
+    const nextTr = history[i + 1];
+    const start = tr.timestamp;
+    const end = nextTr ? nextTr.timestamp : simEnd;
+
+    // The transition says we entered `toState` at `timestamp`
+    const state = tr.toState;
+    const station = tr.station || '';
+    // Extract station from reason if needed
+    let stationLabel = station;
+    if (state === 'IN_TANK' && tr.reason) {
+      const m = tr.reason.match(/dropped_at_(\w+)/);
+      if (m) stationLabel = m[1];
+    }
+
+    segments.push({
+      start,
+      end,
+      duration: end - start,
+      state,
+      station: stationLabel,
+      color: getSegmentColor(state, stationLabel),
+      reason: tr.reason,
+      isWaiting: isWaitingState(state),
+    });
+  }
+  return segments;
+}
+
+// Build the chart
+const PX_PER_SEC = 0.3; // 0.3px per second → 1080px per hour
+const canvasWidth = Math.ceil(SIM_END * PX_PER_SEC) + 40;
+const canvas = document.getElementById('canvas');
+canvas.style.minWidth = canvasWidth + 'px';
+
+// Stats
+document.getElementById('statBaskets').textContent = baskets.length;
+document.getElementById('statCycles').textContent = totalCycles;
+document.getElementById('statDuration').textContent = (SIM_END / 3600).toFixed(1) + 'h';
+
+// Legend
+const legend = document.getElementById('legend');
+LEGEND_ITEMS.forEach(item => {
+  const el = document.createElement('div');
+  el.className = 'gantt-legend__item';
+  el.innerHTML = `<div class="gantt-legend__dot" style="background:${item.color}"></div>${item.label}`;
+  legend.appendChild(el);
+});
+
+// Time axis
+const timeAxis = document.getElementById('timeAxis');
+const TICK_INTERVAL = 300; // 5 minutes
+for (let t = 0; t <= SIM_END; t += TICK_INTERVAL) {
+  const x = t * PX_PER_SEC;
+  // Gridline
+  const line = document.createElement('div');
+  line.className = 'gantt-time__line';
+  line.style.left = x + 'px';
+  timeAxis.appendChild(line);
+  // Label (only every other tick for 10-min intervals)
+  if (t % 600 === 0) {
+    const mark = document.createElement('div');
+    mark.className = 'gantt-time__mark';
+    mark.style.left = x + 'px';
+    mark.textContent = fmtTime(t);
+    timeAxis.appendChild(mark);
+  }
+}
+
+// Labels + Rows
+const labels = document.getElementById('labels');
+const rowsEl = document.getElementById('rows');
+const tooltip = document.getElementById('tooltip');
+
+// Gridlines inside rows
+const gridlines = document.createElement('div');
+gridlines.className = 'gantt-gridlines';
+for (let t = 0; t <= SIM_END; t += TICK_INTERVAL) {
+  const line = document.createElement('div');
+  line.className = 'gantt-gridline';
+  line.style.left = (t * PX_PER_SEC) + 'px';
+  gridlines.appendChild(line);
+}
+rowsEl.appendChild(gridlines);
+
+baskets.forEach((basket) => {
+  const segments = historyToSegments(basket.stateHistory, SIM_END);
+
+  // Label
+  const labelEl = document.createElement('div');
+  labelEl.className = 'gantt-labels__row';
+  labelEl.textContent = basket.id;
+  labels.appendChild(labelEl);
+
+  // Row
+  const row = document.createElement('div');
+  row.className = 'gantt-row';
+
+  segments.forEach(seg => {
+    const left = seg.start * PX_PER_SEC;
+    const width = Math.max(1, seg.duration * PX_PER_SEC);
+
+    const el = document.createElement('div');
+    el.className = 'gantt-seg' + (seg.isWaiting ? ' gantt-seg--waiting' : '');
+    el.style.left = left + 'px';
+    el.style.width = width + 'px';
+    el.style.background = seg.color;
+
+    // Label on wide segments
+    if (width > 30) {
+      const lbl = document.createElement('div');
+      lbl.className = 'gantt-seg__label';
+      if (seg.state === 'IN_TANK') {
+        lbl.textContent = seg.station;
+      } else if (seg.state === 'IN_TRANSIT') {
+        lbl.textContent = '→';
+      } else if (width > 50) {
+        const stateShort = {
+          'LOADING': 'LOAD',
+          'UNLOADING': 'UNLD',
+          'READY_FOR_PICKUP': 'RDY',
+          'WAITING_LOAD': 'WAIT',
+          'WAITING_UNLOAD': 'WAIT',
+        };
+        lbl.textContent = stateShort[seg.state] || seg.state;
+      }
+      el.appendChild(lbl);
+    }
+
+    // Tooltip events
+    el.addEventListener('mouseenter', (ev) => {
+      const stateLabel = seg.state === 'IN_TANK' ? `IN_TANK @ ${seg.station}` : seg.state;
+      tooltip.innerHTML = `
+        <div class="gantt-tooltip__state">
+          <div class="gantt-tooltip__dot" style="background:${seg.color}"></div>
+          ${stateLabel}
+        </div>
+        <div class="gantt-tooltip__row"><span>Basket</span><span>${basket.id}</span></div>
+        <div class="gantt-tooltip__row"><span>Start</span><span>${fmtTime(seg.start)}</span></div>
+        <div class="gantt-tooltip__row"><span>End</span><span>${fmtTime(seg.end)}</span></div>
+        <div class="gantt-tooltip__row"><span>Duration</span><span>${fmtDuration(seg.duration)}</span></div>
+        ${seg.station ? `<div class="gantt-tooltip__row"><span>Station</span><span>${seg.station}</span></div>` : ''}
+      `;
+      tooltip.classList.add('visible');
+    });
+
+    el.addEventListener('mousemove', (ev) => {
+      tooltip.style.left = (ev.clientX + 12) + 'px';
+      tooltip.style.top = (ev.clientY - 10) + 'px';
+    });
+
+    el.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+
+    row.appendChild(el);
+  });
+
+  rowsEl.appendChild(row);
+});
+
+// Sync scroll between labels and chart
+const scroll = document.getElementById('scroll');
+scroll.addEventListener('scroll', () => {
+  labels.style.top = `calc(${-scroll.scrollTop}px + var(--time-h))`;
+});
+</script>
+</body>
+</html>

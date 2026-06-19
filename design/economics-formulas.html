@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowlytics — Economics Formula Components</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2129;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent-amber: #d29922;
+    --danger: #f85149;
+    --muted: #8b949e;
+    --text: #e6edf3;
+    --text-dim: #c9d1d9;
+    --text-bright: #ffffff;
+    --gantt-manual: #da3633;
+    --gantt-dwell: #58a6ff;
+    --gantt-handling: #d29922;
+    --gantt-travel: #a371f7;
+    --gantt-drip: #3fb950;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  /* ─── Layout ─────────────────────────────── */
+  .dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .column-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0 12px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .column-header::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--accent2);
+    border-radius: 1px;
+  }
+  .column-header--throughput::before {
+    background: var(--accent);
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tab-bar__btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: none;
+    padding: 10px 18px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+  .tab-bar__btn:hover { color: var(--text-dim); }
+  .tab-bar__btn--active {
+    color: var(--text);
+  }
+  .tab-bar__btn--active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent2);
+  }
+  .tab-bar__btn--throughput.tab-bar__btn--active::after {
+    background: var(--accent);
+  }
+
+  /* ─── Financial Card (base) ──────────────── */
+  .financial-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    transition: border-color 0.15s;
+  }
+  .financial-card:hover {
+    border-left-color: var(--accent2);
+  }
+  .financial-card--throughput:hover {
+    border-left-color: var(--accent);
+  }
+
+  .financial-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .separator {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 10px 0;
+  }
+
+  /* ─── Cost Groups ────────────────────────── */
+  .cost-group { margin-bottom: 4px; }
+
+  .cost-group__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 6px 0 2px;
+  }
+
+  .cost-group__item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 2px 0 2px 12px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .cost-group__item::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--border);
+    transform: translateY(-50%);
+  }
+
+  /* Formula highlight — the "= result" part */
+  .formula-result {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* ─── Capex Breakdown ────────────────────── */
+  .capex-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .capex-item__label { font-weight: 500; }
+  .capex-item__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: right;
+  }
+  .capex-formula {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 1px 0 6px 12px;
+    position: relative;
+  }
+  .capex-formula::before {
+    content: '↳';
+    position: absolute;
+    left: 2px;
+    color: var(--border);
+  }
+
+  /* ─── Unit Metrics ───────────────────────── */
+  .grid3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .unit-metric__label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .unit-metric__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+  }
+  .unit-metric__detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ─── Throughput Column ──────────────────── */
+  .throughput-hero {
+    text-align: center;
+    padding: 20px 0 10px;
+  }
+  .throughput-hero__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+  .throughput-hero__unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+  .throughput-hero__sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ─── Gantt Chart ────────────────────────── */
+  .gantt {
+    margin: 14px 0 8px;
+  }
+  .gantt__bar-container {
+    display: flex;
+    height: 28px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+  }
+  .gantt__segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--bg);
+    min-width: 24px;
+    position: relative;
+    transition: opacity 0.15s;
+  }
+  .gantt__segment:hover {
+    opacity: 0.85;
+  }
+  .gantt__segment--manual   { background: var(--gantt-manual); }
+  .gantt__segment--dwell    { background: var(--gantt-dwell); }
+  .gantt__segment--handling { background: var(--gantt-handling); }
+  .gantt__segment--travel   { background: var(--gantt-travel); }
+  .gantt__segment--drip     { background: var(--gantt-drip); }
+
+  .gantt__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .gantt__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .gantt__legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ─── Cycle Breakdown Table ──────────────── */
+  .cycle-breakdown {
+    margin: 12px 0 0;
+  }
+  .cycle-row {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    gap: 8px;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+  }
+  .cycle-row:last-child { border-bottom: none; }
+  .cycle-row--total {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    font-weight: 600;
+    margin-top: 2px;
+    padding-top: 8px;
+  }
+  .cycle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+  .cycle-row__label { color: var(--text-dim); }
+  .cycle-row__detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .cycle-row__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    font-weight: 500;
+    min-width: 48px;
+  }
+
+  /* Sub-items under a cycle row */
+  .cycle-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 1px 0 1px 22px;
+    line-height: 1.6;
+  }
+
+  /* ─── Formula Box ────────────────────────── */
+  .formula-box {
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+  }
+  .formula-box__main {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .formula-box__detail {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .formula-box__result {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ─── Three-tier throughput ──────────────── */
+  .tier-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .tier-card {
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .tier-card__label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .tier-card__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .tier-card__value--target { color: var(--text-dim); }
+  .tier-card__value--simulated { color: var(--accent); }
+  .tier-card__value--theoretical { color: var(--accent-amber); }
+
+  .limitation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.2);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--danger);
+  }
+
+  /* ─── Page Title ─────────────────────────── */
+  .page-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .page-title span {
+    color: var(--accent2);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Flowlytics — Formula Explanation <span>Components</span></div>
+
+<div class="dashboard-layout">
+
+  <!-- ═══════ LEFT COLUMN: ECONOMICS ═══════ -->
+  <div>
+    <div class="column-header">Economics</div>
+
+    <!-- COSTS / HOUR Card -->
+    <div class="financial-card">
+      <div class="financial-card__header">
+        <span>COSTS / HOUR</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text);">₹41,778 /hr</span>
+      </div>
+
+      <!-- Raw Materials -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Raw Materials</span><span>₹37,775 /hr</span>
+        </div>
+        <div class="cost-group__item">100 articles × ₹100/article × 3.8 bph <span class="formula-result">= ₹37,775/hr</span></div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- Chemicals -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Chemicals</span><span>₹101 /hr</span>
+        </div>
+        <div class="cost-group__item">T1: 1000L × ₹100/L ÷ 1000h <span class="formula-result">= ₹100/hr</span></div>
+        <div class="cost-group__item">T2: 1000L × ₹10/L ÷ 10000h <span class="formula-result">= ₹1/hr</span></div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- Labour -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Labour</span><span>₹1,400 /hr</span>
+        </div>
+        <div class="cost-group__item">Loading: 5 operators × ₹100/hr <span class="formula-result">= ₹500/hr</span></div>
+        <div class="cost-group__item">Unloading: 3 operators × ₹300/hr <span class="formula-result">= ₹900/hr</span></div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- WDO Operating -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>WDO Operating</span><span>₹1,000 /hr</span>
+        </div>
+        <div class="cost-group__item">WDO: ₹1,000/hr (plant-level input)</div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- Energy — NOW WITH FORMULA -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Energy</span><span>₹1,000 /hr</span>
+        </div>
+        <div class="cost-group__item">Plant-level energy cost (configured)</div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- Maintenance — NOW WITH FORMULA -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Maintenance</span><span>₹500 /hr</span>
+        </div>
+        <div class="cost-group__item">Plant-level maintenance cost (configured)</div>
+      </div>
+
+      <hr class="separator" />
+
+      <!-- Depreciation — NOW WITH FORMULA BREAKDOWN -->
+      <div class="cost-group">
+        <div class="cost-group__header">
+          <span>Depreciation</span><span>₹1 /hr</span>
+        </div>
+        <div class="cost-group__item">W1: ₹12L ÷ (5yr × 2000h/yr) <span class="formula-result">= ₹1,200/hr</span></div>
+        <div class="cost-group__item">T1 equip: ₹5L ÷ (10yr × 4000h/yr) <span class="formula-result">= ₹12.50/hr</span></div>
+        <div class="cost-group__item">WDO equip: ₹3L ÷ (10yr × 4000h/yr) <span class="formula-result">= ₹7.50/hr</span></div>
+      </div>
+    </div>
+
+    <!-- ONE-TIME CAPEX Card -->
+    <div class="financial-card">
+      <div class="financial-card__header"><span>ONE-TIME CAPEX</span></div>
+
+      <div style="margin-top: 8px;">
+        <div class="cost-group__header">
+          <span>Wagons (2×)</span><span>₹24L</span>
+        </div>
+        <div class="capex-item">
+          <span class="capex-item__label">W1</span>
+          <span class="capex-item__value">₹12,00,000</span>
+        </div>
+        <div class="capex-formula">₹12L ÷ (5yr × 2000h) = ₹120/hr amortised</div>
+        <div class="capex-item">
+          <span class="capex-item__label">W2</span>
+          <span class="capex-item__value">₹12,00,000</span>
+        </div>
+        <div class="capex-formula">₹12L ÷ (5yr × 2000h) = ₹120/hr amortised</div>
+      </div>
+
+      <hr class="separator" />
+
+      <div class="cost-group__header">
+        <span>Station Equipment</span><span>₹8L</span>
+      </div>
+      <div class="capex-item">
+        <span class="capex-item__label">T1 — Tank 1</span>
+        <span class="capex-item__value">₹5,00,000</span>
+      </div>
+      <div class="capex-formula">₹5L ÷ (10yr × 4000h) = ₹12.50/hr amortised</div>
+      <div class="capex-item">
+        <span class="capex-item__label">WDO — Drying Oven</span>
+        <span class="capex-item__value">₹3,00,000</span>
+      </div>
+      <div class="capex-formula">₹3L ÷ (10yr × 4000h) = ₹7.50/hr amortised</div>
+
+      <hr class="separator" />
+      <div class="cost-group__header" style="color: var(--muted); font-size: 11px;">
+        <span>Total Amortised Depreciation</span>
+        <span style="color: var(--text);">₹270/hr</span>
+      </div>
+    </div>
+
+    <!-- UNIT ECONOMICS Card -->
+    <div class="financial-card">
+      <div class="financial-card__header"><span>UNIT ECONOMICS</span></div>
+      <div class="grid3" style="margin-top:8px;">
+        <div>
+          <div class="unit-metric__label">Cost/basket</div>
+          <div class="unit-metric__value">₹11,059</div>
+          <div class="unit-metric__detail">₹41,778/hr ÷ 3.8 bph<br/>= ₹11,059</div>
+        </div>
+        <div>
+          <div class="unit-metric__label">Cost/article</div>
+          <div class="unit-metric__value">₹111</div>
+          <div class="unit-metric__detail">₹11,059 ÷ 100 articles<br/>= ₹111</div>
+        </div>
+        <div>
+          <div class="unit-metric__label">Break-even</div>
+          <div class="unit-metric__value" style="color:var(--accent2);">0.4 bph</div>
+          <div class="unit-metric__detail">₹41,778/hr ÷ ₹1.0L/basket<br/>= 0.4 bph</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ RIGHT COLUMN: THROUGHPUT ═══════ -->
+  <div>
+    <div class="column-header column-header--throughput">Throughput</div>
+
+    <!-- Hero -->
+    <div class="financial-card financial-card--throughput">
+      <div class="throughput-hero">
+        <div class="throughput-hero__value">3.8<span class="throughput-hero__unit">bph</span></div>
+        <div class="throughput-hero__sub">14 baskets completed in 4h simulation</div>
+        <div class="throughput-hero__sub">Steady-state measurement (excludes warm-up)</div>
+      </div>
+
+      <!-- Three-tier -->
+      <div class="tier-grid">
+        <div class="tier-card">
+          <div class="tier-card__label">Target</div>
+          <div class="tier-card__value tier-card__value--target">4.0</div>
+        </div>
+        <div class="tier-card">
+          <div class="tier-card__label">Simulated</div>
+          <div class="tier-card__value tier-card__value--simulated">3.8</div>
+        </div>
+        <div class="tier-card">
+          <div class="tier-card__label">Theoretical</div>
+          <div class="tier-card__value tier-card__value--theoretical">5.2</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div class="limitation-badge">
+          ⚠ Limiting factor: wagon_bottleneck — W1 utilisation at 94%
+        </div>
+      </div>
+    </div>
+
+    <!-- Throughput Formula -->
+    <div class="financial-card financial-card--throughput">
+      <div class="financial-card__header"><span>THROUGHPUT FORMULA</span></div>
+
+      <div class="formula-box">
+        <div class="formula-box__main">throughput = 3600 ÷ cycle_time</div>
+        <div class="formula-box__detail">3600s ÷ 948.0s <span class="formula-box__result">= 3.8 bph</span></div>
+      </div>
+    </div>
+
+    <!-- Cycle Time Gantt -->
+    <div class="financial-card financial-card--throughput">
+      <div class="financial-card__header"><span>CYCLE TIME BREAKDOWN</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text);">948.0s</span>
+      </div>
+
+      <div class="gantt">
+        <div class="gantt__bar-container">
+          <!-- Manual: 20min load + 10min unload = 1800s → ~32% of 5580 -->
+          <!-- For visual: proportions of 948s total -->
+          <div class="gantt__segment gantt__segment--manual" style="flex: 300;" title="Manual: 300s">5m</div>
+          <div class="gantt__segment gantt__segment--dwell"  style="flex: 450;" title="Dwell: 450s">7.5m</div>
+          <div class="gantt__segment gantt__segment--handling" style="flex: 80;" title="Handling: 80s">80s</div>
+          <div class="gantt__segment gantt__segment--travel" style="flex: 78;" title="Travel: 78s">78s</div>
+          <div class="gantt__segment gantt__segment--drip"   style="flex: 40;" title="Drip: 40s">40s</div>
+        </div>
+        <div class="gantt__legend">
+          <div class="gantt__legend-item"><div class="gantt__legend-dot" style="background:var(--gantt-manual)"></div>Manual</div>
+          <div class="gantt__legend-item"><div class="gantt__legend-dot" style="background:var(--gantt-dwell)"></div>Dwell</div>
+          <div class="gantt__legend-item"><div class="gantt__legend-dot" style="background:var(--gantt-handling)"></div>Handling</div>
+          <div class="gantt__legend-item"><div class="gantt__legend-dot" style="background:var(--gantt-travel)"></div>Travel</div>
+          <div class="gantt__legend-item"><div class="gantt__legend-dot" style="background:var(--gantt-drip)"></div>Drip</div>
+        </div>
+      </div>
+
+      <!-- Detailed Breakdown -->
+      <div class="cycle-breakdown">
+
+        <!-- Manual -->
+        <div class="cycle-row">
+          <div class="cycle-dot" style="background:var(--gantt-manual)"></div>
+          <div class="cycle-row__label">Manual</div>
+          <div class="cycle-row__detail">load + unload</div>
+          <div class="cycle-row__value">300s</div>
+        </div>
+        <div class="cycle-sub">Loading: 2.5 min = 150s</div>
+        <div class="cycle-sub">Unloading: 2.5 min = 150s</div>
+
+        <!-- Dwell -->
+        <div class="cycle-row">
+          <div class="cycle-dot" style="background:var(--gantt-dwell)"></div>
+          <div class="cycle-row__label">Dwell</div>
+          <div class="cycle-row__detail">tank + wdo times</div>
+          <div class="cycle-row__value">450s</div>
+        </div>
+        <div class="cycle-sub">T1 (chemical): 2.5 min = 150s</div>
+        <div class="cycle-sub">T2 (rinse): 1.0 min = 60s</div>
+        <div class="cycle-sub">T3 (chemical): 2.5 min = 150s</div>
+        <div class="cycle-sub">WDO (drying): 1.5 min = 90s</div>
+
+        <!-- Handling -->
+        <div class="cycle-row">
+          <div class="cycle-dot" style="background:var(--gantt-handling)"></div>
+          <div class="cycle-row__label">Handling</div>
+          <div class="cycle-row__detail">per basket move × moves</div>
+          <div class="cycle-row__value">80s</div>
+        </div>
+        <div class="cycle-sub">Lift: 10s × 5 moves = 50s</div>
+        <div class="cycle-sub">Lower: 6s × 5 moves = 30s</div>
+
+        <!-- Travel -->
+        <div class="cycle-row">
+          <div class="cycle-dot" style="background:var(--gantt-travel)"></div>
+          <div class="cycle-row__label">Travel</div>
+          <div class="cycle-row__detail">wagon movement</div>
+          <div class="cycle-row__value">78s</div>
+        </div>
+        <div class="cycle-sub">Speed: 18 m/min | 5 inter-station moves</div>
+        <div class="cycle-sub">Avg distance: 1400mm per move</div>
+
+        <!-- Drip -->
+        <div class="cycle-row">
+          <div class="cycle-dot" style="background:var(--gantt-drip)"></div>
+          <div class="cycle-row__label">Drip</div>
+          <div class="cycle-row__detail">post-pickup drain</div>
+          <div class="cycle-row__value">40s</div>
+        </div>
+        <div class="cycle-sub">4s per pickup × 10 pickups</div>
+
+        <!-- Total -->
+        <div class="cycle-row cycle-row--total">
+          <div></div>
+          <div class="cycle-row__label" style="color:var(--text);font-weight:600;">Total Cycle</div>
+          <div class="cycle-row__detail"></div>
+          <div class="cycle-row__value" style="color:var(--accent);font-weight:700;">948s</div>
+        </div>
+      </div>
+
+      <div class="formula-box" style="margin-top:14px;">
+        <div class="formula-box__main">3600 ÷ 948.0</div>
+        <div class="formula-box__result">= 3.80 bph</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
