@@ -139,6 +139,14 @@ function renderStationSection(container: HTMLElement): void {
             </div>
           </div>
         </div>
+        <div class="field" style="margin-bottom:8px;">
+          <label class="field__label">Drip (s)</label>
+          <div class="station-card__field">
+            <input class="bldr-drip station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.dripSec ?? ""}" placeholder="0" />
+            <span class="station-card__unit">s</span>
+          </div>
+          <div class="field__hint">drain pause after lift, before travel</div>
+        </div>
         ` : ""}
         ${s.tankType === "chemical" ? `
           <textarea class="bldr-chem-desc station-card__textarea" data-index="${i}" placeholder="Chemical composition..." rows="2">${s.chemicalDescription ?? ""}</textarea>
@@ -378,20 +386,16 @@ function renderWagonCards(): void {
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Handling (sec)</div>
         <div class="wagon-handling-grid">
           <div class="field" style="margin:0;">
+            <label class="field__label" style="font-size:9px;">Pick</label>
+            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="pickSec" type="number" min="0" step="1" value="${w.pickSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
+          </div>
+          <div class="field" style="margin:0;">
             <label class="field__label" style="font-size:9px;">Lift</label>
             <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="liftSec" type="number" min="0" step="1" value="${w.liftSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
           </div>
           <div class="field" style="margin:0;">
-            <label class="field__label" style="font-size:9px;">Drip</label>
-            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="dripSec" type="number" min="0" step="1" value="${w.dripSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
-          </div>
-          <div class="field" style="margin:0;">
             <label class="field__label" style="font-size:9px;">Lower</label>
             <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="lowerSec" type="number" min="0" step="1" value="${w.lowerSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
-          </div>
-          <div class="field" style="margin:0;">
-            <label class="field__label" style="font-size:9px;">Pick</label>
-            <input class="bldr-wagon-handling field__control" data-wagon-index="${i}" data-handling-field="pickSec" type="number" min="0" step="1" value="${w.pickSec}" style="width:100%;padding:4px 6px;font-size:11px;" />
           </div>
           <div class="field" style="margin:0;">
             <label class="field__label" style="font-size:9px;">Drop</label>
@@ -542,9 +546,10 @@ function renderBasketCountExplanation(config: typeof builder.config): string {
           <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Deriving the values</div>
 
           <div style="margin-bottom:6px;">
-            <strong>W</strong> (cycle time) = dwell + handling<br/>
+            <strong>W</strong> (cycle time) = dwell + handling + drip<br/>
             <span style="color:var(--muted);margin-left:8px;">${fmtSec(b.totalDwellSec)} dwell</span>
             <span style="color:var(--muted);"> + ${b.activeTankCount} \u00d7 ${fmtSec(b.handlingPerTankSec)}/tank</span>
+            <span style="color:var(--muted);"> + ${fmtSec(b.totalDripSec)} drip</span>
             <span style="color:var(--muted);"> = <strong style="color:var(--fg);">${fmtSec(b.totalCycleSec)}</strong></span>
           </div>
 
@@ -734,6 +739,17 @@ function wireListeners(signal: AbortSignal): void {
         return;
       }
 
+      // Tank step: drip change (raw seconds)
+      if (target.classList.contains("bldr-drip")) {
+        const index = Number(target.getAttribute("data-index"));
+        const val = Number((target as HTMLInputElement).value);
+        if (!isNaN(val)) {
+          builder.setTankDrip(index, val);
+          autoRunIfEnabled();
+        }
+        return;
+      }
+
       // Station step: tolerance change
       if (target.classList.contains("bldr-tol")) {
         const index = Number(target.getAttribute("data-index"));
@@ -874,7 +890,7 @@ function wireListeners(signal: AbortSignal): void {
       // Per-wagon handling times
       if (target.classList.contains("bldr-wagon-handling")) {
         const idx = Number(target.getAttribute("data-wagon-index"));
-        const field = target.getAttribute("data-handling-field") as "liftSec" | "dripSec" | "lowerSec" | "pickSec" | "dropSec";
+        const field = target.getAttribute("data-handling-field") as "liftSec" | "lowerSec" | "pickSec" | "dropSec";
         const val = Number((target as HTMLInputElement).value) || 0;
         builder.setWagonHandlingTime(idx, field, val);
         autoRunIfEnabled();

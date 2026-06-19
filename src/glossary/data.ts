@@ -63,11 +63,11 @@ export const GLOSSARY_DATA: GlossaryEntry[] = [
     effect: "Often a hidden bottleneck. If load time (e.g., 20 min) exceeds the total chemical cycle time (e.g., 12 tanks x 2 min = 24 min), the loading station sets the maximum throughput at 3 baskets/hr regardless of how fast wagons move.",
     example: "With 20 min load time, max throughput = 60/20 = 3 bph. Reducing load time to 15 min (via offline prep) raises the ceiling to 4 bph. If target is 2 bph, load time isn't the bottleneck yet." },
 
-  { section: "Configuration", term: "Drip / Drag-out Time", tags: "chemical carry-over contamination pause lift",
-    def: "Mandatory pause time after the wagon lifts a basket out of a tank, before it starts traveling to the next tank. This allows chemicals to drip off the parts back into the tank.",
-    cause: "Required by the chemical process to minimize cross-contamination between tanks and reduce chemical loss. Duration depends on part geometry (flat vs complex shapes hold different amounts of liquid).",
-    effect: "Adds to every single transfer operation. With 12 tanks, a 15-second drip time adds 12 x 15 = 180 seconds (3 minutes) to the total cycle. Reducing from 15s to 10s saves ~1 minute per basket.",
-    example: "At 15s drip, total drip overhead per basket = 13 transfers x 15s = 195s (3m15s). Cutting to 10s saves 65 seconds per basket — about a 4% throughput improvement for free." },
+  { section: "Configuration", term: "Drip / Drag-out Time", tags: "chemical carry-over contamination pause drain tank",
+    def: "Optional per-tank drain pause after a basket is lifted out of that tank, before it travels onward. Configured individually on each active tank (chemical or rinse) in seconds; empty/absent means no drain pause. Drain time depends on the chemical and tank, not the wagon.",
+    cause: "Required by the chemical process to minimize cross-contamination between tanks and reduce chemical loss. Duration depends on the chemical's viscosity and the part geometry (flat vs complex shapes hold different amounts of liquid).",
+    effect: "Adds to the exit of each tank that defines a drip. A 15-second drip on a tank adds 15 seconds to every basket exiting that tank. Tanks with fast-draining or no carry-over chemistry can leave drip at 0.",
+    example: "A tank with a 15s drip adds 15s per basket exiting it. Reducing that tank's drip from 15s to 10s saves 5 seconds per basket at that step — a small but free throughput improvement." },
 
   { section: "Configuration", term: "Wagon Speed", tags: "travel speed transport horizontal rail velocity",
     def: "Horizontal travel speed of the transporter wagon along the rail track, measured in meters per minute.",

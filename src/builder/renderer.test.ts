@@ -165,4 +165,45 @@ describe("renderer — extra tank fields", () => {
     expect(card.querySelector(".bldr-equip-life")).not.toBeNull();
     expect(card.querySelector(".bldr-equip-ophrs")).not.toBeNull();
   });
+
+  it("non-extra tank shows the per-tank Drip (s) input", () => {
+    const card = firstTankCard();
+    expect(card.querySelector(".bldr-drip")).not.toBeNull();
+  });
+
+  it("extra tank hides the per-tank Drip (s) input", () => {
+    setFirstTankType("extra");
+    const card = firstTankCard();
+    expect(card.querySelector(".bldr-drip")).toBeNull();
+  });
+
+  it("setting drip input updates the tank's dripSec in raw seconds", () => {
+    const card = firstTankCard();
+    const drip = card.querySelector(".bldr-drip") as HTMLInputElement;
+    drip.value = "8";
+    drip.dispatchEvent(new Event("input", { bubbles: true }));
+    const lane = document.getElementById("cvStationLane")!;
+    const updated = lane.querySelector(".bldr-drip") as HTMLInputElement;
+    expect(updated.value).toBe("8");
+  });
+});
+
+describe("renderer — wagon handling has no drip", () => {
+  beforeEach(() => {
+    setupDOM();
+    initConfigView();
+  });
+
+  it("wagon card no longer has a drip handling input", () => {
+    const root = document.getElementById("configViewRoot")!;
+    const dripInput = root.querySelector('[data-handling-field="dripSec"]');
+    expect(dripInput).toBeNull();
+  });
+
+  it("wagon handling inputs are ordered Pick, Lift, Lower, Drop", () => {
+    const root = document.getElementById("configViewRoot")!;
+    const fields = Array.from(root.querySelectorAll(".bldr-wagon-handling"))
+      .map((el) => el.getAttribute("data-handling-field"));
+    expect(fields).toEqual(["pickSec", "liftSec", "lowerSec", "dropSec"]);
+  });
 });
