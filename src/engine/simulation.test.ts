@@ -12,7 +12,6 @@ function defaultParams(overrides?: Partial<SimParams>): SimParams {
     wdoTimeMin: 10,
     loadTimeMin: 1,
     unloadTimeMin: 1,
-    dripTimeSec: 3,
     targetBph: 3,
     simHours: 2,
     wagonSpeedMPerMin: 40,
@@ -383,6 +382,25 @@ describe("buildSimPlan", () => {
     expect(plan.buckets).toHaveProperty("manual");
     expect(plan.buckets).toHaveProperty("drip");
   });
+
+  it("applies per-tank drip from RecipeStep at the source tank exit", () => {
+    const layout = buildSyntheticLayout(6);
+    const steps = defaultRecipe(6, "ms").map((s, i) =>
+      s.kind === "tank" && i === 1 ? { ...s, dripSec: 12 } : s,
+    );
+    const plan = buildSimPlan(layout, defaultParams({ recipeSteps: steps }));
+    const dripSteps = plan.steps.filter((st) => st.type === "drip");
+    expect(dripSteps.length).toBe(1);
+    expect(dripSteps[0].end - dripSteps[0].start).toBeCloseTo(12, 6);
+    expect(plan.buckets.drip).toBeCloseTo(12, 6);
+  });
+
+  it("has zero drip when no tank defines dripSec", () => {
+    const layout = buildSyntheticLayout(6);
+    const plan = buildSimPlan(layout, defaultParams());
+    expect(plan.steps.some((st) => st.type === "drip")).toBe(false);
+    expect(plan.buckets.drip).toBe(0);
+  });
 });
 
 describe("computeZones", () => {
@@ -482,3 +500,4 @@ describe("US-012: Failure Handling", () => {
     expect(postFailDecisions.length).toBe(0);
   });
 });
+

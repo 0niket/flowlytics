@@ -3,14 +3,13 @@ import { clamp, distanceMm, mPerMinToMmPerSec, minutesToSeconds } from "../utils
 import { heapPush, heapPop, heapPeek } from "./heap";
 import { transitionBasketWithLog } from "./basketStateMachine";
 
-function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec: number; pickDropSec: number; dripSec: number; speedMPerMin: number } {
+function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec: number; pickDropSec: number; speedMPerMin: number } {
   if (params.perWagonHandling) {
     const wh = params.perWagonHandling.find((h) => h.wagonId === wagonId);
     if (wh) {
       return {
         liftLowerSec: wh.liftSec + wh.lowerSec,
         pickDropSec: wh.pickSec + wh.dropSec,
-        dripSec: wh.dripSec,
         speedMPerMin: wh.speedMPerMin,
       };
     }
@@ -18,7 +17,6 @@ function getHandlingForWagon(params: SimParams, wagonId: string): { liftLowerSec
   return {
     liftLowerSec: params.liftLowerSec,
     pickDropSec: params.pickDropSec,
-    dripSec: params.dripTimeSec || 0,
     speedMPerMin: params.wagonSpeedMPerMin,
   };
 }
@@ -128,6 +126,13 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
     dwellMin.set(step.id, t * (1 - tol));
     dwellMax.set(step.id, t * (1 + tol));
     if (step.maxDwellSec != null) dwellMaxAbs.set(step.id, step.maxDwellSec);
+  }
+
+  // Per-tank drip (drain pause at source tank exit), keyed by tank id
+  const dripBySrc = new Map<string, number>();
+  for (const step of params.recipeSteps) {
+    if (step.kind !== "tank") continue;
+    dripBySrc.set(step.id, step.dripSec ?? 0);
   }
 
   // Drying-time enforcement maps (WDO only)
@@ -377,7 +382,7 @@ export function runSimulation(layout: Layout, params: SimParams): SimulationResu
       const loadedTravel = travelSecLocal(c.src, c.dest === "DONE" ? "UNLOAD" : c.dest, wagon.id);
       const wagonHandling = getHandlingForWagon(params, wagon.id);
       const handling = wagonHandling.pickDropSec + wagonHandling.liftLowerSec;
-      const drip = wagonHandling.dripSec;
+      const drip = dripBySrc.get(c.src) ?? 0;
       const start = now;
       const tPickupDone = now + emptyTravel + handling;
       const tDepartSrc = tPickupDone + drip;
@@ -784,6 +789,7 @@ export function buildSimPlan(layout: Layout, params: SimParams): SimPlan {
   const pickDropSec = params.pickDropSec;
   const steps: SimPlan["steps"] = [];
   const dwellById = new Map(params.recipeSteps.map((s) => [s.id, s.dwellSec]));
+  const dripById = new Map(params.recipeSteps.map((s) => [s.id, s.dripSec ?? 0]));
   function findNode(id: string) { return layout.nodes.find((n) => n.id === id); }
   const sequenceIds = ["LOAD", ...params.recipeSteps.filter((s) => s.kind === "tank").map((s) => s.id), "WDO", "UNLOAD"];
   let t = 0;
@@ -799,7 +805,7 @@ export function buildSimPlan(layout: Layout, params: SimParams): SimPlan {
     if (fromId !== "LOAD") {
       const s = t; t += pickDropSec + liftLowerSec; buckets.handling += pickDropSec + liftLowerSec;
       steps.push({ type: "handling", at: fromId, label: `Pick/Lift @ ${fromId}`, start: s, end: t });
-      const drip = params.dripTimeSec || 0;
+      const drip = dripById.get(fromId) ?? 0;
       if (drip > 0) { const sDrip = t; t += drip; buckets.drip += drip; steps.push({ type: "drip", at: fromId, label: `Drip @ ${fromId}`, start: sDrip, end: t }); }
     }
     const d = distanceMm(from, to, params.distanceMode);

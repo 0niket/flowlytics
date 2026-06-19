@@ -37,6 +37,7 @@ export interface RecipeStep {
   tolerancePct?: number;
   maxDwellSec?: number;
   dryTimeSec?: number;
+  dripSec?: number;
 }
 
 export interface TankConfig {
@@ -58,7 +59,6 @@ export interface SimParams {
   wdoTimeMin: number;
   loadTimeMin: number;
   unloadTimeMin: number;
-  dripTimeSec: number;
   targetBph: number;
   simHours: number;
   wagonSpeedMPerMin: number;
@@ -77,7 +77,6 @@ export interface SimParams {
     wagonId: string;
     speedMPerMin: number;
     liftSec: number;
-    dripSec: number;
     lowerSec: number;
     pickSec: number;
     dropSec: number;

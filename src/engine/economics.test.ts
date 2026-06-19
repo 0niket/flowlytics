@@ -246,8 +246,8 @@ describe("calculateEconomics", () => {
   it("wagon capex in capex.totalWagonCost, NOT in totalCostPerHr", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000 },
-      { id: "W2", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 800000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000 },
+      { id: "W2", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 800000 },
     ];
     const sim = makeSimResult();
 
@@ -261,7 +261,7 @@ describe("calculateEconomics", () => {
   it("wagon with cost + life + hours → depreciationPerHr included in totalCostPerHr", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
     ];
     const sim = makeSimResult();
 
@@ -276,7 +276,7 @@ describe("calculateEconomics", () => {
   it("wagon with cost but no life/hours → depreciationPerHr = 0", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000 },
     ];
     const sim = makeSimResult();
 
@@ -383,7 +383,7 @@ describe("calculateEconomics", () => {
   it("wagon + station depreciation are summed together", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1_200_000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
     ];
     config.stations[1].equipmentCostRs = 500_000;
     config.stations[1].equipmentLifeYears = 10;

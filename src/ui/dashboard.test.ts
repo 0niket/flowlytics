@@ -170,7 +170,7 @@ describe("renderFinancialDashboard — depreciation line", () => {
     const violations = mockContainer();
     const config = configWithEconomics();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
     ];
     const econ = mockEconomics({
       revenuePerHr: 4000,
@@ -264,7 +264,7 @@ describe("renderFinancialDashboard — capex card", () => {
     const violations = mockContainer();
     const config = configWithEconomics();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4, costRs: 1200000, usefulLifeYears: 5, operatingHoursPerYear: 2000 },
     ];
     const econ = mockEconomics({
       revenuePerHr: 4000,

@@ -11,7 +11,6 @@ export function parseParamsJson(json: string): Partial<SimParams> {
   if (typeof raw.loadTimeMin === "number") params.loadTimeMin = raw.loadTimeMin;
   if (typeof raw.unloadTimeMin === "number") params.unloadTimeMin = raw.unloadTimeMin;
   if (typeof raw.wdoTimeMin === "number") params.wdoTimeMin = raw.wdoTimeMin;
-  if (typeof raw.dripTimeSec === "number") params.dripTimeSec = raw.dripTimeSec;
   if (typeof raw.liftLowerSec === "number") params.liftLowerSec = raw.liftLowerSec;
   if (typeof raw.pickDropSec === "number") params.pickDropSec = raw.pickDropSec;
   if (typeof raw.targetBph === "number") params.targetBph = raw.targetBph;
@@ -28,6 +27,7 @@ export function parseParamsJson(json: string): Partial<SimParams> {
         dwellSec: Number(rs.dwellSec) || 0,
         tolerancePct: rs.tolerancePct != null ? Number(rs.tolerancePct) : 0.1,
         tankType: rs.tankType as RecipeStep["tankType"] | undefined,
+        dripSec: rs.dripSec != null ? Number(rs.dripSec) : undefined,
       };
     });
   }

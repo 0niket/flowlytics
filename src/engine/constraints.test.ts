@@ -46,7 +46,7 @@ function multiStationConfig(): LineConfig {
   ];
   cfg.transport.wagonCount = 1;
   cfg.transport.wagons = [
-    { id: "W1", fromStationId: "LOAD", toStationId: "UNLOAD", speedMPerMin: 18, liftSec: 10, dripSec: 4, lowerSec: 6, pickSec: 6, dropSec: 4 },
+    { id: "W1", fromStationId: "LOAD", toStationId: "UNLOAD", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4 },
   ];
   return cfg;
 }

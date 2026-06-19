@@ -12,7 +12,6 @@ function baseParams(): SimParams {
     wdoTimeMin: 10,
     loadTimeMin: 1,
     unloadTimeMin: 1,
-    dripTimeSec: 3,
     targetBph: 6,
     simHours: 1,
     wagonSpeedMPerMin: 40,

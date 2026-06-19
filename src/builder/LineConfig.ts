@@ -20,6 +20,8 @@ export interface StationConfig {
   dryTimeSec?: number;
   tolerancePct?: number;
   maxDwellSec?: number;
+  // Per-tank drain pause after lift, before loaded travel (tank kind only, seconds):
+  dripSec?: number;
   chemicalDescription?: string;
   loadingDescription?: string;
   unloadingDescription?: string;
@@ -44,7 +46,6 @@ export interface WagonConfig {
   toStationId: string;
   speedMPerMin: number;
   liftSec: number;
-  dripSec: number;
   lowerSec: number;
   pickSec: number;
   dropSec: number;
@@ -57,7 +58,6 @@ export interface TransportConfig {
   wagonCount: number;
   wagonSpeedMPerMin: number;
   liftSec: number;
-  dripSec: number;
   lowerSec: number;
   pickSec: number;
   dropSec: number;
@@ -111,7 +111,6 @@ export function createDefaultLineConfig(): LineConfig {
       wagonCount: 1,
       wagonSpeedMPerMin: 18,
       liftSec: 10,
-      dripSec: 4,
       lowerSec: 6,
       pickSec: 6,
       dropSec: 4,
@@ -135,7 +134,7 @@ function toRecipeStep(st: StationConfig): RecipeStep {
     // "extra" tankType doesn't exist on the legacy RecipeStep type yet,
     // so it maps to undefined — treated as a no-parameter placeholder.
     const tankType = st.tankType === "extra" ? undefined : st.tankType;
-    return { ...base, kind: "tank" as const, tankType, tolerancePct: st.tolerancePct };
+    return { ...base, kind: "tank" as const, tankType, tolerancePct: st.tolerancePct, dripSec: st.dripSec };
   }
   if (st.kind === "wdo") {
     return { ...base, kind: "oven" as const, dryTimeSec: st.dryTimeSec, tolerancePct: st.tolerancePct };
@@ -155,6 +154,7 @@ export interface BasketCountBreakdown {
   activeTankCount: number;
   totalDwellSec: number;
   handlingPerTankSec: number;
+  totalDripSec: number;
   totalCycleSec: number;
   serviceSec: number;
   wagonCount: number;
@@ -169,16 +169,17 @@ export function computeBasketCountBreakdown(config: LineConfig): BasketCountBrea
   const activeTankCount = tanks.length;
   if (activeTankCount === 0) {
     return {
-      activeTankCount: 0, totalDwellSec: 0, handlingPerTankSec: 0,
+      activeTankCount: 0, totalDwellSec: 0, handlingPerTankSec: 0, totalDripSec: 0,
       totalCycleSec: 0, serviceSec: 0, wagonCount: config.transport.wagonCount,
       effectiveCycleSec: 0, throughputPerSec: 0, optimalWip: 0, result: 1,
     };
   }
 
   const totalDwellSec = tanks.reduce((sum, t) => sum + t.dwellSec, 0);
-  const handlingPerTankSec = config.transport.liftSec + config.transport.dripSec +
+  const handlingPerTankSec = config.transport.liftSec +
     config.transport.lowerSec + config.transport.pickSec + config.transport.dropSec;
-  const totalCycleSec = totalDwellSec + activeTankCount * handlingPerTankSec;
+  const totalDripSec = tanks.reduce((sum, t) => sum + (t.dripSec ?? 0), 0);
+  const totalCycleSec = totalDwellSec + activeTankCount * handlingPerTankSec + totalDripSec;
   const loadStation = config.stations.find((s) => s.kind === "loading");
   const unloadStation = config.stations.find((s) => s.kind === "unloading");
   const serviceSec = (loadStation?.dwellSec ?? 0) + (unloadStation?.dwellSec ?? 0);
@@ -194,7 +195,7 @@ export function computeBasketCountBreakdown(config: LineConfig): BasketCountBrea
   const result = Math.max(1, Math.min(activeTankCount + 2, Math.ceil(optimalWip) + 1));
 
   return {
-    activeTankCount, totalDwellSec, handlingPerTankSec,
+    activeTankCount, totalDwellSec, handlingPerTankSec, totalDripSec,
     totalCycleSec, serviceSec, wagonCount,
     effectiveCycleSec, throughputPerSec, optimalWip, result,
   };
@@ -231,7 +232,6 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
       wagonId: w.id,
       speedMPerMin: w.speedMPerMin,
       liftSec: w.liftSec,
-      dripSec: w.dripSec,
       lowerSec: w.lowerSec,
       pickSec: w.pickSec,
       dropSec: w.dropSec,
@@ -246,7 +246,6 @@ export function lineConfigToSimParams(config: LineConfig): SimParams {
     wdoTimeMin: wdoStation ? (wdoStation.dryTimeSec ?? wdoStation.dwellSec) / 60 : 10,
     loadTimeMin: loadStation ? loadStation.dwellSec / 60 : 20,
     unloadTimeMin: unloadStation ? unloadStation.dwellSec / 60 : 10,
-    dripTimeSec: config.transport.dripSec,
     targetBph: config.settings.targetBph,
     simHours: config.settings.simHours,
     wagonSpeedMPerMin: config.transport.wagonSpeedMPerMin,
@@ -327,6 +326,7 @@ export function lineConfigFromSimParams(params: SimParams): LineConfig {
     if (kind === "tank") {
       station.tankType = step.tankType || "chemical";
       station.tolerancePct = step.tolerancePct;
+      station.dripSec = step.dripSec;
     }
     if (kind === "wdo") {
       station.dryTimeSec = step.dryTimeSec ?? step.dwellSec;
@@ -347,7 +347,6 @@ export function lineConfigFromSimParams(params: SimParams): LineConfig {
       wagonCount: params.wagonCount,
       wagonSpeedMPerMin: params.wagonSpeedMPerMin,
       liftSec: Math.round(params.liftLowerSec / 2),
-      dripSec: params.dripTimeSec,
       lowerSec: Math.round(params.liftLowerSec / 2),
       pickSec: Math.round(params.pickDropSec / 2),
       dropSec: Math.round(params.pickDropSec / 2),
