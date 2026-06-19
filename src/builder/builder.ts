@@ -217,8 +217,12 @@ export class Builder {
     this._config.transport.lowerSec = Math.max(0, sec);
   }
 
-  setDripTime(sec: number): void {
-    this._config.transport.dripSec = Math.max(0, sec);
+  setTankDrip(index: number, sec: number): void {
+    const station = this._config.stations[index];
+    if (!station || station.kind !== "tank") {
+      throw new Error(`No tank at index ${index}`);
+    }
+    station.dripSec = Math.max(0, sec);
   }
 
   setPickTime(sec: number): void {
@@ -229,7 +233,7 @@ export class Builder {
     this._config.transport.dropSec = Math.max(0, sec);
   }
 
-  setWagonHandlingTime(wagonIndex: number, field: "liftSec" | "dripSec" | "lowerSec" | "pickSec" | "dropSec", value: number): void {
+  setWagonHandlingTime(wagonIndex: number, field: "liftSec" | "lowerSec" | "pickSec" | "dropSec", value: number): void {
     if (!this._config.transport.wagons) return;
     const wagon = this._config.transport.wagons[wagonIndex];
     if (!wagon) return;
@@ -423,7 +427,6 @@ export class Builder {
         toStationId: processStations[endIdx].id,
         speedMPerMin: prev?.speedMPerMin ?? 18,
         liftSec: prev?.liftSec ?? 10,
-        dripSec: prev?.dripSec ?? 4,
         lowerSec: prev?.lowerSec ?? 6,
         pickSec: prev?.pickSec ?? 6,
         dropSec: prev?.dropSec ?? 4,
@@ -470,7 +473,7 @@ export class Builder {
       if (fromIdx > toIdx) {
         errors.push(`${w.id}: From station must come before To station`);
       }
-      if (w.liftSec < 0 || w.dripSec < 0 || w.lowerSec < 0 || w.pickSec < 0 || w.dropSec < 0) {
+      if (w.liftSec < 0 || w.lowerSec < 0 || w.pickSec < 0 || w.dropSec < 0) {
         errors.push(`${w.id}: handling times must be >= 0`);
       }
     }

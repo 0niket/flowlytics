@@ -282,10 +282,22 @@ describe("Builder — transport operations", () => {
     expect(b.config.transport.lowerSec).toBe(8);
   });
 
-  it("setDripTime updates drip sec", () => {
+  it("setTankDrip updates a tank's drip sec", () => {
     const b = new Builder();
-    b.setDripTime(5);
-    expect(b.config.transport.dripSec).toBe(5);
+    // Default config: stations[1] is the chemical tank T1
+    b.setTankDrip(1, 5);
+    expect(b.config.stations[1].dripSec).toBe(5);
+  });
+
+  it("setTankDrip clamps negative values to 0", () => {
+    const b = new Builder();
+    b.setTankDrip(1, -5);
+    expect(b.config.stations[1].dripSec).toBe(0);
+  });
+
+  it("setTankDrip throws when index is not a tank", () => {
+    const b = new Builder();
+    expect(() => b.setTankDrip(0, 5)).toThrow();
   });
 
   it("setPickTime updates pick sec", () => {
@@ -312,8 +324,8 @@ describe("Builder — per-wagon handling times", () => {
   it("setWagonHandlingTime clamps negative values to 0", () => {
     const b = new Builder();
     b.setWagonCount(2);
-    b.setWagonHandlingTime(0, "dripSec", -5);
-    expect(b.config.transport.wagons![0].dripSec).toBe(0);
+    b.setWagonHandlingTime(0, "lowerSec", -5);
+    expect(b.config.transport.wagons![0].lowerSec).toBe(0);
   });
 
   it("setWagonHandlingTime works for single wagon", () => {
@@ -335,7 +347,6 @@ describe("Builder — per-wagon handling times", () => {
     const w = b.config.transport.wagons![0];
     expect(w.speedMPerMin).toBe(18);
     expect(w.liftSec).toBe(10);
-    expect(w.dripSec).toBe(4);
     expect(w.lowerSec).toBe(6);
     expect(w.pickSec).toBe(6);
     expect(w.dropSec).toBe(4);

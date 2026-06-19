@@ -3,6 +3,7 @@ import {
   createDefaultLineConfig,
   createDefaultEconomicsConfig,
   computeOptimalBasketCount,
+  computeBasketCountBreakdown,
   lineConfigToSimParams,
   lineConfigToLayout,
   lineConfigFromSimParams,
@@ -48,7 +49,7 @@ describe("createDefaultLineConfig", () => {
     const t = config.transport;
     expect(t.wagonCount).toBe(1);
     expect(t.wagonSpeedMPerMin).toBe(18);
-    expect(t.liftSec + t.dripSec + t.lowerSec).toBe(20);
+    expect(t.liftSec + t.lowerSec).toBe(16);
     expect(t.pickSec + t.dropSec).toBe(10);
     expect(t.distanceMode).toBe("manhattan");
   });
@@ -116,7 +117,7 @@ describe("lineConfigToSimParams", () => {
 
   it("sets transport fields from TransportConfig", () => {
     const config = createDefaultLineConfig();
-    config.transport = { ...config.transport, liftSec: 8, dripSec: 4, lowerSec: 8, pickSec: 5, dropSec: 5, wagonSpeedMPerMin: 20 };
+    config.transport = { ...config.transport, liftSec: 8, lowerSec: 8, pickSec: 5, dropSec: 5, wagonSpeedMPerMin: 20 };
     const params = lineConfigToSimParams(config);
     expect(params.wagonSpeedMPerMin).toBe(20);
   });
@@ -258,6 +259,27 @@ describe("lineConfigFromSimParams — station kind inference", () => {
   });
 });
 
+describe("computeBasketCountBreakdown — drip", () => {
+  it("keeps drip out of handlingPerTankSec and defaults totalDripSec to 0", () => {
+    const config = createDefaultLineConfig();
+    const b = computeBasketCountBreakdown(config);
+    // Default config defines no tank drip
+    expect(b.totalDripSec).toBe(0);
+    // handling = lift + lower + pick + drop = 10 + 6 + 6 + 4
+    expect(b.handlingPerTankSec).toBe(26);
+    expect(b.totalCycleSec).toBe(b.totalDwellSec + b.activeTankCount * b.handlingPerTankSec);
+  });
+
+  it("adds each active tank's drip into totalDripSec and totalCycleSec", () => {
+    const config = createDefaultLineConfig();
+    config.stations[1].dripSec = 7; // chemical tank T1
+    const b = computeBasketCountBreakdown(config);
+    expect(b.totalDripSec).toBe(7);
+    expect(b.handlingPerTankSec).toBe(26);
+    expect(b.totalCycleSec).toBe(b.totalDwellSec + b.activeTankCount * b.handlingPerTankSec + 7);
+  });
+});
+
 describe("lineConfigFromSimParams — round-trip", () => {
   it("round-trips through toSimParams", () => {
     const original = lineConfigWithWdo();
@@ -298,6 +320,17 @@ describe("lineConfigFromSimParams — round-trip", () => {
     expect(restored.settings.targetBph).toBe(original.settings.targetBph);
     expect(restored.settings.simHours).toBe(original.settings.simHours);
     expect(restored.settings.basketCount).toBe(original.settings.basketCount);
+  });
+
+  it("round-trips per-tank drip through RecipeStep", () => {
+    const original = createDefaultLineConfig();
+    original.stations[1].dripSec = 9; // chemical tank T1
+    const params = lineConfigToSimParams(original);
+    const tankStep = params.recipeSteps.find((s) => s.id === "T1")!;
+    expect(tankStep.dripSec).toBe(9);
+    const restored = lineConfigFromSimParams(params);
+    const restoredTank = restored.stations.find((s) => s.id === "T1")!;
+    expect(restoredTank.dripSec).toBe(9);
   });
 });
 
