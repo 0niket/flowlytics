@@ -438,6 +438,14 @@ html.light .constraint-card--warning .constraint-violation {
 .station-card__subtitle {
   font-size: 11px; color: var(--muted); margin-bottom: 8px;
 }
+.station-card__group-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); margin-top: 10px;
+}
+.station-card__group-hint {
+  font-size: 10px; font-style: italic; color: var(--muted);
+  margin-top: 1px; margin-bottom: 8px;
+}
 .station-card__field {
   display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
 }

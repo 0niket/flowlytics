@@ -1,6 +1,8 @@
-I'm a software engineer. Or a product engineer. Or a Forward Deployed Engineer. Or whatever you want to call someone who spends their days figuring out how to build things that solve real problems. My uncle Vinayak Thakar runs Zenith — they build industrial [pretreatment lines](#app-pretreatment-line), [conveyor systems](#app-conveyor-system), the kind of machinery that makes modern manufacturing possible.
+My uncle, Vinayak Thakar, runs Zenith. They build the heavy machinery that modern manufacturing quietly depends on: [pretreatment lines](#app-pretreatment-line), [conveyor systems](#app-conveyor-system), the systems that clean and prepare metal parts before they're painted or coated. He has spent decades on factory floors, and he thinks the way people who build real machines think — in tradeoffs. Faster usually costs more. Cheaper usually breaks something. Every gain has a price, and his job is to know what it is before a customer finds out the hard way.
 
-One evening, he was telling me about a problem at one of his plants. A [pretreatment line](#app-pretreatment-line) with multiple [chemical tanks](#app-chemical-tank), a [rail-mounted transporter wagon](#app-wagon) shuttling [baskets](#app-basket) between them. The timing had to be precise. Each [basket](#app-basket) needed a specific number of seconds in each tank — the [dwell time](#app-dwell-time). Not too little, not too much. But the [wagon](#app-wagon) was shared. When multiple [baskets](#app-basket) were in the line at the same time, the [wagon](#app-wagon) couldn't be everywhere at once. [Baskets](#app-basket) waited. Timings slipped. Quality suffered.
+> <sub>_Note: this introduction is a draft and needs further refinement after discussing with Kaka._</sub>
+
+One evening, he was telling me about a problem at one of his plants. It was, on the surface, a timing problem. The machinery had to do a sequence of things in a precise order, on a tight schedule — and lately the schedule kept slipping. When it slipped, parts came out wrong. Wrong meant rework, or rejects, or worse: a defect that nobody catches until the part fails out in the field. He could see the symptoms in the data. What he couldn't see was *why* — or what to change without making something else worse.
 
 "If only there was a way to simulate the whole system," he said. "I could understand it better. Identify problems before we build."
 
@@ -8,7 +10,7 @@ Something clicked.
 
 "I think we can build one."
 
-So that's what we set out to do. Months of calls, sketches, arguments, and late-night realizations followed. Diagrams on paper. First attempts that were wrong. Second attempts that were less wrong. Kaka explaining the physics. Me translating it into code. Slowly, a simulator took shape.
+So that's what we set out to do. Months of calls, sketches, arguments, and late-night realizations followed. Diagrams on paper. First attempts that were wrong. Second attempts that were less wrong. Kaka explaining how the line really behaves. Me translating it into code. Slowly, a simulator took shape.
 
 Then one day, he called.
 

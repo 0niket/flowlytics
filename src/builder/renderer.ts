@@ -144,6 +144,8 @@ function renderStationSection(container: HTMLElement): void {
         ${isExtra ? '<div class="station-card__subtitle" style="margin-top:4px;">Reserved for future use</div>' : ""}
         ${!isExtra ? `
           <hr class="separator" />
+          <div class="station-card__group-title">Chemical bath</div>
+          <div class="station-card__group-hint">recurring cost — bath is dumped &amp; refilled periodically</div>
           <div class="field" style="margin:0;margin-bottom:6px;">
             <label class="field__label">Tank capacity (litres)</label>
             <input class="bldr-tank-capacity station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.tankCapacityLitres ?? ""}" placeholder="0" />
@@ -155,9 +157,11 @@ function renderStationSection(container: HTMLElement): void {
           <div class="field" style="margin:0;">
             <label class="field__label">Bath life (hours)</label>
             <input class="bldr-bath-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.bathLifeHours ?? ""}" placeholder="0" />
-            <div class="field__hint">hours between dumps</div>
+            <div class="field__hint">operating hours before the bath is dumped</div>
           </div>
           <hr class="separator" />
+          <div class="station-card__group-title">Equipment</div>
+          <div class="station-card__group-hint">one-time capital cost, spread over its working life</div>
           <div class="field" style="margin:0;margin-bottom:6px;">
             <label class="field__label">Equipment cost (₹)</label>
             <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
@@ -206,6 +210,9 @@ function renderStationSection(container: HTMLElement): void {
           <label class="field__label">Operating cost (₹/hr)</label>
           <input class="bldr-wdo-opcost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.operatingCostPerHr ?? ""}" placeholder="0" />
         </div>
+        <hr class="separator" />
+        <div class="station-card__group-title">Equipment</div>
+        <div class="station-card__group-hint">one-time capital cost, spread over its working life</div>
         <div class="field" style="margin:0;margin-bottom:6px;">
           <label class="field__label">Equipment cost (₹)</label>
           <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
