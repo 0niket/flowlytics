@@ -256,7 +256,7 @@ function renderStationSection(container: HTMLElement): void {
             <input class="bldr-labour-count station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.labourCount ?? ""}" placeholder="0" />
           </div>
           <div class="field" style="margin:0;">
-            <label class="field__label">Cost/hr (₹)</label>
+            <label class="field__label">Cost/hr per operator (₹)</label>
             <input class="bldr-labour-cost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.labourCostPerHr ?? ""}" placeholder="0" />
           </div>
         </div>
@@ -285,7 +285,7 @@ function renderStationSection(container: HTMLElement): void {
             <input class="bldr-labour-count station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.labourCount ?? ""}" placeholder="0" />
           </div>
           <div class="field" style="margin:0;">
-            <label class="field__label">Cost/hr (₹)</label>
+            <label class="field__label">Cost/hr per operator (₹)</label>
             <input class="bldr-labour-cost station-card__input" data-index="${i}" type="number" min="0" step="10" value="${s.labourCostPerHr ?? ""}" placeholder="0" />
           </div>
         </div>
