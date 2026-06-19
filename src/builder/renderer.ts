@@ -121,7 +121,8 @@ function renderStationSection(container: HTMLElement): void {
             ${stationTypeOptions(s.tankType)}
           </select>
         </div>
-        <div class="grid2" ${isExtra ? "hidden" : ""} style="margin-bottom:8px;">
+        ${!isExtra ? `
+        <div class="grid2" style="margin-bottom:8px;">
           <div class="field" style="margin:0;">
             <label class="field__label">Dwell time</label>
             <div class="station-card__field">
@@ -138,10 +139,11 @@ function renderStationSection(container: HTMLElement): void {
             </div>
           </div>
         </div>
+        ` : ""}
         ${s.tankType === "chemical" ? `
           <textarea class="bldr-chem-desc station-card__textarea" data-index="${i}" placeholder="Chemical composition..." rows="2">${s.chemicalDescription ?? ""}</textarea>
         ` : ""}
-        ${isExtra ? '<div class="station-card__subtitle" style="margin-top:4px;">Reserved for future use</div>' : ""}
+        ${isExtra ? '<div class="station-card__subtitle" style="margin-top:4px;">Reserved for future use — no running cost, only setup cost.</div>' : ""}
         ${!isExtra ? `
           <hr class="separator" />
           <div class="station-card__group-title">Chemical bath</div>
@@ -159,24 +161,24 @@ function renderStationSection(container: HTMLElement): void {
             <input class="bldr-bath-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.bathLifeHours ?? ""}" placeholder="0" />
             <div class="field__hint">operating hours before the bath is dumped</div>
           </div>
-          <hr class="separator" />
-          <div class="station-card__group-title">Equipment</div>
-          <div class="station-card__group-hint">one-time capital cost, spread over its working life</div>
-          <div class="field" style="margin:0;margin-bottom:6px;">
-            <label class="field__label">Equipment cost (₹)</label>
-            <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
-          </div>
-          <div class="grid2">
-            <div class="field" style="margin:0;">
-              <label class="field__label">Useful life (years)</label>
-              <input class="bldr-equip-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.equipmentLifeYears ?? ""}" placeholder="0" />
-            </div>
-            <div class="field" style="margin:0;">
-              <label class="field__label">Operating hrs/year</label>
-              <input class="bldr-equip-ophrs station-card__input" data-index="${i}" type="number" min="0" step="100" value="${s.equipmentOperatingHoursPerYear ?? ""}" placeholder="0" />
-            </div>
-          </div>
         ` : ""}
+        <hr class="separator" />
+        <div class="station-card__group-title">Equipment</div>
+        <div class="station-card__group-hint">one-time capital cost, spread over its working life</div>
+        <div class="field" style="margin:0;margin-bottom:6px;">
+          <label class="field__label">Equipment cost (₹)</label>
+          <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
+        </div>
+        <div class="grid2">
+          <div class="field" style="margin:0;">
+            <label class="field__label">Useful life (years)</label>
+            <input class="bldr-equip-life station-card__input" data-index="${i}" type="number" min="0" step="1" value="${s.equipmentLifeYears ?? ""}" placeholder="0" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label class="field__label">Operating hrs/year</label>
+            <input class="bldr-equip-ophrs station-card__input" data-index="${i}" type="number" min="0" step="100" value="${s.equipmentOperatingHoursPerYear ?? ""}" placeholder="0" />
+          </div>
+        </div>
       `;
       lane.appendChild(card);
     } else if (s.kind === "wdo") {

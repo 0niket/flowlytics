@@ -105,3 +105,54 @@ describe("renderer — basket count input", () => {
     expect(text).toContain("buffer");
   });
 });
+
+describe("renderer — extra tank fields", () => {
+  beforeEach(() => {
+    setupDOM();
+    initConfigView();
+  });
+
+  function firstTankCard(): HTMLElement {
+    const lane = document.getElementById("cvStationLane")!;
+    const card = lane.querySelector(".station-card--chemical, .station-card--rinse, .station-card--extra");
+    return card as HTMLElement;
+  }
+
+  function setFirstTankType(type: string): void {
+    const card = firstTankCard();
+    const select = card.querySelector(".bldr-type") as HTMLSelectElement;
+    select.value = type;
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  it("non-extra tank shows dwell time and tolerance inputs", () => {
+    // Default first tank is chemical
+    const card = firstTankCard();
+    expect(card.querySelector(".bldr-dwell")).not.toBeNull();
+    expect(card.querySelector(".bldr-tol")).not.toBeNull();
+  });
+
+  it("extra tank hides dwell time and tolerance inputs", () => {
+    setFirstTankType("extra");
+    const card = firstTankCard();
+    expect(card.classList.contains("station-card--extra")).toBe(true);
+    expect(card.querySelector(".bldr-dwell")).toBeNull();
+    expect(card.querySelector(".bldr-tol")).toBeNull();
+  });
+
+  it("extra tank hides chemical bath (running cost) inputs", () => {
+    setFirstTankType("extra");
+    const card = firstTankCard();
+    expect(card.querySelector(".bldr-tank-capacity")).toBeNull();
+    expect(card.querySelector(".bldr-chem-cost")).toBeNull();
+    expect(card.querySelector(".bldr-bath-life")).toBeNull();
+  });
+
+  it("extra tank still shows equipment (setup cost) inputs", () => {
+    setFirstTankType("extra");
+    const card = firstTankCard();
+    expect(card.querySelector(".bldr-equip-cost")).not.toBeNull();
+    expect(card.querySelector(".bldr-equip-life")).not.toBeNull();
+    expect(card.querySelector(".bldr-equip-ophrs")).not.toBeNull();
+  });
+});
