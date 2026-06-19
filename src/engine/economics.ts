@@ -115,6 +115,10 @@ export function calculateEconomics(
     const cost = station.equipmentCostRs;
     if (cost != null && cost > 0) {
       totalStationEquipmentCost += cost;
+      // An "extra" (reserved) tank is a parked capital investment: its setup
+      // cost counts in capex, but it isn't operating, so it adds no per-hour
+      // depreciation to the running cost stream.
+      if (station.kind === "tank" && station.tankType === "extra") continue;
       const life = station.equipmentLifeYears ?? 0;
       const opHrs = station.equipmentOperatingHoursPerYear ?? 0;
       const totalHours = life * opHrs;

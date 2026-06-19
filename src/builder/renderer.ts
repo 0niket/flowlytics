@@ -164,11 +164,12 @@ function renderStationSection(container: HTMLElement): void {
         ` : ""}
         <hr class="separator" />
         <div class="station-card__group-title">Equipment</div>
-        <div class="station-card__group-hint">one-time capital cost, spread over its working life</div>
+        <div class="station-card__group-hint">${isExtra ? "parked capital — counted in total investment, no per-hour cost while idle" : "one-time capital cost, spread over its working life"}</div>
         <div class="field" style="margin:0;margin-bottom:6px;">
           <label class="field__label">Equipment cost (₹)</label>
           <input class="bldr-equip-cost station-card__input" data-index="${i}" type="number" min="0" step="10000" value="${s.equipmentCostRs ?? ""}" placeholder="0" />
         </div>
+        ${!isExtra ? `
         <div class="grid2">
           <div class="field" style="margin:0;">
             <label class="field__label">Useful life (years)</label>
@@ -179,6 +180,7 @@ function renderStationSection(container: HTMLElement): void {
             <input class="bldr-equip-ophrs station-card__input" data-index="${i}" type="number" min="0" step="100" value="${s.equipmentOperatingHoursPerYear ?? ""}" placeholder="0" />
           </div>
         </div>
+        ` : ""}
       `;
       lane.appendChild(card);
     } else if (s.kind === "wdo") {

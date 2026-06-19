@@ -357,23 +357,25 @@ describe("calculateEconomics", () => {
     expect(result.capex.totalStationEquipmentCost).toBe(500_000);
   });
 
-  it("extra tank setup cost counts in capex but adds no running/chemical cost", () => {
+  it("extra tank setup cost counts in capex but adds no per-hour cost", () => {
     const config = createDefaultLineConfig();
     // Convert the default tank into an extra (reserved) tank with a setup cost.
     config.stations[1].tankType = "extra";
     config.stations[1].dwellSec = 0;
     config.stations[1].tolerancePct = undefined;
     config.stations[1].equipmentCostRs = 300_000;
+    // Even if stale life/opHrs values linger, an idle reserved tank must not
+    // contribute per-hour depreciation — it is a parked capital investment.
     config.stations[1].equipmentLifeYears = 10;
     config.stations[1].equipmentOperatingHoursPerYear = 3000;
     const sim = makeSimResult();
 
     const result = calculateEconomics(config, sim);
 
-    // Setup (capital) cost is counted.
+    // Setup (capital) cost is counted as parked investment.
     expect(result.capex.totalStationEquipmentCost).toBe(300_000);
-    // Depreciation: 300_000 / (10 × 3000) = 10
-    expect(result.costBreakdown.depreciationPerHr).toBe(10);
+    // No per-hour depreciation — it isn't operating.
+    expect(result.costBreakdown.depreciationPerHr).toBe(0);
     // No chemical/running cost for an empty reserved tank.
     expect(result.costBreakdown.chemicalPerHr).toBe(0);
   });

@@ -148,8 +148,18 @@ describe("renderer — extra tank fields", () => {
     expect(card.querySelector(".bldr-bath-life")).toBeNull();
   });
 
-  it("extra tank still shows equipment (setup cost) inputs", () => {
+  it("extra tank shows equipment setup cost but not life/operating-hours", () => {
     setFirstTankType("extra");
+    const card = firstTankCard();
+    // Setup (capital) cost is still entered for a reserved tank.
+    expect(card.querySelector(".bldr-equip-cost")).not.toBeNull();
+    // Life/operating-hours are operating-time concepts — not shown for an
+    // idle reserved tank (capex-only, no per-hour depreciation).
+    expect(card.querySelector(".bldr-equip-life")).toBeNull();
+    expect(card.querySelector(".bldr-equip-ophrs")).toBeNull();
+  });
+
+  it("non-extra tank shows equipment life and operating-hours", () => {
     const card = firstTankCard();
     expect(card.querySelector(".bldr-equip-cost")).not.toBeNull();
     expect(card.querySelector(".bldr-equip-life")).not.toBeNull();
