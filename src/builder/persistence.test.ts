@@ -95,22 +95,22 @@ describe("persistence", () => {
   it("round-trips per-wagon handling times", () => {
     const config = createDefaultLineConfig();
     config.transport.wagons = [
-      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 12, dripSec: 5, lowerSec: 8, pickSec: 7, dropSec: 3 },
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 12, lowerSec: 8, pickSec: 7, dropSec: 3 },
     ];
     saveDraft(config);
     const draft = loadDraft()!;
     expect(draft.config.transport.wagons).toBeDefined();
     expect(draft.config.transport.wagons![0].liftSec).toBe(12);
-    expect(draft.config.transport.wagons![0].dripSec).toBe(5);
+    expect(draft.config.transport.wagons![0].lowerSec).toBe(8);
     expect(draft.config.transport.wagons![0].pickSec).toBe(7);
   });
 
-  it("saveDraft writes version 5", () => {
+  it("saveDraft writes version 7", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const raw = globalThis.localStorage.getItem("flowlytics_builder_draft")!;
     const parsed = JSON.parse(raw);
-    expect(parsed.version).toBe(6);
+    expect(parsed.version).toBe(7);
   });
 
   it("migrates v4 draft — removes centralized cost fields", () => {
@@ -142,7 +142,7 @@ describe("persistence", () => {
 
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(6);
+    expect(draft!.version).toBe(7);
 
     // Removed fields should be gone
     const econ = draft!.config.economics as unknown as Record<string, unknown>;
@@ -176,7 +176,7 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v1Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(6);
+    expect(draft!.version).toBe(7);
     expect(draft!.config).toBeDefined();
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
@@ -188,16 +188,36 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v3Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(6);
+    expect(draft!.version).toBe(7);
     expect(draft!.config.economics).toEqual(createDefaultEconomicsConfig());
   });
 
-  it("does not migrate v6 drafts", () => {
+  it("does not migrate current-version drafts", () => {
     const config = createDefaultLineConfig();
     saveDraft(config);
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(6);
+    expect(draft!.version).toBe(7);
+  });
+
+  it("migrates v6 draft — drops transport and per-wagon dripSec", () => {
+    const config = createDefaultLineConfig();
+    (config.transport as unknown as Record<string, unknown>).dripSec = 4;
+    config.transport.wagons = [
+      { id: "W1", fromStationId: "T1", toStationId: "T1", speedMPerMin: 18, liftSec: 10, lowerSec: 6, pickSec: 6, dropSec: 4 },
+    ];
+    (config.transport.wagons[0] as unknown as Record<string, unknown>).dripSec = 4;
+    const v6Draft = { config, version: 6 };
+    globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v6Draft));
+
+    const draft = loadDraft();
+    expect(draft).not.toBeNull();
+    expect(draft!.version).toBe(7);
+    expect((draft!.config.transport as unknown as Record<string, unknown>).dripSec).toBeUndefined();
+    expect((draft!.config.transport.wagons![0] as unknown as Record<string, unknown>).dripSec).toBeUndefined();
+    // Tanks are not seeded with drip
+    const tank = draft!.config.stations.find((s) => s.kind === "tank")!;
+    expect(tank.dripSec).toBeUndefined();
   });
 
   it("migrates v5 draft — WDO dwellSec to dryTimeSec", () => {
@@ -209,7 +229,7 @@ describe("persistence", () => {
     globalThis.localStorage.setItem("flowlytics_builder_draft", JSON.stringify(v5Draft));
     const draft = loadDraft();
     expect(draft).not.toBeNull();
-    expect(draft!.version).toBe(6);
+    expect(draft!.version).toBe(7);
     const wdo = draft!.config.stations.find((s) => s.kind === "wdo")!;
     expect(wdo.dryTimeSec).toBe(600);
     expect(wdo.dwellSec).toBe(0);

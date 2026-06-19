@@ -2,7 +2,7 @@ import type { LineConfig } from "./LineConfig";
 import { createDefaultEconomicsConfig } from "./LineConfig";
 
 const STORAGE_KEY = "flowlytics_builder_draft";
-const CURRENT_VERSION = 6;
+const CURRENT_VERSION = 7;
 
 export interface PersistedDraft {
   config: LineConfig;
@@ -60,6 +60,16 @@ export function loadDraft(): PersistedDraft | null {
         if (station.kind === "wdo" && !station.dryTimeSec) {
           station.dryTimeSec = station.dwellSec || 600;
           station.dwellSec = 0;
+        }
+      }
+
+      // v6→v7: drip moves from wagon/transport to per-tank; drop the old fields.
+      if (version < 7) {
+        delete (config.transport as unknown as Record<string, unknown>).dripSec;
+        if (config.transport?.wagons) {
+          for (const wagon of config.transport.wagons) {
+            delete (wagon as unknown as Record<string, unknown>).dripSec;
+          }
         }
       }
 
